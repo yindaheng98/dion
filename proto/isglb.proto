@@ -1,0 +1,20 @@
+syntax = "proto3";
+
+import "github.com/pion/ion/proto/ion/ion.proto";
+
+option go_package = "github.com/yindaheng98/isglb/proto";
+
+package islb;
+
+service ISLB {
+}
+
+message FindNodeRequest {
+  string sid = 1;
+  string nid = 2;
+  string service = 3;
+}
+
+message FindNodeReply {
+  repeated ion.Node nodes = 1;
+}
