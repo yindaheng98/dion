@@ -19,11 +19,10 @@ service ISGLB {
   rpc NodeQualityReport(stream NodeReport) returns (stream ReportReply) {}
 }
 
-// The track with id `srcTrackId` from `src` node was/should forwarded and output track's name is `dstTrackId`
+// The track with id `trackId` from `src` node was/should forwarded
 message ForwardTrack {
   ion.Node src = 1;
-  string srcTrackId = 2;
-  string dstTrackId = 3;
+  string trackId = 2; // The same video/audio has the same track id in different nodes
 }
 
 // The track with id `srcTrackId` in the current node was/should proceeded and output track's name is `dstTrackId`
