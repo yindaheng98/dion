@@ -35,6 +35,7 @@ message SFUStatus {
   ion.Node SFU = 1;
   repeated ForwardTrack forwardTracks = 2;
   repeated ProceedTrack proceedTracks = 3;
+  bool needReply = 4;
 }
 
 message EdgeReport {
