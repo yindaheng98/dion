@@ -10,7 +10,7 @@ package islb;
 service ISGLB {
   // When forward path changed, upload the SFUStatus from client to ISGLB
   // When forward path should change, send expected SFUStatus from ISGLB to client
-  rpc SyncSFUStatus(stream SFUStatus) returns (stream SFUStatus) {}
+  rpc SyncSFUStatus(stream SFUStatusRequest) returns (stream SFUStatus) {}
 
   // Report the communication quality of the edge
   rpc EdgeQualityReport(stream EdgeReport) returns (stream ReportReply) {}
@@ -31,11 +31,21 @@ message ProceedTrack {
   string dstTrackId = 2;
 }
 
+// Which session do the client need. May be a lot of track in one session
+message ClientNeededSession {
+  string session = 1;
+}
+
 message SFUStatus {
   ion.Node SFU = 1;
   repeated ForwardTrack forwardTracks = 2;
   repeated ProceedTrack proceedTracks = 3;
-  bool needReply = 4;
+  repeated ClientNeededSession clientNeededSession = 4;
+}
+
+message SFUStatusRequest {
+  SFUStatus status = 1;
+  bool needReply = 2;
 }
 
 message EdgeReport {

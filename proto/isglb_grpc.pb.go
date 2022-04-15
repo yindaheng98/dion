@@ -49,7 +49,7 @@ func (c *iSGLBClient) SyncSFUStatus(ctx context.Context, opts ...grpc.CallOption
 }
 
 type ISGLB_SyncSFUStatusClient interface {
-	Send(*SFUStatus) error
+	Send(*SFUStatusRequest) error
 	Recv() (*SFUStatus, error)
 	grpc.ClientStream
 }
@@ -58,7 +58,7 @@ type iSGLBSyncSFUStatusClient struct {
 	grpc.ClientStream
 }
 
-func (x *iSGLBSyncSFUStatusClient) Send(m *SFUStatus) error {
+func (x *iSGLBSyncSFUStatusClient) Send(m *SFUStatusRequest) error {
 	return x.ClientStream.SendMsg(m)
 }
 
@@ -178,7 +178,7 @@ func _ISGLB_SyncSFUStatus_Handler(srv interface{}, stream grpc.ServerStream) err
 
 type ISGLB_SyncSFUStatusServer interface {
 	Send(*SFUStatus) error
-	Recv() (*SFUStatus, error)
+	Recv() (*SFUStatusRequest, error)
 	grpc.ServerStream
 }
 
@@ -190,8 +190,8 @@ func (x *iSGLBSyncSFUStatusServer) Send(m *SFUStatus) error {
 	return x.ServerStream.SendMsg(m)
 }
 
-func (x *iSGLBSyncSFUStatusServer) Recv() (*SFUStatus, error) {
-	m := new(SFUStatus)
+func (x *iSGLBSyncSFUStatusServer) Recv() (*SFUStatusRequest, error) {
+	m := new(SFUStatusRequest)
 	if err := x.ServerStream.RecvMsg(m); err != nil {
 		return nil, err
 	}
