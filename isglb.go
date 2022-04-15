@@ -1,7 +1,6 @@
 package isglb
 
 import (
-	"context"
 	"fmt"
 	log "github.com/pion/ion-log"
 	"github.com/pion/ion/proto/ion"
@@ -17,41 +16,41 @@ import pb "github.com/yindaheng98/isglb/proto"
 type ISGLB struct {
 	pb.UnimplementedISGLBServer
 	ion.Node
-	sigs   map[*pb.ISGLB_SyncSFUStatusServer]bool
-	sigsMu sync.RWMutex
-	alg    algorithms.Algorithm     // The core algorithm
-	sss    map[string]*pb.SFUStatus // Just for filter out those unchanged SFUStatus
-	sssMu  sync.RWMutex
+	alg algorithms.Algorithm // The core algorithm
 
-	ctx     context.Context
-	recvCh  chan isglbRecvMessage
-	sendChs map[*pb.ISGLB_SyncSFUStatusServer]chan *pb.SFUStatus
+	recvCh     chan isglbRecvMessage
+	signids    map[string]*pb.ISGLB_SyncSFUStatusServer
+	statusList map[string]*pb.SFUStatus // Just for filter out those unchanged SFUStatus
+
+	sendChs   map[*pb.ISGLB_SyncSFUStatusServer]chan *pb.SFUStatus
+	sendChsMu sync.RWMutex
 }
 
 // isglbRecvMessage represents the message flow in ISGLB.recvCh
 // the SFUStatus and a channel receive response
 type isglbRecvMessage struct {
 	status *pb.SFUStatus
-	respCh chan<- *pb.SFUStatus
+	sigkey *pb.ISGLB_SyncSFUStatusServer
 }
 
 // SyncSFUStatus receive current SFUStatus, call the algorithm, and reply expected SFUStatus
 func (isglb *ISGLB) SyncSFUStatus(sig pb.ISGLB_SyncSFUStatusServer) error {
 	skey := &sig
 	sendCh := make(chan *pb.SFUStatus)
-	isglb.sigsMu.Lock()
-	isglb.sigs[skey] = true      // Save sig when begin
+	isglb.sendChsMu.Lock()
 	isglb.sendChs[skey] = sendCh // Create send channel when begin
-	isglb.sigsMu.Unlock()
+	isglb.sendChsMu.Unlock()
 	defer func(isglb *ISGLB, skey *pb.ISGLB_SyncSFUStatusServer) {
-		isglb.sigsMu.Lock()
-		delete(isglb.sigs, skey) // delete sig when exit
+		isglb.sendChsMu.Lock()
 		if sendCh, ok := isglb.sendChs[skey]; ok {
 			close(sendCh)
 			delete(isglb.sendChs, skey) // delete send channel when exit
 		}
-		isglb.sigsMu.Unlock()
+		isglb.sendChsMu.Unlock()
 	}(isglb, skey)
+
+	go routineSFUStatusSend(sig, sendCh) //start message sending
+
 	for {
 		in, err := sig.Recv() // Receive a SFUStatus
 		if err != nil {
@@ -65,40 +64,50 @@ func (isglb *ISGLB) SyncSFUStatus(sig pb.ISGLB_SyncSFUStatusServer) error {
 			log.Errorf("%v SFU status receive error %d", fmt.Errorf(errStatus.Message()), errStatus.Code())
 			return err
 		}
+		// Push to receive channel
 		isglb.recvCh <- isglbRecvMessage{
 			status: in,
-			respCh: sendCh,
+			sigkey: &sig,
 		}
-		return nil
 	}
 }
 
 // routineSFUStatusRecv should NOT run more than once
 func (isglb *ISGLB) routineSFUStatusRecv() {
-}
-
-func (isglb *ISGLB) routineSFUStatusSend() {
-}
-func (isglb *ISGLB) handleSFUStatus(ss *pb.SFUStatus, sig pb.ISGLB_SyncSFUStatusServer) {
-	nid := ss.GetSFU().GetNid()
-	hasReplied := false
-	isglb.sssMu.Lock()
-	defer func() {
-		if !hasReplied { // If has not reply
-			err := sig.Send(isglb.alg.GetSFUStatus(nid)) // Then reply it
-			if err != nil {
-				log.Errorf("OnIceCandidate send error: %v", err)
-			}
+	for {
+		msg, ok := <-isglb.recvCh // Receive message
+		if !ok {
+			return
 		}
-		isglb.sssMu.Unlock()
-	}()
-	lastSs, ok := isglb.sss[nid]              // Search the SFU
-	if ok || lastSs.String() == ss.String() { // If exists and is the same
-		return // Then just do nothing
+		nid := msg.status.GetSFU().GetNid()
+		isglb.signids[nid] = msg.sigkey // Save sig and nid
+		if lastStatus, ok := isglb.statusList[nid]; ok && lastStatus.String() == msg.status.String() {
+			continue //filter out unchanged status
+		}
+		isglb.statusList[nid] = msg.status                          // Save SFUStatus
+		expectedStatusList := isglb.alg.UpdateSFUStatus(msg.status) // update algorithm
+		for _, expectedStatus := range expectedStatusList {
+			nid := expectedStatus.GetSFU().GetNid()
+			if lastStatus, ok := isglb.statusList[nid]; ok && lastStatus.String() == expectedStatus.String() {
+				continue //filter out unchanged status
+			}
+			isglb.statusList[nid] = expectedStatus // Save it
+			isglb.sendChsMu.RLock()
+			isglb.sendChs[isglb.signids[nid]] <- expectedStatus // Send it
+			isglb.sendChsMu.RUnlock()
+		}
 	}
-	// If not, should make a change
-	isglb.sss[nid] = ss                            // Then save it
-	changedStatus := isglb.alg.UpdateSFUStatus(ss) // And update the algorithm
+}
 
-	return
+func routineSFUStatusSend(sig pb.ISGLB_SyncSFUStatusServer, sendCh <-chan *pb.SFUStatus) {
+	for {
+		msg, ok := <-sendCh
+		if !ok {
+			return
+		}
+		err := sig.Send(msg) // TODO: debounce, just send the latest status
+		if err != nil {
+			log.Errorf("%v SFU status send error", err)
+		}
+	}
 }
