@@ -10,7 +10,7 @@ package islb;
 service ISGLB {
   // When forward path changed, upload the SFUStatus from client to ISGLB
   // When forward path should change, send expected SFUStatus from ISGLB to client
-  rpc SyncSFUStatus(stream SFUStatusRequest) returns (stream SFUStatus) {}
+  rpc SyncSFUStatus(stream SFUStatus) returns (stream SFUStatus) {}
 
   // Report the communication quality of the edge
   rpc EdgeQualityReport(stream EdgeReport) returns (stream ReportReply) {}
@@ -41,11 +41,6 @@ message SFUStatus {
   repeated ForwardTrack forwardTracks = 2;
   repeated ProceedTrack proceedTracks = 3;
   repeated ClientNeededSession clientNeededSession = 4;
-}
-
-message SFUStatusRequest {
-  SFUStatus status = 1;
-  bool needReply = 2;
 }
 
 message EdgeReport {
