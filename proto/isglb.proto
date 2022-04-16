@@ -11,7 +11,7 @@ service ISGLB {
   // When forward path changed, upload the SFUStatus from client to ISGLB
   // When forward path should change, send expected SFUStatus from ISGLB to client
   // Report the communication quality or computation quality of the edge
-  rpc SyncSFUStatus(stream SyncRequest) returns (stream SFUStatus) {}
+  rpc SyncSFU(stream SyncRequest) returns (stream SFUStatus) {}
 }
 
 // The track with id `trackId` from `src` node was/should forwarded

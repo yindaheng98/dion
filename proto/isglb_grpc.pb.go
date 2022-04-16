@@ -25,7 +25,7 @@ type ISGLBClient interface {
 	// When forward path changed, upload the SFUStatus from client to ISGLB
 	// When forward path should change, send expected SFUStatus from ISGLB to client
 	// Report the communication quality or computation quality of the edge
-	SyncSFUStatus(ctx context.Context, opts ...grpc.CallOption) (ISGLB_SyncSFUStatusClient, error)
+	SyncSFU(ctx context.Context, opts ...grpc.CallOption) (ISGLB_SyncSFUClient, error)
 }
 
 type iSGLBClient struct {
@@ -36,30 +36,30 @@ func NewISGLBClient(cc grpc.ClientConnInterface) ISGLBClient {
 	return &iSGLBClient{cc}
 }
 
-func (c *iSGLBClient) SyncSFUStatus(ctx context.Context, opts ...grpc.CallOption) (ISGLB_SyncSFUStatusClient, error) {
-	stream, err := c.cc.NewStream(ctx, &ISGLB_ServiceDesc.Streams[0], "/islb.ISGLB/SyncSFUStatus", opts...)
+func (c *iSGLBClient) SyncSFU(ctx context.Context, opts ...grpc.CallOption) (ISGLB_SyncSFUClient, error) {
+	stream, err := c.cc.NewStream(ctx, &ISGLB_ServiceDesc.Streams[0], "/islb.ISGLB/SyncSFU", opts...)
 	if err != nil {
 		return nil, err
 	}
-	x := &iSGLBSyncSFUStatusClient{stream}
+	x := &iSGLBSyncSFUClient{stream}
 	return x, nil
 }
 
-type ISGLB_SyncSFUStatusClient interface {
+type ISGLB_SyncSFUClient interface {
 	Send(*SyncRequest) error
 	Recv() (*SFUStatus, error)
 	grpc.ClientStream
 }
 
-type iSGLBSyncSFUStatusClient struct {
+type iSGLBSyncSFUClient struct {
 	grpc.ClientStream
 }
 
-func (x *iSGLBSyncSFUStatusClient) Send(m *SyncRequest) error {
+func (x *iSGLBSyncSFUClient) Send(m *SyncRequest) error {
 	return x.ClientStream.SendMsg(m)
 }
 
-func (x *iSGLBSyncSFUStatusClient) Recv() (*SFUStatus, error) {
+func (x *iSGLBSyncSFUClient) Recv() (*SFUStatus, error) {
 	m := new(SFUStatus)
 	if err := x.ClientStream.RecvMsg(m); err != nil {
 		return nil, err
@@ -74,7 +74,7 @@ type ISGLBServer interface {
 	// When forward path changed, upload the SFUStatus from client to ISGLB
 	// When forward path should change, send expected SFUStatus from ISGLB to client
 	// Report the communication quality or computation quality of the edge
-	SyncSFUStatus(ISGLB_SyncSFUStatusServer) error
+	SyncSFU(ISGLB_SyncSFUServer) error
 	mustEmbedUnimplementedISGLBServer()
 }
 
@@ -82,8 +82,8 @@ type ISGLBServer interface {
 type UnimplementedISGLBServer struct {
 }
 
-func (UnimplementedISGLBServer) SyncSFUStatus(ISGLB_SyncSFUStatusServer) error {
-	return status.Errorf(codes.Unimplemented, "method SyncSFUStatus not implemented")
+func (UnimplementedISGLBServer) SyncSFU(ISGLB_SyncSFUServer) error {
+	return status.Errorf(codes.Unimplemented, "method SyncSFU not implemented")
 }
 func (UnimplementedISGLBServer) mustEmbedUnimplementedISGLBServer() {}
 
@@ -98,25 +98,25 @@ func RegisterISGLBServer(s grpc.ServiceRegistrar, srv ISGLBServer) {
 	s.RegisterService(&ISGLB_ServiceDesc, srv)
 }
 
-func _ISGLB_SyncSFUStatus_Handler(srv interface{}, stream grpc.ServerStream) error {
-	return srv.(ISGLBServer).SyncSFUStatus(&iSGLBSyncSFUStatusServer{stream})
+func _ISGLB_SyncSFU_Handler(srv interface{}, stream grpc.ServerStream) error {
+	return srv.(ISGLBServer).SyncSFU(&iSGLBSyncSFUServer{stream})
 }
 
-type ISGLB_SyncSFUStatusServer interface {
+type ISGLB_SyncSFUServer interface {
 	Send(*SFUStatus) error
 	Recv() (*SyncRequest, error)
 	grpc.ServerStream
 }
 
-type iSGLBSyncSFUStatusServer struct {
+type iSGLBSyncSFUServer struct {
 	grpc.ServerStream
 }
 
-func (x *iSGLBSyncSFUStatusServer) Send(m *SFUStatus) error {
+func (x *iSGLBSyncSFUServer) Send(m *SFUStatus) error {
 	return x.ServerStream.SendMsg(m)
 }
 
-func (x *iSGLBSyncSFUStatusServer) Recv() (*SyncRequest, error) {
+func (x *iSGLBSyncSFUServer) Recv() (*SyncRequest, error) {
 	m := new(SyncRequest)
 	if err := x.ServerStream.RecvMsg(m); err != nil {
 		return nil, err
@@ -133,8 +133,8 @@ var ISGLB_ServiceDesc = grpc.ServiceDesc{
 	Methods:     []grpc.MethodDesc{},
 	Streams: []grpc.StreamDesc{
 		{
-			StreamName:    "SyncSFUStatus",
-			Handler:       _ISGLB_SyncSFUStatus_Handler,
+			StreamName:    "SyncSFU",
+			Handler:       _ISGLB_SyncSFU_Handler,
 			ServerStreams: true,
 			ClientStreams: true,
 		},
