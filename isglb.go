@@ -31,7 +31,7 @@ func NewISGLB(alg algorithms.Algorithm) *ISGLB {
 		UnimplementedISGLBServer: pb.UnimplementedISGLBServer{},
 		Node:                     ion.NewNode("isglb-" + util.RandomString(6)),
 		Alg:                      alg,
-		recvCh:                   make(chan isglbRecvMessage, 1024),
+		recvCh:                   make(chan isglbRecvMessage, 4096),
 		recvChMu:                 make(chan bool, 1),
 		sendChs:                  make(map[*pb.ISGLB_SyncSFUServer]chan *pb.SFUStatus),
 		sendChsMu:                &sync.RWMutex{},
@@ -95,34 +95,59 @@ func (isglb *ISGLB) routineSFUStatusRecv() {
 		return // Do not start again
 	}
 	signids := make(map[string]*pb.ISGLB_SyncSFUServer)
-	latestStatus := make(map[string]*pb.SFUStatus) // Just for filter out those unchanged SFUStatus
+	latestStatus := make(map[string]*pb.SFUStatus)     // Just for filter out those unchanged SFUStatus
+	savedReports := make(map[string]*pb.QualityReport) // Just for filter out those deprecated reports
 	for {
-		msg, ok := <-isglb.recvCh // Receive message
-		if !ok {
-			return
-		}
-		var expectedStatusList []*pb.SFUStatus
-		switch request := msg.request.Request.(type) {
-		case *pb.SyncRequest_Report:
-			report := request.Report
-			expectedStatusList = isglb.Alg.UpdateQuality(report) // update algorithm
-			// TODO: report update may be fast, debounce it
-		case *pb.SyncRequest_Status:
-			reportedStatus := request.Status
-			nid := reportedStatus.GetSFU().GetNid()
-			if lastSigkey, ok := signids[nid]; ok && lastSigkey != msg.sigkey {
-				log.Warnf("deprecated SFU status sync client for nid: %s", nid)
-				continue
+		var reports []*pb.QualityReport
+		var statuss []*pb.SFUStatus
+	L:
+		for {
+			var msg isglbRecvMessage
+			var ok bool
+			if len(statuss) <= 0 && len(reports) <= 0 { //if there is no message
+				msg, ok = <-isglb.recvCh //wait for the first message
+				if !ok {                 //if closed
+					return //exit
+				}
+			} else {
+				select {
+				case msg, ok = <-isglb.recvCh: // Receive all the messages
+					if !ok { //if closed
+						return //exit
+					}
+				default: //if there is no more message
+					break L //just exit
+				}
 			}
-			signids[nid] = msg.sigkey // Save sig and nid
-			if lastStatus, ok := latestStatus[nid]; ok && lastStatus.String() == reportedStatus.String() {
-				continue //filter out unchanged request
+			//proceed messages
+			switch request := msg.request.Request.(type) {
+			case *pb.SyncRequest_Report:
+				if _, ok = savedReports[request.Report.String()]; !ok {
+					reports = append(reports, request.Report) //filter out deprecated report
+				}
+			case *pb.SyncRequest_Status:
+				reportedStatus := request.Status
+				nid := reportedStatus.GetSFU().GetNid()
+
+				if lastSigkey, ok := signids[nid]; ok && lastSigkey != msg.sigkey {
+					log.Warnf("deprecated SFU status sync client for nid: %s", nid)
+					continue
+				}
+				signids[nid] = msg.sigkey // Save sig and nid
+
+				if lastStatus, ok := latestStatus[nid]; ok && lastStatus.String() == reportedStatus.String() {
+					continue //filter out unchanged status
+				}
+				// If the request has changed
+				latestStatus[nid] = reportedStatus // Save SFUStatus
+
+				statuss = append(statuss, reportedStatus)
 			}
-			// If the request has changed
-			latestStatus[nid] = reportedStatus                             // Save SFUStatus
-			expectedStatusList = isglb.Alg.UpdateSFUStatus(reportedStatus) // update algorithm
-			// TODO: status update may be fast, debounce it
 		}
+		if len(statuss) <= 0 && len(reports) <= 0 { //if there is no valid message
+			continue //do nothing
+		}
+		expectedStatusList := isglb.Alg.UpdateSFUStatus(statuss, reports) // update algorithm
 		for _, expectedStatus := range expectedStatusList {
 			nid := expectedStatus.GetSFU().GetNid()
 			if lastStatus, ok := latestStatus[nid]; ok && lastStatus.String() == expectedStatus.String() {
