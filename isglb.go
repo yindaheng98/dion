@@ -19,12 +19,10 @@ type ISGLB struct {
 	ion.Node
 	Alg algorithms.Algorithm // The core algorithm
 
-	recvCh       chan isglbRecvMessage
-	recvChMu     chan bool
-	signids      map[string]*pb.ISGLB_SyncSFUStatusServer
-	latestStatus map[string]*pb.SFUStatus // Just for filter out those unchanged SFUStatus
+	recvCh   chan isglbRecvMessage
+	recvChMu chan bool
 
-	sendChs   map[*pb.ISGLB_SyncSFUStatusServer]chan *pb.SFUStatus
+	sendChs   map[*pb.ISGLB_SyncSFUServer]chan *pb.SFUStatus
 	sendChsMu *sync.RWMutex
 }
 
@@ -35,9 +33,7 @@ func NewISGLB(alg algorithms.Algorithm) *ISGLB {
 		Alg:                      alg,
 		recvCh:                   make(chan isglbRecvMessage, 1024),
 		recvChMu:                 make(chan bool, 1),
-		signids:                  make(map[string]*pb.ISGLB_SyncSFUStatusServer),
-		latestStatus:             make(map[string]*pb.SFUStatus),
-		sendChs:                  make(map[*pb.ISGLB_SyncSFUStatusServer]chan *pb.SFUStatus),
+		sendChs:                  make(map[*pb.ISGLB_SyncSFUServer]chan *pb.SFUStatus),
 		sendChsMu:                &sync.RWMutex{},
 	}
 }
@@ -45,18 +41,18 @@ func NewISGLB(alg algorithms.Algorithm) *ISGLB {
 // isglbRecvMessage represents the message flow in ISGLB.recvCh
 // the SFUStatus and a channel receive response
 type isglbRecvMessage struct {
-	status *pb.SFUStatus
-	sigkey *pb.ISGLB_SyncSFUStatusServer
+	request *pb.SyncRequest
+	sigkey  *pb.ISGLB_SyncSFUServer
 }
 
-// SyncSFUStatus receive current SFUStatus, call the algorithm, and reply expected SFUStatus
-func (isglb *ISGLB) SyncSFUStatus(sig pb.ISGLB_SyncSFUStatusServer) error {
+// SyncSFU receive current SFUStatus, call the algorithm, and reply expected SFUStatus
+func (isglb *ISGLB) SyncSFU(sig pb.ISGLB_SyncSFUServer) error {
 	skey := &sig
 	sendCh := make(chan *pb.SFUStatus)
 	isglb.sendChsMu.Lock()
 	isglb.sendChs[skey] = sendCh // Create send channel when begin
 	isglb.sendChsMu.Unlock()
-	defer func(isglb *ISGLB, skey *pb.ISGLB_SyncSFUStatusServer) {
+	defer func(isglb *ISGLB, skey *pb.ISGLB_SyncSFUServer) {
 		isglb.sendChsMu.Lock()
 		if sendCh, ok := isglb.sendChs[skey]; ok {
 			close(sendCh)
@@ -69,7 +65,7 @@ func (isglb *ISGLB) SyncSFUStatus(sig pb.ISGLB_SyncSFUStatusServer) error {
 	go isglb.routineSFUStatusRecv()      //start message receiving
 
 	for {
-		in, err := sig.Recv() // Receive a SFUStatus
+		req, err := sig.Recv() // Receive a SyncRequest
 		if err != nil {
 			if err == io.EOF {
 				return nil
@@ -78,13 +74,13 @@ func (isglb *ISGLB) SyncSFUStatus(sig pb.ISGLB_SyncSFUStatusServer) error {
 			if errStatus.Code() == codes.Canceled {
 				return nil
 			}
-			log.Errorf("%v SFU status receive error %d", fmt.Errorf(errStatus.Message()), errStatus.Code())
+			log.Errorf("%v SFU request receive error %d", fmt.Errorf(errStatus.Message()), errStatus.Code())
 			return err
 		}
 		// Push to receive channel
 		isglb.recvCh <- isglbRecvMessage{
-			status: in,
-			sigkey: &sig,
+			request: req,
+			sigkey:  &sig,
 		}
 	}
 }
@@ -98,38 +94,50 @@ func (isglb *ISGLB) routineSFUStatusRecv() {
 	default: // If the routineSFUStatusRecv has started
 		return // Do not start again
 	}
+	signids := make(map[string]*pb.ISGLB_SyncSFUServer)
+	latestStatus := make(map[string]*pb.SFUStatus) // Just for filter out those unchanged SFUStatus
 	for {
 		msg, ok := <-isglb.recvCh // Receive message
 		if !ok {
 			return
 		}
-		nid := msg.status.GetSFU().GetNid()
-		if lastSigkey, ok := isglb.signids[nid]; ok && lastSigkey != msg.sigkey {
-			log.Warnf("deprecated SFU status sync client for nid: %s", nid)
-			return
+		var expectedStatusList []*pb.SFUStatus
+		switch request := msg.request.Request.(type) {
+		case *pb.SyncRequest_Report:
+			report := request.Report
+			expectedStatusList = isglb.Alg.UpdateQuality(report) // update algorithm
+			// TODO: report update may be fast, debounce it
+		case *pb.SyncRequest_Status:
+			reportedStatus := request.Status
+			nid := reportedStatus.GetSFU().GetNid()
+			if lastSigkey, ok := signids[nid]; ok && lastSigkey != msg.sigkey {
+				log.Warnf("deprecated SFU status sync client for nid: %s", nid)
+				continue
+			}
+			signids[nid] = msg.sigkey // Save sig and nid
+			if lastStatus, ok := latestStatus[nid]; ok && lastStatus.String() == reportedStatus.String() {
+				continue //filter out unchanged request
+			}
+			// If the request has changed
+			latestStatus[nid] = reportedStatus                             // Save SFUStatus
+			expectedStatusList = isglb.Alg.UpdateSFUStatus(reportedStatus) // update algorithm
+			// TODO: status update may be fast, debounce it
 		}
-		isglb.signids[nid] = msg.sigkey // Save sig and nid
-		if lastStatus, ok := isglb.latestStatus[nid]; ok && lastStatus.String() == msg.status.String() {
-			continue //filter out unchanged status
-		}
-		// If the status has changed
-		isglb.latestStatus[nid] = msg.status                        // Save SFUStatus
-		expectedStatusList := isglb.Alg.UpdateSFUStatus(msg.status) // update algorithm
 		for _, expectedStatus := range expectedStatusList {
 			nid := expectedStatus.GetSFU().GetNid()
-			if lastStatus, ok := isglb.latestStatus[nid]; ok && lastStatus.String() == expectedStatus.String() {
-				continue //filter out unchanged status
+			if lastStatus, ok := latestStatus[nid]; ok && lastStatus.String() == expectedStatus.String() {
+				continue //filter out unchanged request
 			}
-			// If the status should be change
-			isglb.latestStatus[nid] = expectedStatus // Save it
+			// If the request should be change
+			latestStatus[nid] = expectedStatus // Save it
 			isglb.sendChsMu.RLock()
-			isglb.sendChs[isglb.signids[nid]] <- expectedStatus // Send it
+			isglb.sendChs[signids[nid]] <- expectedStatus // Send it
 			isglb.sendChsMu.RUnlock()
 		}
 	}
 }
 
-func routineSFUStatusSend(sig pb.ISGLB_SyncSFUStatusServer, sendCh <-chan *pb.SFUStatus) {
+func routineSFUStatusSend(sig pb.ISGLB_SyncSFUServer, sendCh <-chan *pb.SFUStatus) {
 	latestStatusChs := make(map[string]chan *pb.SFUStatus)
 	defer func(latestStatusChs map[string]chan *pb.SFUStatus) {
 		for nid, ch := range latestStatusChs {
@@ -143,17 +151,17 @@ func routineSFUStatusSend(sig pb.ISGLB_SyncSFUStatusServer, sendCh <-chan *pb.SF
 			return
 		}
 		latestStatusCh, ok := latestStatusChs[msg.GetSFU().GetNid()]
-		if !ok { //If latest status not exists
+		if !ok { //If latest request not exists
 			latestStatusCh = make(chan *pb.SFUStatus, 1)
 			latestStatusChs[msg.GetSFU().GetNid()] = latestStatusCh //Then create it
 			//and create the sender goroutine
 			go func(latestStatusCh <-chan *pb.SFUStatus) {
 				for {
-					latestStatus, ok := <-latestStatusCh //get status
+					latestStatus, ok := <-latestStatusCh //get request
 					if !ok {                             //if chan closed
 						return //exit
 					}
-					// If the status should be change
+					// If the request should be change
 					err := sig.Send(latestStatus)
 					if err != nil {
 						if err == io.EOF {
@@ -163,7 +171,7 @@ func routineSFUStatusSend(sig pb.ISGLB_SyncSFUStatusServer, sendCh <-chan *pb.SF
 						if errStatus.Code() == codes.Canceled {
 							return
 						}
-						log.Errorf("%v SFU status send error", err)
+						log.Errorf("%v SFU request send error", err)
 					}
 				}
 			}(latestStatusCh)
