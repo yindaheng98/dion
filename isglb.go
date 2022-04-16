@@ -19,6 +19,7 @@ type ISGLB struct {
 	alg algorithms.Algorithm // The core algorithm
 
 	recvCh     chan isglbRecvMessage
+	recvChMu   chan bool
 	signids    map[string]*pb.ISGLB_SyncSFUStatusServer
 	statusList map[string]*pb.SFUStatus // Just for filter out those unchanged SFUStatus
 
@@ -50,6 +51,7 @@ func (isglb *ISGLB) SyncSFUStatus(sig pb.ISGLB_SyncSFUStatusServer) error {
 	}(isglb, skey)
 
 	go routineSFUStatusSend(sig, sendCh) //start message sending
+	go isglb.routineSFUStatusRecv()      //start message receiving
 
 	for {
 		in, err := sig.Recv() // Receive a SFUStatus
@@ -74,6 +76,13 @@ func (isglb *ISGLB) SyncSFUStatus(sig pb.ISGLB_SyncSFUStatusServer) error {
 
 // routineSFUStatusRecv should NOT run more than once
 func (isglb *ISGLB) routineSFUStatusRecv() {
+	select {
+	case <-isglb.recvChMu: // If the routineSFUStatusRecv not started
+		//Then start it
+		defer func() { isglb.recvChMu <- true }()
+	default: // If the routineSFUStatusRecv has started
+		return // Do not start again
+	}
 	for {
 		msg, ok := <-isglb.recvCh // Receive message
 		if !ok {
