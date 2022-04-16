@@ -2,6 +2,7 @@ syntax = "proto3";
 
 import "github.com/pion/ion/proto/ion/ion.proto";
 import "google/protobuf/any.proto";
+import "google/protobuf/timestamp.proto";
 
 option go_package = "github.com/yindaheng98/isglb/proto";
 
@@ -53,8 +54,9 @@ message ComputationReport {
 }
 
 message QualityReport {
-  repeated TransmissionReport transmission = 1;
-  repeated ComputationReport computation = 2;
+  google.protobuf.Timestamp timestamp = 1;
+  repeated TransmissionReport transmission = 2;
+  repeated ComputationReport computation = 3;
 }
 
 message SyncRequest {
