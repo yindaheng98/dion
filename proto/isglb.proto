@@ -12,11 +12,8 @@ service ISGLB {
   // When forward path should change, send expected SFUStatus from ISGLB to client
   rpc SyncSFUStatus(stream SFUStatus) returns (stream SFUStatus) {}
 
-  // Report the communication quality of the edge
-  rpc EdgeQualityReport(stream EdgeReport) returns (stream ReportReply) {}
-
-  // Report the computation quality of the node
-  rpc NodeQualityReport(stream NodeReport) returns (stream ReportReply) {}
+  // Report the communication quality or computation quality of the edge
+  rpc QualityReport(stream Report) returns (stream SFUStatus) {} // TODO: just need one API
 }
 
 // The track with id `trackId` from `src` node was/should forwarded
@@ -36,6 +33,7 @@ message ClientNeededSession {
   string session = 1;
 }
 
+// TODO: move SFUStatus to SFU module
 message SFUStatus {
   ion.Node SFU = 1;
   repeated ForwardTrack forwardTracks = 2;
@@ -44,17 +42,18 @@ message SFUStatus {
 }
 
 message EdgeReport {
-  ion.Node src = 1;
-  ion.Node dst = 2;
-  google.protobuf.Any report = 3; //TODO: Add a more specific Report type
-}
-
-message NodeReport {
-  ion.Node node = 1;
+  ion.Node from = 1;
   google.protobuf.Any report = 2; //TODO: Add a more specific Report type
 }
 
-message ReportReply {
-  bool success = 1;
-  string error = 2;
+message NodeReport {
+  google.protobuf.Any report = 2; //TODO: Add a more specific Report type
+}
+
+message Report {
+  ion.Node node = 1;
+  oneof report{
+    EdgeReport edgeReport = 2;
+    NodeReport nodeReport = 3;
+  }
 }

@@ -104,6 +104,10 @@ func (isglb *ISGLB) routineSFUStatusRecv() {
 			return
 		}
 		nid := msg.status.GetSFU().GetNid()
+		if lastSigkey, ok := isglb.signids[nid]; ok && lastSigkey != msg.sigkey {
+			log.Warnf("deprecated SFU status sync client for nid: %s", nid)
+			return
+		}
 		isglb.signids[nid] = msg.sigkey // Save sig and nid
 		if lastStatus, ok := isglb.latestStatus[nid]; ok && lastStatus.String() == msg.status.String() {
 			continue //filter out unchanged status
