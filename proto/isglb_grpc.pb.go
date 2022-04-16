@@ -24,9 +24,8 @@ const _ = grpc.SupportPackageIsVersion7
 type ISGLBClient interface {
 	// When forward path changed, upload the SFUStatus from client to ISGLB
 	// When forward path should change, send expected SFUStatus from ISGLB to client
-	SyncSFUStatus(ctx context.Context, opts ...grpc.CallOption) (ISGLB_SyncSFUStatusClient, error)
 	// Report the communication quality or computation quality of the edge
-	QualityReport(ctx context.Context, opts ...grpc.CallOption) (ISGLB_QualityReportClient, error)
+	SyncSFUStatus(ctx context.Context, opts ...grpc.CallOption) (ISGLB_SyncSFUStatusClient, error)
 }
 
 type iSGLBClient struct {
@@ -47,7 +46,7 @@ func (c *iSGLBClient) SyncSFUStatus(ctx context.Context, opts ...grpc.CallOption
 }
 
 type ISGLB_SyncSFUStatusClient interface {
-	Send(*SFUStatus) error
+	Send(*SyncRequest) error
 	Recv() (*SFUStatus, error)
 	grpc.ClientStream
 }
@@ -56,42 +55,11 @@ type iSGLBSyncSFUStatusClient struct {
 	grpc.ClientStream
 }
 
-func (x *iSGLBSyncSFUStatusClient) Send(m *SFUStatus) error {
+func (x *iSGLBSyncSFUStatusClient) Send(m *SyncRequest) error {
 	return x.ClientStream.SendMsg(m)
 }
 
 func (x *iSGLBSyncSFUStatusClient) Recv() (*SFUStatus, error) {
-	m := new(SFUStatus)
-	if err := x.ClientStream.RecvMsg(m); err != nil {
-		return nil, err
-	}
-	return m, nil
-}
-
-func (c *iSGLBClient) QualityReport(ctx context.Context, opts ...grpc.CallOption) (ISGLB_QualityReportClient, error) {
-	stream, err := c.cc.NewStream(ctx, &ISGLB_ServiceDesc.Streams[1], "/islb.ISGLB/QualityReport", opts...)
-	if err != nil {
-		return nil, err
-	}
-	x := &iSGLBQualityReportClient{stream}
-	return x, nil
-}
-
-type ISGLB_QualityReportClient interface {
-	Send(*Report) error
-	Recv() (*SFUStatus, error)
-	grpc.ClientStream
-}
-
-type iSGLBQualityReportClient struct {
-	grpc.ClientStream
-}
-
-func (x *iSGLBQualityReportClient) Send(m *Report) error {
-	return x.ClientStream.SendMsg(m)
-}
-
-func (x *iSGLBQualityReportClient) Recv() (*SFUStatus, error) {
 	m := new(SFUStatus)
 	if err := x.ClientStream.RecvMsg(m); err != nil {
 		return nil, err
@@ -105,9 +73,8 @@ func (x *iSGLBQualityReportClient) Recv() (*SFUStatus, error) {
 type ISGLBServer interface {
 	// When forward path changed, upload the SFUStatus from client to ISGLB
 	// When forward path should change, send expected SFUStatus from ISGLB to client
-	SyncSFUStatus(ISGLB_SyncSFUStatusServer) error
 	// Report the communication quality or computation quality of the edge
-	QualityReport(ISGLB_QualityReportServer) error
+	SyncSFUStatus(ISGLB_SyncSFUStatusServer) error
 	mustEmbedUnimplementedISGLBServer()
 }
 
@@ -117,9 +84,6 @@ type UnimplementedISGLBServer struct {
 
 func (UnimplementedISGLBServer) SyncSFUStatus(ISGLB_SyncSFUStatusServer) error {
 	return status.Errorf(codes.Unimplemented, "method SyncSFUStatus not implemented")
-}
-func (UnimplementedISGLBServer) QualityReport(ISGLB_QualityReportServer) error {
-	return status.Errorf(codes.Unimplemented, "method QualityReport not implemented")
 }
 func (UnimplementedISGLBServer) mustEmbedUnimplementedISGLBServer() {}
 
@@ -140,7 +104,7 @@ func _ISGLB_SyncSFUStatus_Handler(srv interface{}, stream grpc.ServerStream) err
 
 type ISGLB_SyncSFUStatusServer interface {
 	Send(*SFUStatus) error
-	Recv() (*SFUStatus, error)
+	Recv() (*SyncRequest, error)
 	grpc.ServerStream
 }
 
@@ -152,34 +116,8 @@ func (x *iSGLBSyncSFUStatusServer) Send(m *SFUStatus) error {
 	return x.ServerStream.SendMsg(m)
 }
 
-func (x *iSGLBSyncSFUStatusServer) Recv() (*SFUStatus, error) {
-	m := new(SFUStatus)
-	if err := x.ServerStream.RecvMsg(m); err != nil {
-		return nil, err
-	}
-	return m, nil
-}
-
-func _ISGLB_QualityReport_Handler(srv interface{}, stream grpc.ServerStream) error {
-	return srv.(ISGLBServer).QualityReport(&iSGLBQualityReportServer{stream})
-}
-
-type ISGLB_QualityReportServer interface {
-	Send(*SFUStatus) error
-	Recv() (*Report, error)
-	grpc.ServerStream
-}
-
-type iSGLBQualityReportServer struct {
-	grpc.ServerStream
-}
-
-func (x *iSGLBQualityReportServer) Send(m *SFUStatus) error {
-	return x.ServerStream.SendMsg(m)
-}
-
-func (x *iSGLBQualityReportServer) Recv() (*Report, error) {
-	m := new(Report)
+func (x *iSGLBSyncSFUStatusServer) Recv() (*SyncRequest, error) {
+	m := new(SyncRequest)
 	if err := x.ServerStream.RecvMsg(m); err != nil {
 		return nil, err
 	}
@@ -197,12 +135,6 @@ var ISGLB_ServiceDesc = grpc.ServiceDesc{
 		{
 			StreamName:    "SyncSFUStatus",
 			Handler:       _ISGLB_SyncSFUStatus_Handler,
-			ServerStreams: true,
-			ClientStreams: true,
-		},
-		{
-			StreamName:    "QualityReport",
-			Handler:       _ISGLB_QualityReport_Handler,
 			ServerStreams: true,
 			ClientStreams: true,
 		},

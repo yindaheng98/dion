@@ -10,10 +10,8 @@ package islb;
 service ISGLB {
   // When forward path changed, upload the SFUStatus from client to ISGLB
   // When forward path should change, send expected SFUStatus from ISGLB to client
-  rpc SyncSFUStatus(stream SFUStatus) returns (stream SFUStatus) {}
-
   // Report the communication quality or computation quality of the edge
-  rpc QualityReport(stream Report) returns (stream SFUStatus) {} // TODO: just need one API
+  rpc SyncSFUStatus(stream SyncRequest) returns (stream SFUStatus) {}
 }
 
 // The track with id `trackId` from `src` node was/should forwarded
@@ -26,6 +24,8 @@ message ForwardTrack {
 message ProceedTrack {
   string srcTrackId = 1;
   string dstTrackId = 2;
+  string procedure = 3; //src track should be proceeded by what kind of procedure
+  //TODO: procedure should be more specific
 }
 
 // Which session do the client need. May be a lot of track in one session
@@ -42,18 +42,26 @@ message SFUStatus {
 }
 
 message EdgeReport {
-  ion.Node from = 1;
-  google.protobuf.Any report = 2; //TODO: Add a more specific Report type
+  ion.Node src = 1;
+  ion.Node dst = 2;
+  google.protobuf.Any report = 3; //TODO: Add a more specific Report type
 }
 
 message NodeReport {
+  ion.Node node = 1;
   google.protobuf.Any report = 2; //TODO: Add a more specific Report type
 }
 
 message Report {
-  ion.Node node = 1;
   oneof report{
     EdgeReport edgeReport = 2;
     NodeReport nodeReport = 3;
+  }
+}
+
+message SyncRequest {
+  oneof request {
+    SFUStatus status = 1;
+    Report report = 2;
   }
 }
