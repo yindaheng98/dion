@@ -3,7 +3,8 @@ package isglb
 import (
 	"fmt"
 	log "github.com/pion/ion-log"
-	"github.com/pion/ion/proto/ion"
+	"github.com/pion/ion/pkg/ion"
+	"github.com/pion/ion/pkg/util"
 	"github.com/yindaheng98/isglb/algorithms"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -16,7 +17,7 @@ import pb "github.com/yindaheng98/isglb/proto"
 type ISGLB struct {
 	pb.UnimplementedISGLBServer
 	ion.Node
-	alg algorithms.Algorithm // The core algorithm
+	Alg algorithms.Algorithm // The core algorithm
 
 	recvCh       chan isglbRecvMessage
 	recvChMu     chan bool
@@ -24,7 +25,21 @@ type ISGLB struct {
 	latestStatus map[string]*pb.SFUStatus // Just for filter out those unchanged SFUStatus
 
 	sendChs   map[*pb.ISGLB_SyncSFUStatusServer]chan *pb.SFUStatus
-	sendChsMu sync.RWMutex
+	sendChsMu *sync.RWMutex
+}
+
+func NewISGLB(alg algorithms.Algorithm) *ISGLB {
+	return &ISGLB{
+		UnimplementedISGLBServer: pb.UnimplementedISGLBServer{},
+		Node:                     ion.NewNode("isglb-" + util.RandomString(6)),
+		Alg:                      alg,
+		recvCh:                   make(chan isglbRecvMessage, 1024),
+		recvChMu:                 make(chan bool, 1),
+		signids:                  make(map[string]*pb.ISGLB_SyncSFUStatusServer),
+		latestStatus:             make(map[string]*pb.SFUStatus),
+		sendChs:                  make(map[*pb.ISGLB_SyncSFUStatusServer]chan *pb.SFUStatus),
+		sendChsMu:                &sync.RWMutex{},
+	}
 }
 
 // isglbRecvMessage represents the message flow in ISGLB.recvCh
@@ -95,7 +110,7 @@ func (isglb *ISGLB) routineSFUStatusRecv() {
 		}
 		// If the status has changed
 		isglb.latestStatus[nid] = msg.status                        // Save SFUStatus
-		expectedStatusList := isglb.alg.UpdateSFUStatus(msg.status) // update algorithm
+		expectedStatusList := isglb.Alg.UpdateSFUStatus(msg.status) // update algorithm
 		for _, expectedStatus := range expectedStatusList {
 			nid := expectedStatus.GetSFU().GetNid()
 			if lastStatus, ok := isglb.latestStatus[nid]; ok && lastStatus.String() == expectedStatus.String() {
