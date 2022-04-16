@@ -41,27 +41,25 @@ message SFUStatus {
   repeated ClientNeededSession clientNeededSession = 4;
 }
 
-message EdgeReport {
+message TransmissionReport {
   ion.Node src = 1;
   ion.Node dst = 2;
   google.protobuf.Any report = 3; //TODO: Add a more specific Report type
 }
 
-message NodeReport {
+message ComputationReport {
   ion.Node node = 1;
   google.protobuf.Any report = 2; //TODO: Add a more specific Report type
 }
 
-message Report {
-  oneof report{
-    EdgeReport edgeReport = 2;
-    NodeReport nodeReport = 3;
-  }
+message QualityReport {
+  repeated TransmissionReport transmission = 1;
+  repeated ComputationReport computation = 2;
 }
 
 message SyncRequest {
   oneof request {
     SFUStatus status = 1;
-    Report report = 2;
+    QualityReport report = 2;
   }
 }
