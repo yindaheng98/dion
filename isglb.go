@@ -156,7 +156,11 @@ func (isglb *ISGLB) routineSFUStatusRecv() {
 			// If the request should be change
 			latestStatus[nid] = expectedStatus // Save it
 			isglb.sendChsMu.RLock()
-			isglb.sendChs[signids[nid]] <- expectedStatus // Send it
+			if sendCh, ok := isglb.sendChs[signids[nid]]; ok {
+				sendCh <- expectedStatus // Send it
+			} else {
+				log.Warnf("No status sender found for nid : %s", sendCh)
+			}
 			isglb.sendChsMu.RUnlock()
 		}
 	}
@@ -176,17 +180,18 @@ func routineSFUStatusSend(sig pb.ISGLB_SyncSFUServer, sendCh <-chan *pb.SFUStatu
 			return
 		}
 		latestStatusCh, ok := latestStatusChs[msg.GetSFU().GetNid()]
-		if !ok { //If latest request not exists
+		if !ok { //If latest status not exists
 			latestStatusCh = make(chan *pb.SFUStatus, 1)
 			latestStatusChs[msg.GetSFU().GetNid()] = latestStatusCh //Then create it
+
 			//and create the sender goroutine
 			go func(latestStatusCh <-chan *pb.SFUStatus) {
 				for {
-					latestStatus, ok := <-latestStatusCh //get request
+					latestStatus, ok := <-latestStatusCh //get status
 					if !ok {                             //if chan closed
 						return //exit
 					}
-					// If the request should be change
+					// If the status should be change
 					err := sig.Send(latestStatus)
 					if err != nil {
 						if err == io.EOF {
@@ -203,14 +208,13 @@ func routineSFUStatusSend(sig pb.ISGLB_SyncSFUServer, sendCh <-chan *pb.SFUStatu
 		}
 		select {
 		case latestStatusCh <- msg: //check if there is a message not send
-		// no message, that's ok
+		// no message, that's ok, our message pushed
 		default: //if there is a message not send
 			select {
 			case <-latestStatusCh: //delete it
-				latestStatusCh <- msg //and push the latest message
 			default:
-				latestStatusCh <- msg
 			}
+			latestStatusCh <- msg //and push the latest message
 		}
 	}
 }
