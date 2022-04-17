@@ -3,8 +3,6 @@ package isglb
 import (
 	"fmt"
 	log "github.com/pion/ion-log"
-	"github.com/pion/ion/pkg/ion"
-	"github.com/pion/ion/pkg/util"
 	"github.com/yindaheng98/isglb/algorithms"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
@@ -17,7 +15,6 @@ import pb "github.com/yindaheng98/isglb/proto"
 // ISGLBService represents isglb node
 type ISGLBService struct {
 	pb.UnimplementedISGLBServer
-	ion.Node
 	Alg algorithms.Algorithm // The core algorithm
 
 	recvCh   chan isglbRecvMessage
@@ -27,10 +24,9 @@ type ISGLBService struct {
 	sendChsMu *sync.RWMutex
 }
 
-func NewISGLB(alg algorithms.Algorithm) *ISGLBService {
+func NewISGLBService(alg algorithms.Algorithm) *ISGLBService {
 	return &ISGLBService{
 		UnimplementedISGLBServer: pb.UnimplementedISGLBServer{},
-		Node:                     ion.NewNode("isglb-" + util.RandomString(6)),
 		Alg:                      alg,
 		recvCh:                   make(chan isglbRecvMessage, 4096),
 		recvChMu:                 make(chan bool, 1),
