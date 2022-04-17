@@ -14,8 +14,8 @@ import (
 )
 import pb "github.com/yindaheng98/isglb/proto"
 
-// ISGLB represents isglb node
-type ISGLB struct {
+// ISGLBService represents isglb node
+type ISGLBService struct {
 	pb.UnimplementedISGLBServer
 	ion.Node
 	Alg algorithms.Algorithm // The core algorithm
@@ -27,8 +27,8 @@ type ISGLB struct {
 	sendChsMu *sync.RWMutex
 }
 
-func NewISGLB(alg algorithms.Algorithm) *ISGLB {
-	return &ISGLB{
+func NewISGLB(alg algorithms.Algorithm) *ISGLBService {
+	return &ISGLBService{
 		UnimplementedISGLBServer: pb.UnimplementedISGLBServer{},
 		Node:                     ion.NewNode("isglb-" + util.RandomString(6)),
 		Alg:                      alg,
@@ -39,11 +39,11 @@ func NewISGLB(alg algorithms.Algorithm) *ISGLB {
 	}
 }
 
-func (isglb *ISGLB) RegisterService(registrar grpc.ServiceRegistrar) {
+func (isglb *ISGLBService) RegisterService(registrar grpc.ServiceRegistrar) {
 	pb.RegisterISGLBServer(registrar, isglb)
 }
 
-// isglbRecvMessage represents the message flow in ISGLB.recvCh
+// isglbRecvMessage represents the message flow in ISGLBService.recvCh
 // the SFUStatus and a channel receive response
 type isglbRecvMessage struct {
 	request *pb.SyncRequest
@@ -51,13 +51,13 @@ type isglbRecvMessage struct {
 }
 
 // SyncSFU receive current SFUStatus, call the algorithm, and reply expected SFUStatus
-func (isglb *ISGLB) SyncSFU(sig pb.ISGLB_SyncSFUServer) error {
+func (isglb *ISGLBService) SyncSFU(sig pb.ISGLB_SyncSFUServer) error {
 	skey := &sig
 	sendCh := make(chan *pb.SFUStatus)
 	isglb.sendChsMu.Lock()
 	isglb.sendChs[skey] = sendCh // Create send channel when begin
 	isglb.sendChsMu.Unlock()
-	defer func(isglb *ISGLB, skey *pb.ISGLB_SyncSFUServer) {
+	defer func(isglb *ISGLBService, skey *pb.ISGLB_SyncSFUServer) {
 		isglb.sendChsMu.Lock()
 		if sendCh, ok := isglb.sendChs[skey]; ok {
 			close(sendCh)
@@ -91,7 +91,7 @@ func (isglb *ISGLB) SyncSFU(sig pb.ISGLB_SyncSFUServer) error {
 }
 
 // routineSFUStatusRecv should NOT run more than once
-func (isglb *ISGLB) routineSFUStatusRecv() {
+func (isglb *ISGLBService) routineSFUStatusRecv() {
 	select {
 	case <-isglb.recvChMu: // If the routineSFUStatusRecv not started
 		//Then start it
