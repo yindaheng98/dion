@@ -160,7 +160,7 @@ func (isglb *ISGLBService) routineSFUStatusRecv() {
 			if sendCh, ok := isglb.sendChs[signids[nid]]; ok {
 				sendCh <- expectedStatus // Send it
 			} else {
-				log.Warnf("No status sender found for nid : %s", sendCh)
+				log.Warnf("No status sender found for nid : %s", nid)
 			}
 			isglb.sendChsMu.RUnlock()
 		}
