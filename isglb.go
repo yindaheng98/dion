@@ -6,6 +6,7 @@ import (
 	"github.com/pion/ion/pkg/ion"
 	"github.com/pion/ion/pkg/util"
 	"github.com/yindaheng98/isglb/algorithms"
+	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"io"
@@ -36,6 +37,10 @@ func NewISGLB(alg algorithms.Algorithm) *ISGLB {
 		sendChs:                  make(map[*pb.ISGLB_SyncSFUServer]chan *pb.SFUStatus),
 		sendChsMu:                &sync.RWMutex{},
 	}
+}
+
+func (isglb *ISGLB) RegisterService(registrar grpc.ServiceRegistrar) {
+	pb.RegisterISGLBServer(registrar, isglb)
 }
 
 // isglbRecvMessage represents the message flow in ISGLB.recvCh
