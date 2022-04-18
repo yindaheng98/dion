@@ -2,6 +2,7 @@ package algorithms
 
 import pb "github.com/yindaheng98/isglb/proto"
 
+// Algorithm is the node selection algorithm interface
 type Algorithm interface {
 
 	// UpdateSFUStatus tell the algorithm that the SFU graph and the computation and communication quality has changed

@@ -10,6 +10,7 @@ import (
 	"math/rand"
 )
 
+// Random is a node selection algorithm, just for test
 type Random struct {
 	algorithms.Algorithm
 }
