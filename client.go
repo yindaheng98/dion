@@ -1,4 +1,4 @@
-package sdk
+package isglb
 
 import (
 	"context"
@@ -6,7 +6,6 @@ import (
 	log "github.com/pion/ion-log"
 	sdk "github.com/pion/ion-sdk-go"
 	"github.com/pion/ion/pkg/ion"
-	"github.com/yindaheng98/isglb"
 	pb "github.com/yindaheng98/isglb/proto"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
@@ -24,8 +23,6 @@ type ISGLBClient struct {
 	ctx    context.Context
 	cancel context.CancelFunc
 
-	*ion.Node
-
 	Metadata metadata.MD
 	grpcConn grpc.ClientConnInterface
 
@@ -33,13 +30,12 @@ type ISGLBClient struct {
 }
 
 func NewISGLBClient(node *ion.Node, peerNID string, parameters map[string]interface{}) *ISGLBClient {
-	ncli, err := node.NewNatsRPCClient(isglb.ServiceISGLB, peerNID, parameters)
+	ncli, err := node.NewNatsRPCClient(ServiceISGLB, peerNID, parameters)
 	if err != nil {
 		log.Errorf("error: %v", err)
 		return nil
 	}
 	c := &ISGLBClient{
-		Node:     node,
 		grpcConn: ncli,
 	}
 	return c
