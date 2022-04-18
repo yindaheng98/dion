@@ -31,6 +31,48 @@ func RandNode(nid string) *ion.Node {
 	}
 }
 
+func RandChange(s *pb.SFUStatus) {
+	for _, t := range s.ForwardTracks {
+		if !RandBool() {
+			continue
+		}
+		if RandBool() {
+			t.TrackId = util.RandomString(4)
+		}
+		if RandBool() {
+			t.Src = RandNode(t.Src.Nid)
+		}
+	}
+	if RandBool() {
+		s.ForwardTracks = append(s.ForwardTracks, &pb.ForwardTrack{
+			Src:     RandNode(util.RandomString(1)),
+			TrackId: util.RandomString(4),
+		})
+	}
+
+	for _, t := range s.ProceedTracks {
+		if !RandBool() {
+			continue
+		}
+		if RandBool() {
+			t.SrcTrackId = util.RandomString(4)
+		}
+		if RandBool() {
+			t.DstTrackId = util.RandomString(4)
+		}
+		if RandBool() {
+			t.Procedure = util.RandomString(4)
+		}
+	}
+	if RandBool() {
+		s.ProceedTracks = append(s.ProceedTracks, &pb.ProceedTrack{
+			SrcTrackId: util.RandomString(4),
+			DstTrackId: util.RandomString(4),
+			Procedure:  util.RandomString(2),
+		})
+	}
+}
+
 func (Random) UpdateSFUStatus(current []*pb.SFUStatus, reports []*pb.QualityReport) (expected []*pb.SFUStatus) {
 	fmt.Printf("┎Received status: %+v\n", current)
 	fmt.Printf("┖Received report: %+v\n", reports)
@@ -41,46 +83,7 @@ func (Random) UpdateSFUStatus(current []*pb.SFUStatus, reports []*pb.QualityRepo
 		if !RandBool() {
 			continue
 		}
-
-		for _, t := range s.ForwardTracks {
-			if !RandBool() {
-				continue
-			}
-			if RandBool() {
-				t.TrackId = util.RandomString(4)
-			}
-			if RandBool() {
-				t.Src = RandNode(t.Src.Nid)
-			}
-		}
-		if RandBool() {
-			s.ForwardTracks = append(s.ForwardTracks, &pb.ForwardTrack{
-				Src:     RandNode(util.RandomString(1)),
-				TrackId: util.RandomString(4),
-			})
-		}
-
-		for _, t := range s.ProceedTracks {
-			if !RandBool() {
-				continue
-			}
-			if RandBool() {
-				t.SrcTrackId = util.RandomString(4)
-			}
-			if RandBool() {
-				t.DstTrackId = util.RandomString(4)
-			}
-			if RandBool() {
-				t.Procedure = util.RandomString(4)
-			}
-		}
-		if RandBool() {
-			s.ProceedTracks = append(s.ProceedTracks, &pb.ProceedTrack{
-				SrcTrackId: util.RandomString(4),
-				DstTrackId: util.RandomString(4),
-				Procedure:  util.RandomString(2),
-			})
-		}
+		RandChange(s)
 	}
 
 	if !RandBool() {
