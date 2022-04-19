@@ -1,14 +1,17 @@
 package isglb
 
 import (
+	"fmt"
 	"github.com/pion/ion/pkg/ion"
 	"github.com/pion/ion/pkg/util"
-	ion_pb "github.com/pion/ion/proto/ion"
 	"github.com/yindaheng98/isglb/algorithms"
 	pb "github.com/yindaheng98/isglb/proto"
 	"testing"
+	"time"
 )
 import "github.com/yindaheng98/isglb/algorithms/impl/random"
+
+const sleep = 1000
 
 func TestISGLB(t *testing.T) {
 	isglb := New(func() algorithms.Algorithm { return &random.Random{} })
@@ -26,29 +29,18 @@ func TestISGLB(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	cli := NewISGLBClient(&node, isglb.NID, map[string]interface{}{})
+	cli := NewISGLBClient(&node, node.NID, map[string]interface{}{})
 
-	s := &pb.SFUStatus{
-		SFU: &ion_pb.Node{
-			Dc:      "dc1",
-			Nid:     node.NID,
-			Service: "sxu",
-			Rpc: &ion_pb.RPC{
-				Protocol: util.RandomString(4),
-				Addr:     util.RandomString(4),
-			},
-		},
-		ForwardTracks: []*pb.ForwardTrack{},
-		ProceedTracks: []*pb.ProceedTrack{},
-	}
 	cli.OnSFUStatusRecv = func(ss *pb.SFUStatus) {
-		if random.RandBool() {
-			random.RandChange(s)
-		}
-		t.Log(ss.String())
+		t.Log(fmt.Printf("Received SFU status: %s", ss.String()))
 	}
 	cli.Connect()
+	// ↑↑↑↑↑ Connect ↑↑↑↑↑
 
+	// ↓↓↓↓↓ Generate and send Random Data ↓↓↓↓↓
+	s := &pb.SFUStatus{
+		SFU: random.RandNode(node.NID),
+	}
 	rr := &random.RandReports{}
 	for i := 0; i < 100; i++ {
 		if random.RandBool() {
@@ -56,12 +48,24 @@ func TestISGLB(t *testing.T) {
 			if err != nil {
 				t.Error(err)
 			}
+			time.Sleep(sleep * time.Millisecond)
+		}
+		if random.RandBool() {
+			random.RandChange(s)
+		} else if random.RandBool() {
+			s = &pb.SFUStatus{
+				SFU: random.RandNode("sxu-" + util.RandomString(6)),
+			}
 		}
 		for _, r := range rr.RandReports() {
 			err := cli.SendSyncRequest(&pb.SyncRequest{Request: &pb.SyncRequest_Report{Report: r}})
 			if err != nil {
 				t.Error(err)
 			}
+			time.Sleep(sleep * time.Millisecond)
 		}
 	}
+	time.Sleep(1 * time.Second)
+	cli.Close()
+	time.Sleep(1 * time.Second)
 }

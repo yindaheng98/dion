@@ -13,6 +13,7 @@ import (
 // Random is a node selection algorithm, just for test
 type Random struct {
 	algorithms.Algorithm
+	nodes map[string]*pb.SFUStatus
 }
 
 func RandBool() bool {
@@ -26,29 +27,42 @@ func RandNode(nid string) *ion.Node {
 	}
 }
 
-func RandChange(s *pb.SFUStatus) {
+func RandChange(s *pb.SFUStatus) *pb.SFUStatus {
 	s.SFU.Service = util.RandomString(4)
+	return s
 }
 
-func (Random) UpdateSFUStatus(current []*pb.SFUStatus, reports []*pb.QualityReport) (expected []*pb.SFUStatus) {
+func (r *Random) UpdateSFUStatus(current []*pb.SFUStatus, reports []*pb.QualityReport) (expected []*pb.SFUStatus) {
 	fmt.Printf("┎Received status: %+v\n", current)
 	fmt.Printf("┖Received report: %+v\n", reports)
+	if r.nodes == nil {
+		r.nodes = map[string]*pb.SFUStatus{}
+	}
 	for _, s := range current {
-		if RandBool() || RandBool() || RandBool() {
+		r.nodes[s.SFU.Nid] = s
+		if RandBool() {
+			s = RandChange(s)
+		}
+		if RandBool() {
 			expected = append(expected, s)
 		}
-		if !RandBool() {
-			continue
-		}
-		RandChange(s)
 	}
 
-	if !RandBool() {
+	if RandBool() {
 		expected = append(expected, &pb.SFUStatus{
-			SFU: RandNode(util.RandomString(1)),
+			SFU: RandNode("test-" + util.RandomString(6)),
 		})
 	}
 
+	for _, s := range r.nodes {
+		if RandBool() {
+			s = RandChange(s)
+		}
+		if RandBool() {
+			expected = append(expected, s)
+		}
+	}
+	fmt.Printf("▶  Return status: %+v\n", expected)
 	return
 }
 

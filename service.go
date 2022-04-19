@@ -2,6 +2,7 @@ package isglb
 
 import (
 	"fmt"
+	"github.com/golang/protobuf/proto"
 	log "github.com/pion/ion-log"
 	"github.com/yindaheng98/isglb/algorithms"
 	"google.golang.org/grpc"
@@ -25,11 +26,13 @@ type ISGLBService struct {
 }
 
 func NewISGLBService(alg algorithms.Algorithm) *ISGLBService {
+	recvChMu := make(chan bool, 1)
+	recvChMu <- true
 	return &ISGLBService{
 		UnimplementedISGLBServer: pb.UnimplementedISGLBServer{},
 		Alg:                      alg,
 		recvCh:                   make(chan isglbRecvMessage, 4096),
-		recvChMu:                 make(chan bool, 1),
+		recvChMu:                 recvChMu,
 		sendChs:                  make(map[*pb.ISGLB_SyncSFUServer]chan *pb.SFUStatus),
 		sendChsMu:                &sync.RWMutex{},
 	}
@@ -112,7 +115,7 @@ func (isglb *ISGLBService) routineSFUStatusRecv() {
 				}
 			} else {
 				select {
-				case msg, ok = <-isglb.recvCh: // Receive all the messages
+				case msg, ok = <-isglb.recvCh: // Receive a message
 					if !ok { //if closed
 						return //exit
 					}
@@ -120,38 +123,43 @@ func (isglb *ISGLBService) routineSFUStatusRecv() {
 					break L //just exit
 				}
 			}
-			//proceed messages
+			//category and save messages
 			switch request := msg.request.Request.(type) {
 			case *pb.SyncRequest_Report:
-				if _, ok = savedReports[request.Report.String()]; !ok {
-					reports = append(reports, request.Report) //filter out deprecated report
+				if _, ok = savedReports[request.Report.String()]; !ok { //filter out deprecated report
+					reports = append(reports, proto.Clone(request.Report).(*pb.QualityReport)) // Save the copy
 				}
 			case *pb.SyncRequest_Status:
 				reportedStatus := request.Status
 				nid := reportedStatus.GetSFU().GetNid()
 
 				if lastSigkey, ok := signids[nid]; ok && lastSigkey != msg.sigkey {
-					log.Warnf("deprecated SFU status sync client for nid: %s", nid)
+					log.Warnf("Dropped deprecated SFU status sync client for nid: %s", nid)
 					continue
 				}
 				signids[nid] = msg.sigkey // Save sig and nid
 
 				if lastStatus, ok := latestStatus[nid]; ok && lastStatus.String() == reportedStatus.String() {
+					log.Debugf("Dropped deprecated SFU status from request: %s", lastStatus.String())
 					continue //filter out unchanged status
 				}
 				// If the request has changed
 				latestStatus[nid] = reportedStatus // Save SFUStatus
 
-				statuss = append(statuss, reportedStatus)
+				statuss = append(statuss, proto.Clone(reportedStatus).(*pb.SFUStatus)) // Save the copy
 			}
 		}
+
+		// proceed all those received messages above
 		if len(statuss) <= 0 && len(reports) <= 0 { //if there is no valid message
 			continue //do nothing
 		}
 		expectedStatusList := isglb.Alg.UpdateSFUStatus(statuss, reports) // update algorithm
 		for _, expectedStatus := range expectedStatusList {
+			expectedStatus = proto.Clone(expectedStatus).(*pb.SFUStatus) // Copy the message
 			nid := expectedStatus.GetSFU().GetNid()
 			if lastStatus, ok := latestStatus[nid]; ok && lastStatus.String() == expectedStatus.String() {
+				log.Debugf("Dropped deprecated SFU status from algorithm: %s", lastStatus.String())
 				continue //filter out unchanged request
 			}
 			// If the request should be change
@@ -160,7 +168,7 @@ func (isglb *ISGLBService) routineSFUStatusRecv() {
 			if sendCh, ok := isglb.sendChs[signids[nid]]; ok {
 				sendCh <- expectedStatus // Send it
 			} else {
-				log.Warnf("No status sender found for nid : %s", nid)
+				log.Warnf("No SFU status sender found for nid %s: %s", nid, expectedStatus.String())
 			}
 			isglb.sendChsMu.RUnlock()
 		}
