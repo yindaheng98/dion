@@ -1,5 +1,5 @@
-# isglb
-islb?is-graph-lb!
+# dion
+ion?distributed-ion!
 
 ## Architecture
 
