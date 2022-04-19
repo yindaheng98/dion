@@ -21,63 +21,20 @@ func RandBool() bool {
 
 func RandNode(nid string) *ion.Node {
 	return &ion.Node{
-		Dc:      util.RandomString(2),
 		Nid:     nid,
 		Service: util.RandomString(4),
-		Rpc: &ion.RPC{
-			Protocol: util.RandomString(4),
-			Addr:     util.RandomString(8),
-		},
 	}
 }
 
 func RandChange(s *pb.SFUStatus) {
-	for _, t := range s.ForwardTracks {
-		if !RandBool() {
-			continue
-		}
-		if RandBool() {
-			t.TrackId = util.RandomString(4)
-		}
-		if RandBool() {
-			t.Src = RandNode(t.Src.Nid)
-		}
-	}
-	if RandBool() {
-		s.ForwardTracks = append(s.ForwardTracks, &pb.ForwardTrack{
-			Src:     RandNode(util.RandomString(1)),
-			TrackId: util.RandomString(4),
-		})
-	}
-
-	for _, t := range s.ProceedTracks {
-		if !RandBool() {
-			continue
-		}
-		if RandBool() {
-			t.SrcTrackId = util.RandomString(4)
-		}
-		if RandBool() {
-			t.DstTrackId = util.RandomString(4)
-		}
-		if RandBool() {
-			t.Procedure = util.RandomString(4)
-		}
-	}
-	if RandBool() {
-		s.ProceedTracks = append(s.ProceedTracks, &pb.ProceedTrack{
-			SrcTrackId: util.RandomString(4),
-			DstTrackId: util.RandomString(4),
-			Procedure:  util.RandomString(2),
-		})
-	}
+	s.SFU.Service = util.RandomString(4)
 }
 
 func (Random) UpdateSFUStatus(current []*pb.SFUStatus, reports []*pb.QualityReport) (expected []*pb.SFUStatus) {
 	fmt.Printf("┎Received status: %+v\n", current)
 	fmt.Printf("┖Received report: %+v\n", reports)
 	for _, s := range current {
-		if RandBool() || RandBool() {
+		if RandBool() || RandBool() || RandBool() {
 			expected = append(expected, s)
 		}
 		if !RandBool() {
@@ -101,7 +58,7 @@ type RandReports struct {
 
 func (r *RandReports) RandReports() (reports []*pb.QualityReport) {
 	for _, report := range r.reports {
-		if RandBool() || RandBool() {
+		if RandBool() || RandBool() || RandBool() {
 			reports = append(reports, report)
 		}
 		if RandBool() {
