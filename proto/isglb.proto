@@ -32,6 +32,7 @@ message ProceedTrack {
 // Which session do the client need. May be a lot of track in one session
 message ClientNeededSession {
   string session = 1;
+  string user = 2;
 }
 
 // TODO: move SFUStatus to SFU module
