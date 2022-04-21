@@ -12,10 +12,14 @@ type TrackRouter interface {
 	StartForwardTrack(trackInfo *pb.ForwardTrack)
 	// StopForwardTrack end a track route
 	StopForwardTrack(trackInfo *pb.ForwardTrack)
+	// ReplaceForwardTrack change a track route
+	ReplaceForwardTrack(oldTrackInfo *pb.ForwardTrack, newTrackInfo *pb.ForwardTrack)
 	// StartProceedTrack begin a track proceed
 	StartProceedTrack(trackInfo *pb.ProceedTrack)
 	// StopProceedTrack end a track proceed
 	StopProceedTrack(trackInfo *pb.ProceedTrack)
+	// ReplaceProceedTrack change a track proceed
+	ReplaceProceedTrack(oldTrackInfo *pb.ProceedTrack, newTrackInfo *pb.ProceedTrack)
 }
 
 // QualityReporter describe an abstract SFU that can report the running quality
