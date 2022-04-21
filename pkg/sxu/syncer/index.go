@@ -10,6 +10,8 @@ type IndexData interface {
 	Key() string
 	// Compare compare if two IndexData is the same
 	Compare(IndexData) bool
+	// Clone clone return a copy of this struct
+	Clone() IndexData
 }
 
 type indexTuple struct {
@@ -34,7 +36,7 @@ func (index *Index) reset() {
 // Add add a data
 func (index *Index) Add(data IndexData) {
 	index.index[data.Key()] = &indexTuple{
-		data:    data,
+		data:    data.Clone(),
 		checked: false,
 	}
 }
@@ -72,13 +74,13 @@ func (index *Index) Update(list []IndexData) (add []IndexData, del []IndexData, 
 			} else { // Value not same?
 				// should replace
 				replace = append(replace, IndexDataReplaceTuple{Old: tuple.data, New: data})
-				tuple.data = data // replace it
+				tuple.data = data.Clone() // replace it
 				tuple.checked = true
 			}
 		} else { //key not exists?
 			add = append(add, data) // just add the new
 			index.index[data.Key()] = &indexTuple{
-				data:    data,
+				data:    data.Clone(),
 				checked: true,
 			}
 		}
@@ -114,7 +116,7 @@ func (index *Index) Gather() []IndexData {
 	var list = make(indexDataList, len(index.index))
 	i := 0
 	for _, d := range index.index {
-		list[i] = d.data
+		list[i] = d.data.Clone()
 		i++
 	}
 	sort.Sort(list)
