@@ -97,6 +97,34 @@ func (index *Index) Update(list []IndexData) (add []IndexData, del []IndexData, 
 	return
 }
 
+// IsSame just the compare the index and the input and return if is the same
+func (index *Index) IsSame(list []IndexData) bool {
+	index.reset()
+
+	// Find those data in input list but not in index, add it or replace it
+	for _, data := range list {
+		if tuple, ok := index.index[data.Key()]; ok { // Check if the key exists
+			// Exits?
+			if tuple.data.Compare(data) { // Compare the value
+				// Also same?
+				tuple.checked = true // do nothing
+			} else { // Value not same?
+				return false
+			}
+		} else { //key not exists?
+			return false
+		}
+	}
+
+	// Find those data in index but not in input list, delete it
+	for _, tuple := range index.index {
+		if !tuple.checked { // not exists in input list?
+			return false
+		}
+	}
+	return true
+}
+
 type indexDataList []IndexData
 
 func (s indexDataList) Len() int {
