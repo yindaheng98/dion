@@ -21,6 +21,10 @@ type Index struct {
 	index map[string]*indexTuple
 }
 
+func NewIndex() Index {
+	return Index{index: make(map[string]*indexTuple)}
+}
+
 func (index *Index) reset() {
 	for _, tuple := range index.index {
 		tuple.checked = false
@@ -48,9 +52,14 @@ func (index *Index) Exist(data IndexData) bool {
 	return false
 }
 
+type IndexDataReplaceTuple struct {
+	Old IndexData
+	New IndexData
+}
+
 // Update update the index
 // and shows the difference between index and the input list
-func (index *Index) Update(list []IndexData) (add []IndexData, del []IndexData) {
+func (index *Index) Update(list []IndexData) (add []IndexData, del []IndexData, replace []IndexDataReplaceTuple) {
 	index.reset()
 
 	// Find those data in input list but not in index, add it or replace it
@@ -61,9 +70,9 @@ func (index *Index) Update(list []IndexData) (add []IndexData, del []IndexData) 
 				// Also same?
 				tuple.checked = true // do nothing
 			} else { // Value not same?
-				del = append(del, tuple.data) // delete the exists
-				add = append(add, data)       // add the new
-				tuple.data = data             // replace it
+				// should replace
+				replace = append(replace, IndexDataReplaceTuple{Old: tuple.data, New: data})
+				tuple.data = data // replace it
 				tuple.checked = true
 			}
 		} else { //key not exists?
