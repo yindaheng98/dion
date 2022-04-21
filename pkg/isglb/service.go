@@ -2,12 +2,12 @@ package isglb
 
 import (
 	"fmt"
-	"github.com/golang/protobuf/proto"
 	log "github.com/pion/ion-log"
 	"github.com/yindaheng98/isglb/algorithms"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+	"google.golang.org/protobuf/proto"
 	"io"
 	"sync"
 )
