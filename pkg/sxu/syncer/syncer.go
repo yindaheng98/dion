@@ -92,14 +92,17 @@ func (s *ISGLBSyncer) getSelfStatus() *pb.SFUStatus {
 // MUST be single threaded
 func (s *ISGLBSyncer) syncStatus(expectedStatus *pb.SFUStatus) {
 	if expectedStatus.SFU.String() != s.descSFU.String() { // Check if the SFU status is mine
-		log.Warnf("Received SFU status is not mine: %s", expectedStatus.SFU) // If not
-		s.NotifySFUStatus()                                                  // The server must re-consider the status for our SFU
-		return                                                               // And we should wait for the right SFU status to come
+		// If not
+		log.Warnf("Received SFU status is not mine, drop it: %s", expectedStatus.SFU)
+		s.NotifySFUStatus() // The server must re-consider the status for our SFU
+		return              // And we should wait for the right SFU status to come
 	}
 
 	// Check if the client needed session is same
 	sessionIndexDataList := clientSessions(expectedStatus.ClientNeededSession).ToIndexDataList()
-	if !s.clientSessionIndex.IsSame(sessionIndexDataList) { // If not
+	if !s.clientSessionIndex.IsSame(sessionIndexDataList) { // Check if the ClientNeededSession is same
+		// If not
+		log.Warnf("Received SFU status have different session list, drop it: %s", expectedStatus.ClientNeededSession)
 		s.NotifySFUStatus() // The server must re-consider the status for our SFU
 		return              // And we should wait for the right SFU status to come
 	}
