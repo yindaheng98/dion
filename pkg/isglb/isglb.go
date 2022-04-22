@@ -9,79 +9,19 @@ import (
 	"github.com/pion/ion/pkg/proto"
 	"github.com/pion/ion/pkg/runner"
 	"github.com/pion/ion/pkg/util"
-	"github.com/spf13/viper"
 	"github.com/yindaheng98/isglb/algorithms"
+	"github.com/yindaheng98/isglb/config"
 	pb "github.com/yindaheng98/isglb/proto"
 	"google.golang.org/grpc"
-	"os"
 )
 
 const ServiceISGLB = "isglb"
 
-// ↓↓↓↓↓ COPY FROM https://github.com/pion/ion/blob/65dbd12eaad0f0e0a019b4d8ee80742930bcdc28/pkg/node/sfu/sfu.go ↓↓↓↓↓
-
-type global struct {
-	Dc string `mapstructure:"dc"`
-}
-
-type natsConf struct {
-	URL string `mapstructure:"url"`
-}
-
-// Config defines parameters for the logger
-type logConf struct {
-	Level string `mapstructure:"level"`
-}
-
-// ↑↑↑↑↑ COPY FROM https://github.com/pion/ion/blob/65dbd12eaad0f0e0a019b4d8ee80742930bcdc28/pkg/node/sfu/sfu.go ↑↑↑↑↑
-
-// Config for sfu node
-type Config struct {
-	runner.ConfigBase
-	Global global   `mapstructure:"global"`
-	Log    logConf  `mapstructure:"log"`
-	Nats   natsConf `mapstructure:"nats"`
-}
-
-// ↓↓↓↓↓ COPY FROM https://github.com/pion/ion/blob/65dbd12eaad0f0e0a019b4d8ee80742930bcdc28/pkg/node/sfu/sfu.go ↓↓↓↓↓
-
-func unmarshal(rawVal interface{}) error {
-	if err := viper.Unmarshal(rawVal); err != nil {
-		return err
-	}
-	return nil
-}
+type Config config.Common
 
 func (c *Config) Load(file string) error {
-	_, err := os.Stat(file)
-	if err != nil {
-		return err
-	}
-
-	viper.SetConfigFile(file)
-	viper.SetConfigType("toml")
-
-	err = viper.ReadInConfig()
-	if err != nil {
-		log.Errorf("config file %s read failed. %v\n", file, err)
-		return err
-	}
-
-	err = unmarshal(c)
-	if err != nil {
-		return err
-	}
-
-	if err != nil {
-		log.Errorf("config file %s loaded failed. %v\n", file, err)
-		return err
-	}
-
-	log.Infof("config %s load ok!", file)
-	return nil
+	return config.Load(file, c)
 }
-
-// ↑↑↑↑↑ COPY FROM https://github.com/pion/ion/blob/65dbd12eaad0f0e0a019b4d8ee80742930bcdc28/pkg/node/sfu/sfu.go ↑↑↑↑↑
 
 type ISGLB struct {
 	ion.Node
@@ -91,6 +31,8 @@ type ISGLB struct {
 	algC func() algorithms.Algorithm
 }
 
+// New create a new ISGLB
+// algConstructor should return a algorithms.Algorithm
 func New(algConstructor func() algorithms.Algorithm) *ISGLB {
 	return &ISGLB{
 		Node: ion.NewNode("isglb-" + util.RandomString(6)),

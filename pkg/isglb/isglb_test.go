@@ -5,6 +5,7 @@ import (
 	"github.com/pion/ion/pkg/ion"
 	"github.com/pion/ion/pkg/util"
 	"github.com/yindaheng98/isglb/algorithms"
+	"github.com/yindaheng98/isglb/config"
 	pb "github.com/yindaheng98/isglb/proto"
 	"testing"
 	"time"
@@ -16,9 +17,9 @@ const sleep = 1000
 func TestISGLB(t *testing.T) {
 	isglb := New(func() algorithms.Algorithm { return &random.Random{} })
 	err := isglb.Start(Config{
-		Global: global{Dc: "dc1"},
-		Log:    logConf{Level: "DEBUG"},
-		Nats:   natsConf{URL: "nats://192.168.1.2:4222"},
+		Global: config.Global{Dc: "dc1"},
+		Log:    config.LogConf{Level: "DEBUG"},
+		Nats:   config.NatsConf{URL: "nats://192.168.1.2:4222"},
 	})
 	if err != nil {
 		t.Error(err)
