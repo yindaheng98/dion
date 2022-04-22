@@ -32,15 +32,14 @@ type QualityReporter interface {
 type SessionEvent_State int32
 
 const (
-	SessionEvent_ADD SessionEvent_State = 0
-	SessionEvent_REMOVE
+	SessionEvent_ADD    SessionEvent_State = 0
+	SessionEvent_REMOVE SessionEvent_State = 1
 )
 
 // SessionEvent describe a event, user's join or leave
 type SessionEvent struct {
-	UserID    string
-	SessionID string
-	State     SessionEvent_State
+	Session *pb.ClientNeededSession
+	State   SessionEvent_State
 }
 
 // SessionTracker describe an abstract SFU that can report the user's join and leave

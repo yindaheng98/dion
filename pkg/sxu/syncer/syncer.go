@@ -10,8 +10,8 @@ import (
 	"io"
 )
 
-// SFUStatusSyncer is a ISGLBClient to sync SFUStatus
-type SFUStatusSyncer struct {
+// ISGLBSyncer is a ISGLBClient to sync SFUStatus
+type ISGLBSyncer struct {
 	client   isglb.ISGLBClient
 	node     *ion.Node
 	router   TrackRouter
@@ -23,8 +23,8 @@ type SFUStatusSyncer struct {
 	proceedTrackIndex  Index
 }
 
-func NewSFUStatusSyncer(isglbClient isglb.ISGLBClient, node *ion.Node, router TrackRouter, reporter QualityReporter, session SessionTracker) *SFUStatusSyncer {
-	s := &SFUStatusSyncer{
+func NewSFUStatusSyncer(isglbClient isglb.ISGLBClient, node *ion.Node, router TrackRouter, reporter QualityReporter, session SessionTracker) *ISGLBSyncer {
+	s := &ISGLBSyncer{
 		client:   isglbClient,
 		node:     node,
 		router:   router,
@@ -39,7 +39,7 @@ func NewSFUStatusSyncer(isglbClient isglb.ISGLBClient, node *ion.Node, router Tr
 	return s
 }
 
-func (s *SFUStatusSyncer) GetSelfStatus() *pb.SFUStatus {
+func (s *ISGLBSyncer) GetSelfStatus() *pb.SFUStatus {
 	return &pb.SFUStatus{
 		SFU:                 s.node,
 		ForwardTracks:       IndexDataList(s.forwardTrackIndex.Gather()).ToForwardTracks(),
@@ -48,7 +48,7 @@ func (s *SFUStatusSyncer) GetSelfStatus() *pb.SFUStatus {
 	}
 }
 
-func (s *SFUStatusSyncer) NotifySFUStatus() {
+func (s *ISGLBSyncer) NotifySFUStatus() {
 	// TODO: Only send latest status
 	err := s.client.SendSyncRequest(
 		&pb.SyncRequest{
@@ -71,7 +71,7 @@ func (s *SFUStatusSyncer) NotifySFUStatus() {
 
 // statusCheck chack whether the received expectedStatus is the same as s.status
 // MUST be single threaded
-func (s *SFUStatusSyncer) syncStatus(expectedStatus *pb.SFUStatus) {
+func (s *ISGLBSyncer) syncStatus(expectedStatus *pb.SFUStatus) {
 	if expectedStatus.SFU.String() != s.node.String() { // Check if the SFU status is mine
 		log.Warnf("Received SFU status is not mine: %s", expectedStatus.SFU) // If not
 		s.NotifySFUStatus()                                                  // The server must re-consider the status for our SFU
@@ -127,7 +127,36 @@ func (s *SFUStatusSyncer) syncStatus(expectedStatus *pb.SFUStatus) {
 	}
 }
 
-func (s *SFUStatusSyncer) OnSFUStatusRecv(expectedStatus *pb.SFUStatus) {
+func (s *ISGLBSyncer) handleSessionEvent(event SessionEvent) {
+	// Just add or remove it, and sand latest status
+	switch event.State {
+	case SessionEvent_ADD:
+		s.clientSessionIndex.Add(sessionIndexData{session: event.Session})
+		s.NotifySFUStatus()
+	case SessionEvent_REMOVE:
+		s.clientSessionIndex.Del(sessionIndexData{session: event.Session})
+		s.NotifySFUStatus()
+	}
+}
+
+func (s *ISGLBSyncer) handleReport(report *pb.QualityReport) {
+	// Just send it, non-block
+	go func(s *ISGLBSyncer, report *pb.QualityReport) {
+		err := s.client.SendSyncRequest(&pb.SyncRequest{Request: &pb.SyncRequest_Report{Report: report}})
+		if err != nil {
+			if err == io.EOF {
+				return
+			}
+			errStatus, _ := status.FromError(err)
+			if errStatus.Code() == codes.Canceled {
+				return
+			}
+			log.Errorf("%v SFU request send error", err)
+		}
+	}(s, report)
+}
+
+func (s *ISGLBSyncer) OnSFUStatusRecv(expectedStatus *pb.SFUStatus) {
 
 	s.syncStatus(expectedStatus)
 	// TODO: Only sync latest status
