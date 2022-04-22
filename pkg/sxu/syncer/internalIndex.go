@@ -21,6 +21,16 @@ func (d sessionIndexData) Clone() IndexData {
 	}
 }
 
+type clientSessions []*pb.ClientNeededSession
+
+func (sessions clientSessions) ToIndexDataList() IndexDataList {
+	indexDataList := make([]IndexData, len(sessions))
+	for i, session := range sessions {
+		indexDataList[i] = sessionIndexData{session: session}
+	}
+	return indexDataList
+}
+
 type forwardIndexData struct {
 	forwardTrack *pb.ForwardTrack
 }
@@ -37,6 +47,16 @@ func (d forwardIndexData) Clone() IndexData {
 	}
 }
 
+type forwardTracks []*pb.ForwardTrack
+
+func (tracks forwardTracks) ToIndexDataList() IndexDataList {
+	indexDataList := make([]IndexData, len(tracks))
+	for i, track := range tracks {
+		indexDataList[i] = forwardIndexData{forwardTrack: track}
+	}
+	return indexDataList
+}
+
 type proceedIndexData struct {
 	proceedTrack *pb.ProceedTrack
 }
@@ -51,6 +71,16 @@ func (d proceedIndexData) Clone() IndexData {
 	return proceedIndexData{
 		proceedTrack: proto.Clone(d.proceedTrack).(*pb.ProceedTrack),
 	}
+}
+
+type proceedTracks []*pb.ProceedTrack
+
+func (tracks proceedTracks) ToIndexDataList() IndexDataList {
+	indexDataList := make([]IndexData, len(tracks))
+	for i, track := range tracks {
+		indexDataList[i] = proceedIndexData{proceedTrack: track}
+	}
+	return indexDataList
 }
 
 type IndexDataList []IndexData

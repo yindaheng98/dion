@@ -2,6 +2,7 @@ package syncer
 
 import (
 	pb "github.com/yindaheng98/isglb/proto"
+	"google.golang.org/protobuf/proto"
 )
 
 // TrackRouter describe an abstract SFU that can route video tracks
@@ -46,5 +47,12 @@ type SessionEvent struct {
 type SessionTracker interface {
 	// FetchSessionEvent fetch a SessionEvent
 	// Block until return a new SessionEvent
-	FetchSessionEvent() SessionEvent
+	FetchSessionEvent() *SessionEvent
+}
+
+func (event *SessionEvent) Clone() *SessionEvent {
+	return &SessionEvent{
+		Session: proto.Clone(event.Session).(*pb.ClientNeededSession),
+		State:   event.State,
+	}
 }

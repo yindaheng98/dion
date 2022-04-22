@@ -29,7 +29,7 @@ type ISGLBSyncer struct {
 	// Just recv and send latest status
 	statusRecvCh   chan *pb.SFUStatus
 	statusSendCh   chan bool
-	sessionEventCh chan SessionEvent
+	sessionEventCh chan *SessionEvent
 }
 
 func NewSFUStatusSyncer(node *ion.Node, peerID string, descSFU *pbion.Node, router TrackRouter, reporter QualityReporter, session SessionTracker) *ISGLBSyncer {
@@ -52,7 +52,7 @@ func NewSFUStatusSyncer(node *ion.Node, peerID string, descSFU *pbion.Node, rout
 
 		statusRecvCh:   make(chan *pb.SFUStatus, 1),
 		statusSendCh:   make(chan bool, 1),
-		sessionEventCh: make(chan SessionEvent, 1024),
+		sessionEventCh: make(chan *SessionEvent, 1024),
 	}
 	isglbClient.OnSFUStatusRecv = func(st *pb.SFUStatus) {
 		select {
@@ -98,20 +98,14 @@ func (s *ISGLBSyncer) syncStatus(expectedStatus *pb.SFUStatus) {
 	}
 
 	// Check if the client needed session is same
-	sessionIndexDataList := make([]IndexData, len(expectedStatus.ClientNeededSession))
-	for i, session := range expectedStatus.ClientNeededSession {
-		sessionIndexDataList[i] = sessionIndexData{session: session}
-	}
+	sessionIndexDataList := clientSessions(expectedStatus.ClientNeededSession).ToIndexDataList()
 	if !s.clientSessionIndex.IsSame(sessionIndexDataList) { // If not
 		s.NotifySFUStatus() // The server must re-consider the status for our SFU
 		return              // And we should wait for the right SFU status to come
 	}
 
 	// Perform track forward change
-	forwardIndexDataList := make([]IndexData, len(expectedStatus.ForwardTracks))
-	for i, track := range expectedStatus.ForwardTracks {
-		forwardIndexDataList[i] = forwardIndexData{forwardTrack: track}
-	}
+	forwardIndexDataList := forwardTracks(expectedStatus.ForwardTracks).ToIndexDataList()
 	forwardAdd, forwardDel, forwardReplace := s.forwardTrackIndex.Update(forwardIndexDataList)
 	for _, track := range forwardDel {
 		s.router.StopForwardTrack(track.(forwardIndexData).forwardTrack)
@@ -127,10 +121,7 @@ func (s *ISGLBSyncer) syncStatus(expectedStatus *pb.SFUStatus) {
 	}
 
 	//Perform track proceed change
-	proceedIndexDataList := make([]IndexData, len(expectedStatus.ProceedTracks))
-	for i, track := range expectedStatus.ProceedTracks {
-		proceedIndexDataList[i] = proceedIndexData{proceedTrack: track}
-	}
+	proceedIndexDataList := proceedTracks(expectedStatus.ProceedTracks).ToIndexDataList()
 	proceedAdd, proceedDel, proceedReplace := s.proceedTrackIndex.Update(proceedIndexDataList)
 	for _, track := range proceedDel {
 		s.router.StopProceedTrack(track.(proceedIndexData).proceedTrack)
@@ -148,7 +139,7 @@ func (s *ISGLBSyncer) syncStatus(expectedStatus *pb.SFUStatus) {
 
 // handleSessionEvent handle the SessionEvent
 // MUST be single threaded
-func (s *ISGLBSyncer) handleSessionEvent(event SessionEvent) {
+func (s *ISGLBSyncer) handleSessionEvent(event *SessionEvent) {
 	// Just add or remove it, and sand latest status
 	switch event.State {
 	case SessionEvent_ADD:
@@ -163,27 +154,49 @@ func (s *ISGLBSyncer) handleSessionEvent(event SessionEvent) {
 // main is the "main function" goroutine of the NewSFUStatusSyncer
 // All the methods about Index should be here, to ensure the assess is single-threaded
 func (s *ISGLBSyncer) main() {
-	select {
-	case event, ok := <-s.sessionEventCh: // handle an event
-		if !ok {
-			return
+	for {
+		select {
+		case event, ok := <-s.sessionEventCh: // handle an event
+			if !ok {
+				return
+			}
+			s.handleSessionEvent(event) // should access Index, so keep single thread
+		case st, ok := <-s.statusRecvCh: // handle a received SFU status
+			if !ok {
+				return
+			}
+			s.syncStatus(st) // should access Index, so keep single thread
+		case _, ok := <-s.statusSendCh: // handle SFU status send event
+			if !ok {
+				return
+			}
+			st := s.getSelfStatus() // should access Index, so keep single thread
+			go s.send(&pb.SyncRequest{Request: &pb.SyncRequest_Status{Status: st}})
 		}
-		s.handleSessionEvent(event) // should access Index, so keep single thread
-	case st, ok := <-s.statusRecvCh: // handle a received SFU status
-		if !ok {
-			return
-		}
-		s.syncStatus(st) // should access Index, so keep single thread
-	case _, ok := <-s.statusSendCh: // handle SFU status send event
-		if !ok {
-			return
-		}
-		st := s.getSelfStatus() // should access Index, so keep single thread
-		go s.send(&pb.SyncRequest{Request: &pb.SyncRequest_Status{Status: st}})
 	}
 }
 
 // ↑↑↑↑↑ should access Index, so keep single thread ↑↑↑↑↑
+
+func (s *ISGLBSyncer) sessionFetcher() {
+	for {
+		event := s.session.FetchSessionEvent()
+		if event == nil {
+			return
+		}
+		s.sessionEventCh <- event.Clone()
+	}
+}
+
+func (s *ISGLBSyncer) reportFetcher() {
+	for {
+		report := s.reporter.FetchReport()
+		if report == nil {
+			return
+		}
+		go s.send(&pb.SyncRequest{Request: &pb.SyncRequest_Report{Report: report}})
+	}
+}
 
 func (s *ISGLBSyncer) send(r *pb.SyncRequest) {
 	err := s.client.SendSyncRequest(r)
@@ -199,23 +212,14 @@ func (s *ISGLBSyncer) send(r *pb.SyncRequest) {
 	}
 }
 
-func (s *ISGLBSyncer) handleReport(report *pb.QualityReport) {
-	// Just send it, non-block
-	go func(s *ISGLBSyncer, report *pb.QualityReport) {
-		err := s.client.SendSyncRequest(&pb.SyncRequest{Request: &pb.SyncRequest_Report{Report: report}})
-		if err != nil {
-			if err == io.EOF {
-				return
-			}
-			errStatus, _ := status.FromError(err)
-			if errStatus.Code() == codes.Canceled {
-				return
-			}
-			log.Errorf("%v SFU request send error", err)
-		}
-	}(s, report)
+func (s *ISGLBSyncer) Start() {
+	go s.main()
+	go s.reportFetcher()
+	go s.sessionFetcher()
 }
 
-func (s *ISGLBSyncer) Start() {
-
+func (s *ISGLBSyncer) Stop() {
+	close(s.statusRecvCh)
+	close(s.statusSendCh)
+	close(s.sessionEventCh)
 }
