@@ -2,18 +2,22 @@ package syncer
 
 import (
 	log "github.com/pion/ion-log"
-	"github.com/pion/ion/proto/ion"
+	"github.com/pion/ion/pkg/ion"
+	pbion "github.com/pion/ion/proto/ion"
 	"github.com/yindaheng98/isglb/pkg/isglb"
 	pb "github.com/yindaheng98/isglb/proto"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+	"google.golang.org/protobuf/proto"
 	"io"
 )
 
 // ISGLBSyncer is a ISGLBClient to sync SFUStatus
 type ISGLBSyncer struct {
-	client   isglb.ISGLBClient
-	node     *ion.Node
+	client  *isglb.ISGLBClient
+	node    *ion.Node
+	descSFU *pbion.Node
+
 	router   TrackRouter
 	reporter QualityReporter
 	session  SessionTracker
@@ -21,12 +25,23 @@ type ISGLBSyncer struct {
 	clientSessionIndex Index
 	forwardTrackIndex  Index
 	proceedTrackIndex  Index
+
+	// Just recv and send latest status
+	statusRecvCh   chan *pb.SFUStatus
+	statusSendCh   chan bool
+	sessionEventCh chan SessionEvent
 }
 
-func NewSFUStatusSyncer(isglbClient isglb.ISGLBClient, node *ion.Node, router TrackRouter, reporter QualityReporter, session SessionTracker) *ISGLBSyncer {
+func NewSFUStatusSyncer(node *ion.Node, peerID string, descSFU *pbion.Node, router TrackRouter, reporter QualityReporter, session SessionTracker) *ISGLBSyncer {
+	isglbClient := isglb.NewISGLBClient(node, peerID, map[string]interface{}{})
+	if isglbClient == nil {
+		return nil
+	}
 	s := &ISGLBSyncer{
-		client:   isglbClient,
-		node:     node,
+		client:  isglbClient,
+		node:    node,
+		descSFU: descSFU,
+
 		router:   router,
 		reporter: reporter,
 		session:  session,
@@ -34,45 +49,49 @@ func NewSFUStatusSyncer(isglbClient isglb.ISGLBClient, node *ion.Node, router Tr
 		clientSessionIndex: NewIndex(),
 		forwardTrackIndex:  NewIndex(),
 		proceedTrackIndex:  NewIndex(),
+
+		statusRecvCh:   make(chan *pb.SFUStatus, 1),
+		statusSendCh:   make(chan bool, 1),
+		sessionEventCh: make(chan SessionEvent, 1024),
 	}
-	isglbClient.OnSFUStatusRecv = s.OnSFUStatusRecv
+	isglbClient.OnSFUStatusRecv = func(st *pb.SFUStatus) {
+		select {
+		case _, ok := <-s.statusRecvCh:
+			if !ok {
+				return
+			}
+		default:
+		}
+		s.statusRecvCh <- st
+	}
 	return s
 }
 
-func (s *ISGLBSyncer) GetSelfStatus() *pb.SFUStatus {
+func (s *ISGLBSyncer) NotifySFUStatus() {
+	// Only send latest status
+	select {
+	case s.statusSendCh <- true:
+	default:
+	}
+}
+
+// ↓↓↓↓↓ should access Index, so keep single thread ↓↓↓↓↓
+
+// getSelfStatus get the current SFUStatus
+// MUST be single threaded
+func (s *ISGLBSyncer) getSelfStatus() *pb.SFUStatus {
 	return &pb.SFUStatus{
-		SFU:                 s.node,
+		SFU:                 proto.Clone(s.descSFU).(*pbion.Node),
 		ForwardTracks:       IndexDataList(s.forwardTrackIndex.Gather()).ToForwardTracks(),
 		ProceedTracks:       IndexDataList(s.proceedTrackIndex.Gather()).ToProceedTracks(),
 		ClientNeededSession: IndexDataList(s.clientSessionIndex.Gather()).ToClientSessions(),
 	}
 }
 
-func (s *ISGLBSyncer) NotifySFUStatus() {
-	// TODO: Only send latest status
-	err := s.client.SendSyncRequest(
-		&pb.SyncRequest{
-			Request: &pb.SyncRequest_Status{
-				Status: s.GetSelfStatus(),
-			},
-		},
-	)
-	if err != nil {
-		if err == io.EOF {
-			return
-		}
-		errStatus, _ := status.FromError(err)
-		if errStatus.Code() == codes.Canceled {
-			return
-		}
-		log.Errorf("%v SFU request send error", err)
-	}
-}
-
-// statusCheck chack whether the received expectedStatus is the same as s.status
+// syncStatus sync the current SFUStatus with the expected SFUStatus
 // MUST be single threaded
 func (s *ISGLBSyncer) syncStatus(expectedStatus *pb.SFUStatus) {
-	if expectedStatus.SFU.String() != s.node.String() { // Check if the SFU status is mine
+	if expectedStatus.SFU.String() != s.descSFU.String() { // Check if the SFU status is mine
 		log.Warnf("Received SFU status is not mine: %s", expectedStatus.SFU) // If not
 		s.NotifySFUStatus()                                                  // The server must re-consider the status for our SFU
 		return                                                               // And we should wait for the right SFU status to come
@@ -127,6 +146,8 @@ func (s *ISGLBSyncer) syncStatus(expectedStatus *pb.SFUStatus) {
 	}
 }
 
+// handleSessionEvent handle the SessionEvent
+// MUST be single threaded
 func (s *ISGLBSyncer) handleSessionEvent(event SessionEvent) {
 	// Just add or remove it, and sand latest status
 	switch event.State {
@@ -136,6 +157,45 @@ func (s *ISGLBSyncer) handleSessionEvent(event SessionEvent) {
 	case SessionEvent_REMOVE:
 		s.clientSessionIndex.Del(sessionIndexData{session: event.Session})
 		s.NotifySFUStatus()
+	}
+}
+
+// main is the "main function" goroutine of the NewSFUStatusSyncer
+// All the methods about Index should be here, to ensure the assess is single-threaded
+func (s *ISGLBSyncer) main() {
+	select {
+	case event, ok := <-s.sessionEventCh: // handle an event
+		if !ok {
+			return
+		}
+		s.handleSessionEvent(event) // should access Index, so keep single thread
+	case st, ok := <-s.statusRecvCh: // handle a received SFU status
+		if !ok {
+			return
+		}
+		s.syncStatus(st) // should access Index, so keep single thread
+	case _, ok := <-s.statusSendCh: // handle SFU status send event
+		if !ok {
+			return
+		}
+		st := s.getSelfStatus() // should access Index, so keep single thread
+		go s.send(&pb.SyncRequest{Request: &pb.SyncRequest_Status{Status: st}})
+	}
+}
+
+// ↑↑↑↑↑ should access Index, so keep single thread ↑↑↑↑↑
+
+func (s *ISGLBSyncer) send(r *pb.SyncRequest) {
+	err := s.client.SendSyncRequest(r)
+	if err != nil {
+		if err == io.EOF {
+			return
+		}
+		errStatus, _ := status.FromError(err)
+		if errStatus.Code() == codes.Canceled {
+			return
+		}
+		log.Errorf("%v SFU request send error", err)
 	}
 }
 
@@ -156,8 +216,6 @@ func (s *ISGLBSyncer) handleReport(report *pb.QualityReport) {
 	}(s, report)
 }
 
-func (s *ISGLBSyncer) OnSFUStatusRecv(expectedStatus *pb.SFUStatus) {
+func (s *ISGLBSyncer) Start() {
 
-	s.syncStatus(expectedStatus)
-	// TODO: Only sync latest status
 }
