@@ -216,9 +216,11 @@ func (s *ISGLBSyncer) Start() {
 	go s.main()
 	go s.reportFetcher()
 	go s.sessionFetcher()
+	s.client.Connect()
 }
 
 func (s *ISGLBSyncer) Stop() {
+	s.client.Close()
 	close(s.statusRecvCh)
 	close(s.statusSendCh)
 	close(s.sessionEventCh)
