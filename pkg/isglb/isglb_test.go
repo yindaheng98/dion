@@ -19,14 +19,14 @@ func TestISGLB(t *testing.T) {
 	err := isglb.Start(Config{
 		Global: config.Global{Dc: "dc1"},
 		Log:    config.LogConf{Level: "DEBUG"},
-		Nats:   config.NatsConf{URL: "nats://192.168.1.2:4222"},
+		Nats:   config.NatsConf{URL: "nats://192.168.94.131:4222"},
 	})
 	if err != nil {
 		t.Error(err)
 	}
 
 	node := ion.NewNode("sxu-" + util.RandomString(6))
-	err = node.Start("nats://192.168.1.2:4222")
+	err = node.Start("nats://192.168.94.131:4222")
 	if err != nil {
 		t.Error(err)
 	}
