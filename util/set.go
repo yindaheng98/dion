@@ -120,3 +120,13 @@ func (s *DisorderSet) IsSame(list []DisorderSetItem) bool {
 	}
 	return true
 }
+
+type DisorderSetItemList []DisorderSetItem
+
+func NewDisorderSetFromList(list DisorderSetItemList) *DisorderSet {
+	set := &DisorderSet{index: make(map[string]*itemTuple, len(list))}
+	for _, item := range list {
+		set.Add(item)
+	}
+	return set
+}
