@@ -41,7 +41,7 @@ func (r *Random) UpdateSFUStatus(current []*pb.SFUStatus, reports []*pb.QualityR
 	}
 	for _, s := range current {
 		r.nodes[s.SFU.Nid] = s
-		if RandBool() {
+		if !r.RandomTrack && RandBool() { // change SFUStatus.SFU only when not random change track
 			s = RandChange(s)
 		}
 		if RandBool() {
@@ -56,7 +56,7 @@ func (r *Random) UpdateSFUStatus(current []*pb.SFUStatus, reports []*pb.QualityR
 	}
 
 	for _, s := range r.nodes {
-		if RandBool() {
+		if !r.RandomTrack && RandBool() {
 			s = RandChange(s)
 		}
 		if RandBool() {
