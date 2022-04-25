@@ -13,7 +13,8 @@ import (
 // Random is a node selection algorithm, just for test
 type Random struct {
 	algorithms.Algorithm
-	nodes map[string]*pb.SFUStatus
+	nodes       map[string]*pb.SFUStatus
+	RandomTrack bool
 }
 
 func RandBool() bool {
@@ -60,6 +61,17 @@ func (r *Random) UpdateSFUStatus(current []*pb.SFUStatus, reports []*pb.QualityR
 		}
 		if RandBool() {
 			expected = append(expected, s)
+		}
+	}
+
+	if r.RandomTrack {
+		for _, s := range expected {
+			if RandBool() {
+				s.ForwardTracks = RandChangeForwardTracks(s.ForwardTracks)
+			}
+			if RandBool() {
+				s.ProceedTracks = RandChangeProceedTracks(s.ProceedTracks)
+			}
 		}
 	}
 	fmt.Printf("▶  Return status: %+v\n", expected)
