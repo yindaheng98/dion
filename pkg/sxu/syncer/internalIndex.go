@@ -2,109 +2,110 @@ package syncer
 
 import (
 	pb "github.com/yindaheng98/isglb/proto"
+	"github.com/yindaheng98/isglb/util"
 	"google.golang.org/protobuf/proto"
 )
 
-type sessionIndexData struct {
-	session *pb.ClientNeededSession
+type ClientSessionItem struct {
+	Client *pb.ClientNeededSession
 }
 
-func (d sessionIndexData) Key() string {
-	return d.session.User + d.session.Session
+func (i ClientSessionItem) Key() string {
+	return i.Client.User + i.Client.Session
 }
-func (d sessionIndexData) Compare(data IndexData) bool {
-	return d.session.String() == data.(sessionIndexData).session.String()
+func (i ClientSessionItem) Compare(data util.DisorderSetItem) bool {
+	return i.Client.String() == data.(ClientSessionItem).Client.String()
 }
-func (d sessionIndexData) Clone() IndexData {
-	return sessionIndexData{
-		session: proto.Clone(d.session).(*pb.ClientNeededSession),
+func (i ClientSessionItem) Clone() util.DisorderSetItem {
+	return ClientSessionItem{
+		Client: proto.Clone(i.Client).(*pb.ClientNeededSession),
 	}
 }
 
-type clientSessions []*pb.ClientNeededSession
+type Clients []*pb.ClientNeededSession
 
-func (sessions clientSessions) ToIndexDataList() IndexDataList {
-	indexDataList := make([]IndexData, len(sessions))
-	for i, session := range sessions {
-		indexDataList[i] = sessionIndexData{session: session}
+func (clients Clients) ToDisorderSetItemList() util.DisorderSetItemList {
+	list := make([]util.DisorderSetItem, len(clients))
+	for i, client := range clients {
+		list[i] = ClientSessionItem{Client: client}
 	}
-	return indexDataList
+	return list
 }
 
-type forwardIndexData struct {
-	forwardTrack *pb.ForwardTrack
+type ForwardTrackItem struct {
+	Track *pb.ForwardTrack
 }
 
-func (d forwardIndexData) Key() string {
-	return d.forwardTrack.Src.Nid + d.forwardTrack.TrackId
+func (i ForwardTrackItem) Key() string {
+	return i.Track.Src.Nid + i.Track.SessionId
 }
-func (d forwardIndexData) Compare(data IndexData) bool {
-	return d.forwardTrack.String() == data.(forwardIndexData).forwardTrack.String()
+
+func (i ForwardTrackItem) Compare(data util.DisorderSetItem) bool {
+	return i.Track.String() == data.(ForwardTrackItem).Track.String()
 }
-func (d forwardIndexData) Clone() IndexData {
-	return forwardIndexData{
-		forwardTrack: proto.Clone(d.forwardTrack).(*pb.ForwardTrack),
+
+func (i ForwardTrackItem) Clone() util.DisorderSetItem {
+	return ForwardTrackItem{
+		Track: proto.Clone(i.Track).(*pb.ForwardTrack),
 	}
 }
 
-type forwardTracks []*pb.ForwardTrack
+type ForwardTracks []*pb.ForwardTrack
 
-func (tracks forwardTracks) ToIndexDataList() IndexDataList {
-	indexDataList := make([]IndexData, len(tracks))
+func (tracks ForwardTracks) ToDisorderSetItemList() util.DisorderSetItemList {
+	list := make([]util.DisorderSetItem, len(tracks))
 	for i, track := range tracks {
-		indexDataList[i] = forwardIndexData{forwardTrack: track}
+		list[i] = ForwardTrackItem{Track: track}
 	}
-	return indexDataList
+	return list
 }
 
-type proceedIndexData struct {
-	proceedTrack *pb.ProceedTrack
+type ProceedTrackItem struct {
+	Track *pb.ProceedTrack
 }
 
-func (d proceedIndexData) Key() string {
-	return d.proceedTrack.DstTrackId
+func (i ProceedTrackItem) Key() string {
+	return i.Track.DstSessionId
 }
-func (d proceedIndexData) Compare(data IndexData) bool {
-	return d.proceedTrack.String() == data.(proceedIndexData).proceedTrack.String()
+func (i ProceedTrackItem) Compare(data util.DisorderSetItem) bool {
+	dataSrcTrackList := ForwardTracks(data.(ProceedTrackItem).Track.SrcTracks).ToDisorderSetItemList()
+	dataSrcTrackSet := util.NewDisorderSetFromList(dataSrcTrackList)
+	srcTrackList := ForwardTracks(i.Track.SrcTracks).ToDisorderSetItemList()
+	if !dataSrcTrackSet.IsSame(srcTrackList) {
+		return false
+	}
+	return i.Track.String() == data.(ProceedTrackItem).Track.String()
 }
-func (d proceedIndexData) Clone() IndexData {
-	return proceedIndexData{
-		proceedTrack: proto.Clone(d.proceedTrack).(*pb.ProceedTrack),
+func (i ProceedTrackItem) Clone() util.DisorderSetItem {
+	return ProceedTrackItem{
+		Track: proto.Clone(i.Track).(*pb.ProceedTrack),
 	}
 }
 
-type proceedTracks []*pb.ProceedTrack
+type ProceedTracks []*pb.ProceedTrack
 
-func (tracks proceedTracks) ToIndexDataList() IndexDataList {
-	indexDataList := make([]IndexData, len(tracks))
+func (tracks ProceedTracks) ToDisorderSetItemList() util.DisorderSetItemList {
+	indexDataList := make([]util.DisorderSetItem, len(tracks))
 	for i, track := range tracks {
-		indexDataList[i] = proceedIndexData{proceedTrack: track}
+		indexDataList[i] = ProceedTrackItem{Track: track}
 	}
 	return indexDataList
 }
 
-type IndexDataList []IndexData
+type ItemList util.DisorderSetItemList
 
-func (list IndexDataList) ToClientSessions() []*pb.ClientNeededSession {
+func (list ItemList) ToClientSessions() []*pb.ClientNeededSession {
 	tracks := make([]*pb.ClientNeededSession, len(list))
 	for i, data := range list {
-		tracks[i] = data.(sessionIndexData).session
+		tracks[i] = data.(ClientSessionItem).Client
 	}
 	return tracks
 }
 
-func (list IndexDataList) ToForwardTracks() []*pb.ForwardTrack {
-	tracks := make([]*pb.ForwardTrack, len(list))
-	for i, data := range list {
-		tracks[i] = data.(forwardIndexData).forwardTrack
-	}
-	return tracks
-}
-
-func (list IndexDataList) ToProceedTracks() []*pb.ProceedTrack {
+func (list ItemList) ToProceedTracks() []*pb.ProceedTrack {
 	tracks := make([]*pb.ProceedTrack, len(list))
 	for i, data := range list {
-		tracks[i] = data.(proceedIndexData).proceedTrack
+		tracks[i] = data.(ProceedTrackItem).Track
 	}
 	return tracks
 }
