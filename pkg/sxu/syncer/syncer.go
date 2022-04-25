@@ -182,6 +182,11 @@ func (s *ISGLBSyncer) main() {
 // ↑↑↑↑↑ should access Index, so keep single thread ↑↑↑↑↑
 
 func (s *ISGLBSyncer) sessionFetcher() {
+	defer func() {
+		if err := recover(); err != nil {
+			log.Debugf("error on close: %+v", err)
+		}
+	}()
 	for {
 		event := s.session.FetchSessionEvent()
 		if event == nil {
