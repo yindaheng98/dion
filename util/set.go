@@ -1,5 +1,10 @@
 package util
 
+import (
+	"sort"
+	"strings"
+)
+
 type DisorderSetItem interface {
 	// Key return the key of this item
 	Key() string
@@ -130,3 +135,29 @@ func NewDisorderSetFromList(list DisorderSetItemList) *DisorderSet {
 	}
 	return set
 }
+
+func (s DisorderSetItemList) Len() int {
+	return len(s)
+}
+
+func (s DisorderSetItemList) Less(i, j int) bool {
+	return strings.Compare(s[i].Key(), s[j].Key()) < 0
+}
+
+func (s DisorderSetItemList) Swap(i, j int) {
+	s[i], s[j] = s[j], s[i]
+}
+
+// Sort gather all the data and output it in key order
+func (s *DisorderSet) Sort() DisorderSetItemList {
+	var list = make(DisorderSetItemList, len(s.index))
+	i := 0
+	for _, d := range s.index {
+		list[i] = d.data.Clone()
+		i++
+	}
+	sort.Sort(list)
+	return list
+}
+
+// TODO: Cache the Gather(), if the index not same, just return the cache
