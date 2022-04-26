@@ -139,7 +139,7 @@ func (isglb *ISGLBService) routineSFUStatusRecv() {
 				}
 				signids[nid] = msg.sigkey // Save sig and nid
 
-				if lastStatus, ok := latestStatus[nid]; ok && lastStatus.String() == reportedStatus.String() {
+				if lastStatus, ok := latestStatus[nid]; ok && SFUStatusIsSame(lastStatus, reportedStatus) {
 					log.Debugf("Dropped deprecated SFU status from request: %s", lastStatus.String())
 					continue //filter out unchanged status
 				}
@@ -158,8 +158,7 @@ func (isglb *ISGLBService) routineSFUStatusRecv() {
 		for _, expectedStatus := range expectedStatusList {
 			expectedStatus = proto.Clone(expectedStatus).(*pb.SFUStatus) // Copy the message
 			nid := expectedStatus.GetSFU().GetNid()
-			if lastStatus, ok := latestStatus[nid]; ok && lastStatus.String() == expectedStatus.String() {
-				// TODO: ForwardTracks, ProceedTracks and ClientNeededSession maybe disorder
+			if lastStatus, ok := latestStatus[nid]; ok && SFUStatusIsSame(lastStatus, expectedStatus) {
 				log.Debugf("Dropped deprecated SFU status from algorithm: %s", lastStatus.String())
 				continue //filter out unchanged request
 			}
