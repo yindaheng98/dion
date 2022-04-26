@@ -15,16 +15,19 @@ service ISGLB {
   rpc SyncSFU(stream SyncRequest) returns (stream SFUStatus) {}
 }
 
-// The track with id `trackId` from `src` node was/should forwarded
+// The track in session `remoteSessionId` from `src` node was/should forwarded to local session `localSessionId`
 message ForwardTrack {
+  //  src + remoteSessionId is unique, use it as key
   ion.Node src = 1;
-  string trackId = 2; // The same video/audio has the same track id in different nodes
+  string remoteSessionId = 2; // The video/audio has session id in different nodes
+  string localSessionId = 3; // The video/audio has session id in different nodes
+  uint32 layer = 4;
 }
 
-// The track with id `srcTrackId` in the current node was/should proceeded and output track's name is `dstTrackId`
+// The track from srcSessionId was/should be proceeded and output track's session id is `dstSessionId`
 message ProceedTrack {
-  string srcTrackId = 1;
-  string dstTrackId = 2;
+  repeated string srcSessionIdList = 1;
+  string dstSessionId = 2;
   string procedure = 3; //src track should be proceeded by what kind of procedure
   //TODO: procedure should be more specific
 }
@@ -40,7 +43,7 @@ message SFUStatus {
   ion.Node SFU = 1;
   repeated ForwardTrack forwardTracks = 2;
   repeated ProceedTrack proceedTracks = 3;
-  repeated ClientNeededSession clientNeededSession = 4;
+  repeated ClientNeededSession clients = 4;
 }
 
 message TransmissionReport {
