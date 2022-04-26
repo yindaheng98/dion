@@ -67,7 +67,10 @@ func (r *Random) UpdateSFUStatus(current []*pb.SFUStatus, reports []*pb.QualityR
 	if r.RandomTrack {
 		for _, s := range expected {
 			if RandBool() {
-				s.Tracks = RandChangeProceedTracks(s.Tracks)
+				s.ForwardTracks = RandChangeForwardTracks(s.ForwardTracks)
+			}
+			if RandBool() {
+				s.ProceedTracks = RandChangeProceedTracks(s.ProceedTracks)
 			}
 		}
 	}

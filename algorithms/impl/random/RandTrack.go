@@ -3,13 +3,14 @@ package random
 import (
 	"github.com/pion/ion/pkg/util"
 	pb "github.com/yindaheng98/isglb/proto"
+	"math/rand"
 )
 
 // RandForwardTrack Generate a ForwardTrack
 func RandForwardTrack() *pb.ForwardTrack {
 	return &pb.ForwardTrack{
-		Src:       RandNode(util.RandomString(4)),
-		SessionId: util.RandomString(8),
+		Src:             RandNode(util.RandomString(4)),
+		RemoteSessionId: util.RandomString(8),
 	}
 }
 
@@ -19,7 +20,7 @@ func RandChangeForwardTrack(track *pb.ForwardTrack) {
 		track.Src = RandNode(util.RandomString(4))
 	}
 	if RandBool() {
-		track.SessionId = util.RandomString(8)
+		track.RemoteSessionId = util.RandomString(8)
 	}
 }
 
@@ -39,9 +40,9 @@ func RandChangeForwardTracks(tracks []*pb.ForwardTrack) []*pb.ForwardTrack {
 // RandProceedTrack Generate a ProceedTrack
 func RandProceedTrack() *pb.ProceedTrack {
 	return &pb.ProceedTrack{
-		SrcTracks:    []*pb.ForwardTrack{},
-		DstSessionId: util.RandomString(4),
-		Procedure:    &pb.ProceedTrack_ProcedureName{ProcedureName: util.RandomString(2)},
+		SrcSessionIdList: []string{},
+		DstSessionId:     util.RandomString(4),
+		Procedure:        util.RandomString(2),
 	}
 }
 
@@ -51,10 +52,13 @@ func RandChangeProceedTrack(track *pb.ProceedTrack) {
 		track.DstSessionId = util.RandomString(4)
 	}
 	if RandBool() {
-		track.Procedure = &pb.ProceedTrack_ProcedureName{ProcedureName: util.RandomString(2)}
+		track.Procedure = util.RandomString(2)
+	}
+	if len(track.SrcSessionIdList) > 0 && RandBool() {
+		track.SrcSessionIdList[rand.Intn(len(track.SrcSessionIdList))] = util.RandomString(4)
 	}
 	if RandBool() {
-		track.SrcTracks = RandChangeForwardTracks(track.SrcTracks)
+		track.SrcSessionIdList = append(track.SrcSessionIdList, util.RandomString(4))
 	}
 }
 
