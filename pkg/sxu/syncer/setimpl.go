@@ -37,7 +37,7 @@ type ForwardTrackItem struct {
 }
 
 func (i ForwardTrackItem) Key() string {
-	return i.Track.Src.Nid + i.Track.SessionId
+	return i.Track.Src.Nid + i.Track.RemoteSessionId
 }
 
 func (i ForwardTrackItem) Compare(data util.DisorderSetItem) bool {
@@ -68,10 +68,10 @@ func (i ProceedTrackItem) Key() string {
 	return i.Track.DstSessionId
 }
 func (i ProceedTrackItem) Compare(data util.DisorderSetItem) bool {
-	dataSrcTrackList := ForwardTracks(data.(ProceedTrackItem).Track.SrcTracks).ToDisorderSetItemList()
-	dataSrcTrackSet := util.NewDisorderSetFromList(dataSrcTrackList)
-	srcTrackList := ForwardTracks(i.Track.SrcTracks).ToDisorderSetItemList()
-	if !dataSrcTrackSet.IsSame(srcTrackList) {
+	srcTrackList1 := util.Strings(data.(ProceedTrackItem).Track.SrcSessionIdList).ToDisorderSetItemList()
+	srcTrackSet1 := util.NewDisorderSetFromList(srcTrackList1)
+	srcTrackList2 := util.Strings(i.Track.SrcSessionIdList).ToDisorderSetItemList()
+	if !srcTrackSet1.IsSame(srcTrackList2) {
 		return false
 	}
 	return i.Track.String() == data.(ProceedTrackItem).Track.String()
@@ -98,6 +98,14 @@ func (list ItemList) ToClientSessions() []*pb.ClientNeededSession {
 	tracks := make([]*pb.ClientNeededSession, len(list))
 	for i, data := range list {
 		tracks[i] = data.(ClientSessionItem).Client
+	}
+	return tracks
+}
+
+func (list ItemList) ToForwardTracks() []*pb.ForwardTrack {
+	tracks := make([]*pb.ForwardTrack, len(list))
+	for i, data := range list {
+		tracks[i] = data.(ForwardTrackItem).Track
 	}
 	return tracks
 }
