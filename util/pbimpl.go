@@ -5,28 +5,28 @@ import (
 	"google.golang.org/protobuf/proto"
 )
 
-type ClientSessionItem struct {
+type ClientNeededSessionItem struct {
 	Client *pb.ClientNeededSession
 }
 
-func (i ClientSessionItem) Key() string {
+func (i ClientNeededSessionItem) Key() string {
 	return i.Client.User + i.Client.Session
 }
-func (i ClientSessionItem) Compare(data DisorderSetItem) bool {
-	return i.Client.String() == data.(ClientSessionItem).Client.String()
+func (i ClientNeededSessionItem) Compare(data DisorderSetItem) bool {
+	return i.Client.String() == data.(ClientNeededSessionItem).Client.String()
 }
-func (i ClientSessionItem) Clone() DisorderSetItem {
-	return ClientSessionItem{
+func (i ClientNeededSessionItem) Clone() DisorderSetItem {
+	return ClientNeededSessionItem{
 		Client: proto.Clone(i.Client).(*pb.ClientNeededSession),
 	}
 }
 
-type Clients []*pb.ClientNeededSession
+type ClientNeededSessions []*pb.ClientNeededSession
 
-func (clients Clients) ToDisorderSetItemList() DisorderSetItemList {
+func (clients ClientNeededSessions) ToDisorderSetItemList() DisorderSetItemList {
 	list := make([]DisorderSetItem, len(clients))
 	for i, client := range clients {
-		list[i] = ClientSessionItem{Client: client}
+		list[i] = ClientNeededSessionItem{Client: client}
 	}
 	return list
 }
@@ -96,7 +96,7 @@ type ItemList DisorderSetItemList
 func (list ItemList) ToClientSessions() []*pb.ClientNeededSession {
 	tracks := make([]*pb.ClientNeededSession, len(list))
 	for i, data := range list {
-		tracks[i] = data.(ClientSessionItem).Client
+		tracks[i] = data.(ClientNeededSessionItem).Client
 	}
 	return tracks
 }

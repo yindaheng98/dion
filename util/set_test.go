@@ -1,10 +1,9 @@
-package syncer
+package util
 
 import (
 	"fmt"
 	"github.com/yindaheng98/isglb/algorithms/impl/random"
 	pb "github.com/yindaheng98/isglb/proto"
-	"github.com/yindaheng98/isglb/util"
 	"math/rand"
 	"testing"
 )
@@ -20,7 +19,7 @@ func randTracks(n int) []*pb.ProceedTrack {
 const N = 100
 
 func TestDisorderSet(t *testing.T) {
-	set := util.NewDisorderSet()
+	set := NewDisorderSet()
 	templates := randTracks(N)
 	for i := 0; i < N; i++ {
 		set.Add(ProceedTrackItem{
@@ -35,7 +34,7 @@ func TestDisorderSet(t *testing.T) {
 	}
 	fmt.Printf("set: %+v\n", ItemList(set.Sort()).ToProceedTracks())
 
-	set2 := util.NewDisorderSet()
+	set2 := NewDisorderSet()
 	set2.Del(ProceedTrackItem{
 		Track: templates[rand.Int31n(N)],
 	})
