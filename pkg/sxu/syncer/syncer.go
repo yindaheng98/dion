@@ -6,6 +6,7 @@ import (
 	pbion "github.com/pion/ion/proto/ion"
 	"github.com/yindaheng98/isglb/pkg/isglb"
 	pb "github.com/yindaheng98/isglb/proto"
+	"github.com/yindaheng98/isglb/util"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/proto"
@@ -22,9 +23,9 @@ type ISGLBSyncer struct {
 	reporter QualityReporter
 	session  SessionTracker
 
-	clientSessionIndex Index
-	forwardTrackIndex  Index
-	proceedTrackIndex  Index
+	clientSessionIndex *util.DisorderSet
+	forwardTrackIndex  *util.DisorderSet
+	proceedTrackIndex  *util.DisorderSet
 
 	// Just recv and send latest status
 	statusRecvCh   chan *pb.SFUStatus
@@ -46,9 +47,9 @@ func NewSFUStatusSyncer(node *ion.Node, peerID string, descSFU *pbion.Node, rout
 		reporter: reporter,
 		session:  session,
 
-		clientSessionIndex: NewIndex(),
-		forwardTrackIndex:  NewIndex(),
-		proceedTrackIndex:  NewIndex(),
+		clientSessionIndex: util.NewDisorderSet(),
+		forwardTrackIndex:  util.NewDisorderSet(),
+		proceedTrackIndex:  util.NewDisorderSet(),
 
 		statusRecvCh:   make(chan *pb.SFUStatus, 1),
 		statusSendCh:   make(chan bool, 1),
@@ -81,10 +82,10 @@ func (s *ISGLBSyncer) NotifySFUStatus() {
 // MUST be single threaded
 func (s *ISGLBSyncer) getSelfStatus() *pb.SFUStatus {
 	return &pb.SFUStatus{
-		SFU:                 proto.Clone(s.descSFU).(*pbion.Node),
-		ForwardTracks:       IndexDataList(s.forwardTrackIndex.Gather()).ToForwardTracks(),
-		ProceedTracks:       IndexDataList(s.proceedTrackIndex.Gather()).ToProceedTracks(),
-		ClientNeededSession: IndexDataList(s.clientSessionIndex.Gather()).ToClientSessions(),
+		SFU:           proto.Clone(s.descSFU).(*pbion.Node),
+		ForwardTracks: ItemList(s.forwardTrackIndex.Sort()).ToForwardTracks(),
+		ProceedTracks: ItemList(s.proceedTrackIndex.Sort()).ToProceedTracks(),
+		Clients:       ItemList(s.clientSessionIndex.Sort()).ToClientSessions(),
 	}
 }
 
@@ -98,45 +99,45 @@ func (s *ISGLBSyncer) syncStatus(expectedStatus *pb.SFUStatus) {
 		return              // And we should wait for the right SFU status to come
 	}
 
-	// Check if the client needed session is same
-	sessionIndexDataList := clientSessions(expectedStatus.ClientNeededSession).ToIndexDataList()
-	if !s.clientSessionIndex.IsSame(sessionIndexDataList) { // Check if the ClientNeededSession is same
+	// Check if the client needed Client is same
+	sessionIndexDataList := Clients(expectedStatus.Clients).ToDisorderSetItemList()
+	if !s.clientSessionIndex.IsSame(sessionIndexDataList) { // Check if the Clients is same
 		// If not
-		log.Warnf("Received SFU status have different session list, drop it: %s", expectedStatus.ClientNeededSession)
+		log.Warnf("Received SFU status have different Client list, drop it: %s", expectedStatus.Clients)
 		s.NotifySFUStatus() // The server must re-consider the status for our SFU
 		return              // And we should wait for the right SFU status to come
 	}
 
 	// Perform track forward change
-	forwardIndexDataList := forwardTracks(expectedStatus.ForwardTracks).ToIndexDataList()
+	forwardIndexDataList := ForwardTracks(expectedStatus.ForwardTracks).ToDisorderSetItemList()
 	forwardAdd, forwardDel, forwardReplace := s.forwardTrackIndex.Update(forwardIndexDataList)
 	for _, track := range forwardDel {
-		s.router.StopForwardTrack(track.(forwardIndexData).forwardTrack)
+		s.router.StopForwardTrack(track.(ForwardTrackItem).Track)
 	}
 	for _, track := range forwardReplace {
 		s.router.ReplaceForwardTrack(
-			track.Old.(forwardIndexData).forwardTrack,
-			track.New.(forwardIndexData).forwardTrack,
+			track.Old.(ForwardTrackItem).Track,
+			track.New.(ForwardTrackItem).Track,
 		)
 	}
 	for _, track := range forwardAdd {
-		s.router.StartForwardTrack(track.(forwardIndexData).forwardTrack)
+		s.router.StartForwardTrack(track.(ForwardTrackItem).Track)
 	}
 
 	//Perform track proceed change
-	proceedIndexDataList := proceedTracks(expectedStatus.ProceedTracks).ToIndexDataList()
+	proceedIndexDataList := ProceedTracks(expectedStatus.ProceedTracks).ToDisorderSetItemList()
 	proceedAdd, proceedDel, proceedReplace := s.proceedTrackIndex.Update(proceedIndexDataList)
 	for _, track := range proceedDel {
-		s.router.StopProceedTrack(track.(proceedIndexData).proceedTrack)
+		s.router.StopProceedTrack(track.(ProceedTrackItem).Track)
 	}
 	for _, track := range proceedReplace {
 		s.router.ReplaceProceedTrack(
-			track.Old.(proceedIndexData).proceedTrack,
-			track.New.(proceedIndexData).proceedTrack,
+			track.Old.(ProceedTrackItem).Track,
+			track.New.(ProceedTrackItem).Track,
 		)
 	}
 	for _, track := range proceedAdd {
-		s.router.StartProceedTrack(track.(proceedIndexData).proceedTrack)
+		s.router.StartProceedTrack(track.(ProceedTrackItem).Track)
 	}
 }
 
@@ -146,10 +147,10 @@ func (s *ISGLBSyncer) handleSessionEvent(event *SessionEvent) {
 	// Just add or remove it, and sand latest status
 	switch event.State {
 	case SessionEvent_ADD:
-		s.clientSessionIndex.Add(sessionIndexData{session: event.Session})
+		s.clientSessionIndex.Add(ClientSessionItem{Client: event.Session})
 		s.NotifySFUStatus()
 	case SessionEvent_REMOVE:
-		s.clientSessionIndex.Del(sessionIndexData{session: event.Session})
+		s.clientSessionIndex.Del(ClientSessionItem{Client: event.Session})
 		s.NotifySFUStatus()
 	}
 }
