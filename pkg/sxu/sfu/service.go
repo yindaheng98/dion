@@ -21,8 +21,8 @@ type Stream struct {
 	cancel context.CancelFunc
 }
 
-// SFUClient just a signal transmitter
-type SFUClient struct {
+// ForwardController controls the track forward in SFU
+type ForwardController struct {
 	*sfu.SFUService
 	node      *ion.Node
 	sfu       *ion_sfu.SFU
@@ -30,11 +30,11 @@ type SFUClient struct {
 	streams   map[string]Stream
 }
 
-func NewSFUService(SFU *ion_sfu.SFU) *SFUClient {
-	return &SFUClient{sfu: SFU, SFUService: sfu.NewSFUServiceWithSFU(SFU)}
+func NewSFUController(SFU *ion_sfu.SFU) *ForwardController {
+	return &ForwardController{sfu: SFU, SFUService: sfu.NewSFUServiceWithSFU(SFU)}
 }
 
-func (s *SFUClient) StartTransmit(trackInfo *pb.ForwardTrack) error {
+func (s *ForwardController) StartTransmit(trackInfo *pb.ForwardTrack) error {
 	// TODO: transmit a track
 	grpcConn, ok := s.grpcConns[trackInfo.Src.Nid]
 	if !ok {
@@ -70,7 +70,7 @@ func (s *SFUClient) StartTransmit(trackInfo *pb.ForwardTrack) error {
 	return nil
 }
 
-func (s *SFUClient) Signal(sig rtc.RTC_SignalClient, info Stream) error {
+func (s *ForwardController) Signal(sig rtc.RTC_SignalClient, info Stream) error {
 	// TODO: Signal func in client side, send request, receive reply (Signal func in server side receive request and send reply)
 
 	peer := ion_sfu.NewPeer(s.sfu)
@@ -147,12 +147,12 @@ func (s *SFUClient) Signal(sig rtc.RTC_SignalClient, info Stream) error {
 	return nil
 }
 
-func (s *SFUClient) StopTransmit(trackInfo *pb.ForwardTrack) error {
+func (s *ForwardController) StopTransmit(trackInfo *pb.ForwardTrack) error {
 	// TODO: stop a track transition
 	return nil
 }
 
-func (s *SFUClient) ReplaceTransmit(oldTrackInfo, newTrackInfo *pb.ForwardTrack) error {
+func (s *ForwardController) ReplaceTransmit(oldTrackInfo, newTrackInfo *pb.ForwardTrack) error {
 	// TODO: replace a track transition
 	return nil
 }

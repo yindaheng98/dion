@@ -13,16 +13,17 @@ func NewIONSFU(conf ion_sfu.Config) *ion_sfu.SFU {
 }
 
 type SFUTrackRouter struct {
-	node       *ion.Node
-	connectors map[string]*sdk.Connector
-	sfu        *ion_sfu.SFU
-	cli        SFUClient
+	node              *ion.Node
+	connectors        map[string]*sdk.Connector
+	sfu               *ion_sfu.SFU
+	forwardController ForwardController
+	proceedController ProceedController
 }
 
 // TODO: All the methods should retry when failed until success
 
 func (s *SFUTrackRouter) StartForwardTrack(trackInfo *pb.ForwardTrack) {
-	err := s.cli.StartTransmit(trackInfo)
+	err := s.forwardController.StartTransmit(trackInfo)
 	if err != nil {
 		log.Errorf("negotiation error: %v", err)
 	}
