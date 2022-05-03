@@ -2,8 +2,9 @@ package random
 
 import (
 	"fmt"
-	pb "github.com/yindaheng98/isglb/proto"
 	"testing"
+
+	pb "github.com/yindaheng98/dion/proto"
 )
 
 func TestRandom_UpdateSFUStatus(t *testing.T) {

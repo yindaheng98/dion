@@ -26,8 +26,8 @@ GOPATH:=$(shell go env GOPATH)
 PROTOC:=protoc
 PROTOC:=$(PROTOC) --plugin=protoc-gen-go-grpc=$(GOPATH)/bin/protoc-gen-go-grpc
 PROTOC:=$(PROTOC) --plugin=protoc-gen-go=$(GOPATH)/bin/protoc-gen-go
-PROTOC:=$(PROTOC) --go_opt=module=github.com/yindaheng98/isglb --go_out=.
-PROTOC:=$(PROTOC) --go-grpc_opt=module=github.com/yindaheng98/isglb --go-grpc_out=.
+PROTOC:=$(PROTOC) --go_opt=module=github.com/yindaheng98/dion --go_out=.
+PROTOC:=$(PROTOC) --go-grpc_opt=module=github.com/yindaheng98/dion --go-grpc_out=.
 PROTOC:=$(PROTOC) -I ./vendor -I ./
 
 proto_core:

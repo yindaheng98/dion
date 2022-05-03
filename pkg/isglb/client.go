@@ -3,15 +3,16 @@ package isglb
 import (
 	"context"
 	"fmt"
+	"io"
+
 	log "github.com/pion/ion-log"
 	sdk "github.com/pion/ion-sdk-go"
 	"github.com/pion/ion/pkg/ion"
-	pb "github.com/yindaheng98/isglb/proto"
+	pb "github.com/yindaheng98/dion/proto"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/status"
-	"io"
 )
 
 type ISGLBClient struct {

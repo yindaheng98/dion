@@ -3,15 +3,16 @@ package signal
 import (
 	"context"
 	"encoding/json"
+
 	log "github.com/pion/ion-log"
 	ion_sfu "github.com/pion/ion-sfu/pkg/sfu"
 	"github.com/pion/ion/pkg/ion"
 	"github.com/pion/ion/pkg/node/sfu"
 	"github.com/pion/ion/proto/rtc"
 	"github.com/pion/webrtc/v3"
-	"github.com/yindaheng98/isglb/pkg/sxu"
-	pb "github.com/yindaheng98/isglb/proto"
-	"github.com/yindaheng98/isglb/util"
+	"github.com/yindaheng98/dion/pkg/sxu"
+	pb "github.com/yindaheng98/dion/proto"
+	"github.com/yindaheng98/dion/util"
 	"google.golang.org/grpc"
 )
 

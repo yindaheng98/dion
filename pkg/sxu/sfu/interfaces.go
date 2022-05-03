@@ -5,7 +5,7 @@ import (
 	sdk "github.com/pion/ion-sdk-go"
 	ion_sfu "github.com/pion/ion-sfu/pkg/sfu"
 	"github.com/pion/ion/pkg/ion"
-	pb "github.com/yindaheng98/isglb/proto"
+	pb "github.com/yindaheng98/dion/proto"
 )
 
 func NewIONSFU(conf ion_sfu.Config) *ion_sfu.SFU {

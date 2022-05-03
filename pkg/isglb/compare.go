@@ -1,6 +1,6 @@
 package isglb
 
-import pb "github.com/yindaheng98/isglb/proto"
+import pb "github.com/yindaheng98/dion/proto"
 
 // SFUStatusIsSame compare whether the two SFUStatus is same
 func SFUStatusIsSame(s1, s2 *pb.SFUStatus) bool {

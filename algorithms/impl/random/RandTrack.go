@@ -1,9 +1,10 @@
 package random
 
 import (
-	"github.com/pion/ion/pkg/util"
-	pb "github.com/yindaheng98/isglb/proto"
 	"math/rand"
+
+	"github.com/pion/ion/pkg/util"
+	pb "github.com/yindaheng98/dion/proto"
 )
 
 // RandForwardTrack Generate a ForwardTrack

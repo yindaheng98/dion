@@ -1,4 +1,4 @@
-module github.com/yindaheng98/isglb
+module github.com/yindaheng98/dion
 
 go 1.16
 

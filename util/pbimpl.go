@@ -1,7 +1,7 @@
 package util
 
 import (
-	pb "github.com/yindaheng98/isglb/proto"
+	pb "github.com/yindaheng98/dion/proto"
 	"google.golang.org/protobuf/proto"
 )
 

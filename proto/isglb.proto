@@ -4,7 +4,7 @@ import "github.com/pion/ion/proto/ion/ion.proto";
 import "google/protobuf/any.proto";
 import "google/protobuf/timestamp.proto";
 
-option go_package = "github.com/yindaheng98/isglb/proto";
+option go_package = "github.com/yindaheng98/dion/proto";
 
 package islb;
 

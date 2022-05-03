@@ -1,6 +1,6 @@
 package syncer
 
-import "github.com/yindaheng98/isglb/config"
+import "github.com/yindaheng98/dion/config"
 
 type Config config.Common
 

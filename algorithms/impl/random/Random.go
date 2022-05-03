@@ -2,12 +2,13 @@ package random
 
 import (
 	"fmt"
+	"math/rand"
+
 	"github.com/golang/protobuf/ptypes/timestamp"
 	"github.com/pion/ion/pkg/util"
 	"github.com/pion/ion/proto/ion"
-	"github.com/yindaheng98/isglb/algorithms"
-	pb "github.com/yindaheng98/isglb/proto"
-	"math/rand"
+	"github.com/yindaheng98/dion/algorithms"
+	pb "github.com/yindaheng98/dion/proto"
 )
 
 // Random is a node selection algorithm, just for test

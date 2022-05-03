@@ -9,9 +9,9 @@ import (
 	"github.com/pion/ion/pkg/proto"
 	"github.com/pion/ion/pkg/runner"
 	"github.com/pion/ion/pkg/util"
-	"github.com/yindaheng98/isglb/algorithms"
-	"github.com/yindaheng98/isglb/config"
-	pb "github.com/yindaheng98/isglb/proto"
+	"github.com/yindaheng98/dion/algorithms"
+	"github.com/yindaheng98/dion/config"
+	pb "github.com/yindaheng98/dion/proto"
 	"google.golang.org/grpc"
 )
 

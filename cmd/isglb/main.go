@@ -3,7 +3,8 @@ package main
 import (
 	"flag"
 	"fmt"
-	"github.com/yindaheng98/isglb/pkg/isglb"
+
+	"github.com/yindaheng98/dion/pkg/isglb"
 
 	"os"
 	"os/signal"

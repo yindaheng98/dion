@@ -1,16 +1,17 @@
 package syncer
 
 import (
+	"io"
+
 	log "github.com/pion/ion-log"
 	"github.com/pion/ion/pkg/ion"
 	pbion "github.com/pion/ion/proto/ion"
-	"github.com/yindaheng98/isglb/pkg/isglb"
-	pb "github.com/yindaheng98/isglb/proto"
-	"github.com/yindaheng98/isglb/util"
+	"github.com/yindaheng98/dion/pkg/isglb"
+	pb "github.com/yindaheng98/dion/proto"
+	"github.com/yindaheng98/dion/util"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/proto"
-	"io"
 )
 
 // ISGLBSyncer is a ISGLBClient to sync SFUStatus

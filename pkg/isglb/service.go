@@ -2,16 +2,18 @@ package isglb
 
 import (
 	"fmt"
+	"io"
+	"sync"
+
 	log "github.com/pion/ion-log"
-	"github.com/yindaheng98/isglb/algorithms"
+	"github.com/yindaheng98/dion/algorithms"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/proto"
-	"io"
-	"sync"
+
+	pb "github.com/yindaheng98/dion/proto"
 )
-import pb "github.com/yindaheng98/isglb/proto"
 
 // ISGLBService represents isglb node
 type ISGLBService struct {

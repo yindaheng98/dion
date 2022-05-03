@@ -2,15 +2,16 @@ package isglb
 
 import (
 	"fmt"
-	"github.com/pion/ion/pkg/ion"
-	"github.com/pion/ion/pkg/util"
-	"github.com/yindaheng98/isglb/algorithms"
-	"github.com/yindaheng98/isglb/config"
-	pb "github.com/yindaheng98/isglb/proto"
 	"testing"
 	"time"
+
+	"github.com/pion/ion/pkg/ion"
+	"github.com/pion/ion/pkg/util"
+	"github.com/yindaheng98/dion/algorithms"
+	"github.com/yindaheng98/dion/algorithms/impl/random"
+	"github.com/yindaheng98/dion/config"
+	pb "github.com/yindaheng98/dion/proto"
 )
-import "github.com/yindaheng98/isglb/algorithms/impl/random"
 
 const sleep = 1000
 

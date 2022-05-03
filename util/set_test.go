@@ -2,10 +2,11 @@ package util
 
 import (
 	"fmt"
-	"github.com/yindaheng98/isglb/algorithms/impl/random"
-	pb "github.com/yindaheng98/isglb/proto"
 	"math/rand"
 	"testing"
+
+	"github.com/yindaheng98/dion/algorithms/impl/random"
+	pb "github.com/yindaheng98/dion/proto"
 )
 
 func randTracks(n int) []*pb.ProceedTrack {

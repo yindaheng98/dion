@@ -1,6 +1,6 @@
 package algorithms
 
-import pb "github.com/yindaheng98/isglb/proto"
+import pb "github.com/yindaheng98/dion/proto"
 
 // Algorithm is the node selection algorithm interface
 type Algorithm interface {
