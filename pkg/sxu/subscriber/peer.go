@@ -7,7 +7,7 @@ import (
 
 // UpPeerLocal is a local peer that only have up tracks (tracks from other nodes)
 type UpPeerLocal struct {
-	ion_sfu.PeerLocal
+	*ion_sfu.PeerLocal
 }
 
 // Join the up track peer join a session, with the option NoPublish = false and NoSubscribe = true
