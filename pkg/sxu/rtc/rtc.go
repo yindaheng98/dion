@@ -3,6 +3,7 @@ package rtc
 import (
 	"encoding/json"
 	"errors"
+	"github.com/bep/debounce"
 	log "github.com/pion/ion-log"
 	ion_sfu "github.com/pion/ion-sfu/pkg/sfu"
 	"github.com/pion/ion/proto/rtc"
@@ -11,6 +12,7 @@ import (
 	"google.golang.org/grpc/status"
 	"io"
 	"sync"
+	"time"
 )
 
 type Target int32
@@ -32,31 +34,110 @@ type RTC struct {
 
 	SendCandidates []*webrtc.ICECandidate
 	RecvCandidates []webrtc.ICECandidateInit
+
+	tracksInfo []*rtc.TrackInfo
 }
 
-func NewRTC(peer *ion_sfu.PeerLocal, signaller rtc.RTC_SignalClient) *RTC {
-	rtc := &RTC{
-		peer:      &UpPeerLocal{PeerLocal: peer},
+func NewRTC(peer *UpPeerLocal, signaller rtc.RTC_SignalClient) *RTC {
+	r := &RTC{
+		peer:      peer,
 		signaller: signaller,
 
 		uid: peer.ID(),
 	}
-	rtc.sub = NewTransport(rtc, rtc.peer)
-	return rtc
+	r.sub = NewTransport(r, r.peer)
+	return r
 }
 
-// Join join a remote session
-func (r *RTC) Join(remoteSid, localSid string) error {
+// Start start a rtc from remote session to local session
+func (r *RTC) Start(remoteSid, localSid string) error {
 	err := r.peer.Join(localSid)
 	if err != nil {
 		return err
 	}
+
+	uid := r.uid
+	publisher := r.sub.pc.Publisher()
+
+	// ↓↓↓↓↓ Copy from: https://github.com/pion/ion/blob/65dbd12eaad0f0e0a019b4d8ee80742930bcdc28/pkg/node/sfu/service.go#L260 ↓↓↓↓↓
+	var once sync.Once
+	publisher.OnPublisherTrack(func(pt ion_sfu.PublisherTrack) {
+		log.Debugf("[S=>C] OnPublisherTrack: \nKind %v, \nUid: %v,  \nMsid: %v,\nTrackID: %v", pt.Track.Kind(), uid, pt.Track.Msid(), pt.Track.ID())
+
+		once.Do(func() {
+			debounced := debounce.New(800 * time.Millisecond)
+			debounced(func() {
+				var peerTracks []*rtc.TrackInfo
+				pubTracks := publisher.PublisherTracks()
+				if len(pubTracks) == 0 {
+					return
+				}
+
+				for _, pubTrack := range publisher.PublisherTracks() {
+					peerTracks = append(peerTracks, &rtc.TrackInfo{
+						Id:       pubTrack.Track.ID(),
+						Kind:     pubTrack.Track.Kind().String(),
+						StreamId: pubTrack.Track.StreamID(),
+						Muted:    false,
+						Layer:    pubTrack.Track.RID(),
+					})
+				}
+
+				// broadcast the existing tracks in the session
+				r.tracksInfo = append(r.tracksInfo, peerTracks...)
+				log.Infof("[S=>C] BroadcastTrackEvent existing track %v, state = ADD", peerTracks)
+				/*
+					s.BroadcastTrackEvent(uid, peerTracks, rtc.TrackEvent_ADD)
+					if err != nil {
+						log.Errorf("signal send error: %v", err)
+					}
+				*/
+			})
+		})
+	})
+	// ↑↑↑↑↑ Copy from: https://github.com/pion/ion/blob/65dbd12eaad0f0e0a019b4d8ee80742930bcdc28/pkg/node/sfu/service.go#L260 ↑↑↑↑↑
 
 	err = r.SendJoin(remoteSid, r.peer.ID())
 	if err != nil {
 		return err
 	}
 	return nil
+}
+
+// Close exit all session
+func (r *RTC) Close() {
+	peer := r.peer
+	// ↓↓↓↓↓ Copy from: https://github.com/pion/ion/blob/65dbd12eaad0f0e0a019b4d8ee80742930bcdc28/pkg/node/sfu/service.go#L97 ↓↓↓↓↓
+	if peer.Session() != nil {
+		log.Infof("[S=>C] close: sid => %v, uid => %v", peer.Session().ID(), peer.ID())
+		/*
+			uid := peer.ID()
+
+			s.mutex.Lock()
+			delete(s.sigs, peer.ID())
+			s.mutex.Unlock()
+
+			tracksMutex.Lock()
+			defer tracksMutex.Unlock()
+			if len(tracksInfo) > 0 {
+				s.BroadcastTrackEvent(uid, tracksInfo, rtc.TrackEvent_REMOVE)
+				log.Infof("broadcast tracks event %v, state = REMOVE", tracksInfo)
+			}
+		*/
+
+		// Remove down tracks that other peers subscribed from this peer
+		for _, downTrack := range peer.Subscriber().DownTracks() {
+			streamID := downTrack.StreamID()
+			for _, t := range r.tracksInfo {
+				if downTrack != nil && downTrack.ID() == t.Id {
+					log.Infof("remove down track[%v] from peer[%v]", downTrack.ID(), peer.ID())
+					peer.Subscriber().RemoveDownTrack(streamID, downTrack)
+					_ = downTrack.Stop()
+				}
+			}
+		}
+	}
+	// ↑↑↑↑↑ Copy from: https://github.com/pion/ion/blob/65dbd12eaad0f0e0a019b4d8ee80742930bcdc28/pkg/node/sfu/service.go#L97 ↑↑↑↑↑
 }
 
 // ↓↓↓↓↓ Copy from: https://github.com/pion/ion-sdk-go/blob/12e32a5871b905bf2bdf58bc45c2fdd2741c4f81/rtc.go ↓↓↓↓↓
