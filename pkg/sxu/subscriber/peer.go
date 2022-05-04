@@ -18,22 +18,37 @@ func (p *UpPeerLocal) Join(sid string) error {
 	})
 }
 
-// CreateOffer the up track peer Create an Offer for Publisher after join
-func (p *UpPeerLocal) CreateOffer() (webrtc.SessionDescription, error) {
-	offer, err := p.Publisher().PeerConnection().CreateOffer(nil)
-	if err != nil {
-		return webrtc.SessionDescription{}, err
-	}
-	if err := p.Publisher().PeerConnection().SetLocalDescription(offer); err != nil {
-		return webrtc.SessionDescription{}, err
-	}
-	return offer, nil
-}
-
 func (p *UpPeerLocal) SetRemoteDescription(desc webrtc.SessionDescription) error {
 	return p.Publisher().PeerConnection().SetRemoteDescription(desc)
 }
 
 func (p *UpPeerLocal) AddICECandidate(candidate webrtc.ICECandidateInit) error {
-	return p.Trickle(candidate, 1)
+	return p.Publisher().AddICECandidate(candidate)
+}
+
+/*
+// Do not direct edit PeerConnection
+func (p *UpPeerLocal) PeerConnection() *webrtc.PeerConnection {
+	return p.Publisher().PeerConnection()
+}
+*/
+
+func (p *UpPeerLocal) OnICECandidate(f func(c *webrtc.ICECandidate)) {
+	p.Publisher().OnICECandidate(f)
+}
+
+func (p *UpPeerLocal) CurrentRemoteDescription() *webrtc.SessionDescription {
+	return p.Publisher().PeerConnection().CurrentRemoteDescription()
+}
+
+func (p *UpPeerLocal) GetStats() webrtc.StatsReport {
+	return p.Publisher().PeerConnection().GetStats()
+}
+
+func (p *UpPeerLocal) CreateAnswer(options *webrtc.AnswerOptions) (webrtc.SessionDescription, error) {
+	return p.Publisher().PeerConnection().CreateAnswer(options)
+}
+
+func (p *UpPeerLocal) SetLocalDescription(sdp webrtc.SessionDescription) error {
+	return p.Publisher().PeerConnection().SetLocalDescription(sdp)
 }
