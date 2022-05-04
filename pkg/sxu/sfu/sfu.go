@@ -10,14 +10,9 @@ import (
 	"github.com/pion/ion/pkg/node/sfu"
 	"github.com/pion/ion/pkg/proto"
 	"github.com/pion/ion/pkg/runner"
-	"github.com/pion/ion/pkg/util"
 	pb "github.com/pion/ion/proto/rtc"
 	"github.com/yindaheng98/dion/config"
 	"google.golang.org/grpc"
-)
-
-const (
-	portRangeLimit = 100
 )
 
 type Config config.Common
@@ -36,12 +31,10 @@ type SFU struct {
 	sfu *ion_sfu.SFU
 }
 
-// ↓↓↓↓↓ COPY FROM https://github.com/pion/ion/blob/65dbd12eaad0f0e0a019b4d8ee80742930bcdc28/pkg/node/sfu/sfu.go ↓↓↓↓↓
-
 // New create a sfu node instance
-func New(sfu *ion_sfu.SFU) *SFU {
+func New(nid string, sfu *ion_sfu.SFU) *SFU {
 	s := &SFU{
-		Node: ion.NewNode("sfu-" + util.RandomString(6)),
+		Node: ion.NewNode(nid),
 		sfu:  sfu,
 	}
 	return s
@@ -52,13 +45,15 @@ func (s *SFU) ConfigBase() runner.ConfigBase {
 }
 
 // NewSFU create a sfu node instance
-func NewSFU(sfu *ion_sfu.SFU) *SFU {
+func NewSFU(nid string, sfu *ion_sfu.SFU) *SFU {
 	s := &SFU{
-		Node: ion.NewNode("sfu-" + util.RandomString(6)),
+		Node: ion.NewNode(nid),
 		sfu:  sfu,
 	}
 	return s
 }
+
+// ↓↓↓↓↓ COPY FROM https://github.com/pion/ion/blob/65dbd12eaad0f0e0a019b4d8ee80742930bcdc28/pkg/node/sfu/sfu.go ↓↓↓↓↓
 
 // Load load config file
 func (s *SFU) Load(confFile string) error {
