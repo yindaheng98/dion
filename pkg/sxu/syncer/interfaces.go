@@ -9,12 +9,26 @@ import (
 type TrackRouter interface {
 	// All these methods should be NON-BLOCK!
 
+	TrackForwarder
+	TrackProcessor
+}
+
+// TrackForwarder describe an abstract SFU that can forward video tracks
+type TrackForwarder interface {
+	// All these methods should be NON-BLOCK!
+
 	// StartForwardTrack begin a track route
 	StartForwardTrack(trackInfo *pb.ForwardTrack)
 	// StopForwardTrack end a track route
 	StopForwardTrack(trackInfo *pb.ForwardTrack)
 	// ReplaceForwardTrack change a track route
 	ReplaceForwardTrack(oldTrackInfo *pb.ForwardTrack, newTrackInfo *pb.ForwardTrack)
+}
+
+// TrackProcessor describe an abstract SFU that can proceed video tracks
+type TrackProcessor interface {
+	// All these methods should be NON-BLOCK!
+
 	// StartProceedTrack begin a track proceed
 	StartProceedTrack(trackInfo *pb.ProceedTrack)
 	// StopProceedTrack end a track proceed
