@@ -1,56 +1,50 @@
 package subscriber
 
 import (
+	log "github.com/pion/ion-log"
 	ion_sfu "github.com/pion/ion-sfu/pkg/sfu"
 	"github.com/pion/ion/proto/rtc"
+	"github.com/pion/webrtc/v3"
 )
 
 type Subscriber struct {
-	peer *UpPeerLocal
-	sig  rtc.RTC_SignalClient
+	peer      *UpPeerLocal
+	signaller rtc.RTC_SignalClient
+
+	sub *Transport
+	uid string
 }
 
-func NewSubscriber(peer *ion_sfu.PeerLocal, sig rtc.RTC_SignalClient) *Subscriber {
+func NewSubscriber(peer *ion_sfu.PeerLocal, signaller rtc.RTC_SignalClient) *Subscriber {
 	return &Subscriber{
-		peer: &UpPeerLocal{PeerLocal: peer},
-		sig:  sig,
+		peer:      &UpPeerLocal{PeerLocal: peer},
+		signaller: signaller,
+
+		uid: peer.ID(),
 	}
 }
 
-// JoinLocal join a local session
-func (s *Subscriber) JoinLocal(sid string) error {
-	return s.peer.Join(sid)
+// Join join a remote session
+func (r *Subscriber) Join(remoteSid, localSid string) error {
+	r.peer.OnOffer = func(offer *webrtc.SessionDescription) {
+		config := map[string]string{
+			"NoPublish":       "true",
+			"NoSubscribe":     "false",
+			"NoAutoSubscribe": "false",
+		}
+		if err := r.SendJoin(remoteSid, r.uid, *offer, config); err != nil {
+			log.Errorf("[Remote %v -> Local %v] error sending join request: %v", remoteSid, localSid, err)
+		}
+	}
+	return r.peer.Join(localSid)
 }
 
-type JoinConfig map[string]string
+// GetSubStats get sub stats
+func (r *Subscriber) GetSubStats() webrtc.StatsReport {
+	return r.sub.pc.GetStats()
+}
 
-// JoinRemote join a remote session
-func (s *Subscriber) JoinRemote(sid string, cfg ...*JoinConfig) error {
-	offer, err := s.peer.CreateOffer()
-	if err != nil {
-		return err
-	}
-
-	var config map[string]string
-	if len(cfg) > 0 {
-		config = *cfg[0]
-	} else {
-		config = nil
-	}
-	return s.sig.Send(
-		&rtc.Request{
-			Payload: &rtc.Request_Join{
-				Join: &rtc.JoinRequest{
-					Sid:    sid,
-					Uid:    s.peer.ID(),
-					Config: config,
-					Description: &rtc.SessionDescription{
-						Target: rtc.Target_SUBSCRIBER,
-						Type:   "offer",
-						Sdp:    offer.SDP,
-					},
-				},
-			},
-		},
-	)
+func (r *Subscriber) SendJoin(sid string, uid string, offer webrtc.SessionDescription, config map[string]string) error {
+	// TODO
+	return nil
 }
