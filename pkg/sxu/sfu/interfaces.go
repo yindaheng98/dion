@@ -1,4 +1,4 @@
-package signal
+package sfu
 
 import (
 	log "github.com/pion/ion-log"

@@ -1,4 +1,4 @@
-package signal
+package sfu
 
 import ion_sfu "github.com/pion/ion-sfu/pkg/sfu"
 
