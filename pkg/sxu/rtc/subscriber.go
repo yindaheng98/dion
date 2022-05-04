@@ -1,4 +1,4 @@
-package subscriber
+package rtc
 
 import (
 	"encoding/json"

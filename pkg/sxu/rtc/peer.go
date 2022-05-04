@@ -1,4 +1,4 @@
-package subscriber
+package rtc
 
 import (
 	ion_sfu "github.com/pion/ion-sfu/pkg/sfu"
