@@ -34,13 +34,15 @@ type RTC struct {
 	RecvCandidates []webrtc.ICECandidateInit
 }
 
-func NewSubscriber(peer *ion_sfu.PeerLocal, signaller rtc.RTC_SignalClient) *RTC {
-	return &RTC{
+func NewRTC(peer *ion_sfu.PeerLocal, signaller rtc.RTC_SignalClient) *RTC {
+	rtc := &RTC{
 		peer:      &UpPeerLocal{PeerLocal: peer},
 		signaller: signaller,
 
 		uid: peer.ID(),
 	}
+	rtc.sub = NewTransport(rtc, rtc.peer)
+	return rtc
 }
 
 // Join join a remote session
