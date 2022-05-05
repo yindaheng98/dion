@@ -15,13 +15,24 @@ service ISGLB {
   rpc SyncSFU(stream SyncRequest) returns (stream SFUStatus) {}
 }
 
+message Subscription {
+  string TrackId = 1;
+  bool Mute = 2;
+  enum Layer {
+    Q = 0;
+    H = 1;
+    F = 2;
+  }
+  Layer layer = 3;
+}
+
 // The track in session `remoteSessionId` from `src` node was/should forwarded to local session `localSessionId`
 message ForwardTrack {
   //  src + remoteSessionId is unique, use it as key
   ion.Node src = 1;
   string remoteSessionId = 2; // The video/audio has session id in different nodes
   string localSessionId = 3; // The video/audio has session id in different nodes
-  uint32 layer = 4;
+  repeated Subscription tracks = 4;
 }
 
 // The track from srcSessionId was/should be proceeded and output track's session id is `dstSessionId`

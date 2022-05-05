@@ -9,6 +9,7 @@ import (
 	ion_sfu "github.com/pion/ion-sfu/pkg/sfu"
 	"github.com/pion/ion/proto/rtc"
 	"github.com/pion/webrtc/v3"
+	pb "github.com/yindaheng98/dion/proto"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/status"
@@ -452,6 +453,25 @@ func (r *RTC) Subscribe(trackInfos []*Subscription) error {
 }
 
 // ↑↑↑↑↑ Copy from: https://github.com/pion/ion-sdk-go/blob/12e32a5871b905bf2bdf58bc45c2fdd2741c4f81/rtc.go ↑↑↑↑↑
+
+var Layers = map[pb.Subscription_Layer]string{
+	pb.Subscription_Q: "q",
+	pb.Subscription_H: "h",
+	pb.Subscription_F: "f",
+}
+
+func (r *RTC) Update(new *pb.ForwardTrack) error {
+	trackInfos := make([]*Subscription, len(new.Tracks))
+	for i, track := range new.Tracks {
+		trackInfos[i] = &Subscription{
+			TrackId:   track.TrackId,
+			Mute:      track.Mute,
+			Subscribe: true,
+			Layer:     Layers[track.Layer],
+		}
+	}
+	return r.Subscribe(trackInfos)
+}
 
 // Close stop all track
 func (r *RTC) Close() error {
