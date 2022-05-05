@@ -9,6 +9,7 @@ import (
 	pb "github.com/yindaheng98/dion/proto"
 	"github.com/yindaheng98/dion/util"
 	"google.golang.org/grpc/metadata"
+	"sync"
 	"time"
 )
 
@@ -18,6 +19,9 @@ type Track struct {
 	util.ForwardTrackItem
 	ctx    context.Context
 	cancel context.CancelFunc
+
+	r   *rtc.RTC
+	rMu sync.Mutex // TODO: Single threaded the assessment
 }
 
 type ForwardController struct {
@@ -54,8 +58,13 @@ func (f *ForwardController) StartForwardTrack(trackInfo *pb.ForwardTrack) {
 // forwardTrackRoutine retry until success
 func (f *ForwardController) forwardTrackRoutine(track *Track) {
 	for {
+		track.rMu.Lock()
+		track.r = nil
 		r := rtc.NewRTC(f.sfu)
 		r.OnError = func(err error) {
+			track.rMu.Lock()
+			track.r = nil
+			track.rMu.Unlock()
 			_ = r.Close()
 			select {
 			case <-track.ctx.Done():
@@ -68,13 +77,14 @@ func (f *ForwardController) forwardTrackRoutine(track *Track) {
 		if err != nil {
 			_ = r.Close()
 			select {
-			case <-track.ctx.Done():
-				return
 			case <-time.After(RetryInterval):
 				log.Errorf("Error when forwarding a track, retry it: %+v", err)
 				continue
+			case <-track.ctx.Done():
 			}
 		}
+		track.r = r
+		track.rMu.Unlock()
 		break
 	}
 }
@@ -82,11 +92,24 @@ func (f *ForwardController) forwardTrackRoutine(track *Track) {
 func (f *ForwardController) StopForwardTrack(trackInfo *pb.ForwardTrack) {
 	item := util.ForwardTrackItem{Track: trackInfo}
 	if old, ok := f.tracks[item.Key()]; ok {
-		old.cancel()
-		delete(f.tracks, item.Key())
+		old.cancel()                 // Stop routine
+		delete(f.tracks, item.Key()) // Delete track
 	}
 }
 
+func (f *ForwardController) syncTrackRoutine(track *Track) {
+
+}
+
 func (f *ForwardController) ReplaceForwardTrack(oldTrackInfo *pb.ForwardTrack, newTrackInfo *pb.ForwardTrack) {
-	panic("implement me")
+	oldItem := util.ForwardTrackItem{Track: oldTrackInfo}
+	newItem := util.ForwardTrackItem{Track: newTrackInfo}
+	if oldItem.Key() != newItem.Key() { // if not from the same node
+		f.StopForwardTrack(oldTrackInfo)  // Just stop the old
+		f.StartForwardTrack(newTrackInfo) // And start a new
+	} else if oldTrack, ok := f.tracks[oldItem.Key()]; !ok { // if not exist
+		f.StartForwardTrack(newTrackInfo) // Just start a new
+	} else { // From the same node and exist in current tracks
+		oldTrack.ForwardTrackItem = newItem // Change it
+	}
 }
