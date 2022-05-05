@@ -280,39 +280,39 @@ func (r *RTC) onSingalHandle() error {
 			log.Infof("[%v] [trickle] type=%v candidate=%v", r.uid, payload.Trickle.Target, candidate)
 			r.trickle(candidate, Target(payload.Trickle.Target))
 			/*
-						case *rtc.Reply_TrackEvent:
-							if r.OnTrackEvent == nil {
-								log.Errorf("s.OnTrackEvent == nil")
-								continue
-							}
-							var TrackInfos []*TrackInfo
-							for _, v := range payload.TrackEvent.Tracks {
-								TrackInfos = append(TrackInfos, &TrackInfo{
-									Id:        v.Id,
-									Kind:      v.Kind,
-									Muted:     v.Muted,
-									Type:      MediaType(v.Type),
-									StreamId:  v.StreamId,
-									Label:     v.Label,
-									Width:     v.Width,
-									Height:    v.Height,
-									FrameRate: v.FrameRate,
-									Layer:     v.Layer,
-								})
-							}
-							trackEvent := TrackEvent{
-								State:  TrackEvent_State(payload.TrackEvent.State),
-								Uid:    payload.TrackEvent.Uid,
-								Tracks: TrackInfos,
-							}
-
-							log.Infof("s.OnTrackEvent trackEvent=%+v", trackEvent)
-							r.OnTrackEvent(trackEvent)
-				case *rtc.Reply_Subscription:
-					if !payload.Subscription.Success {
-						log.Errorf("suscription error: %v", payload.Subscription.Error)
+				case *rtc.Reply_TrackEvent:
+					if r.OnTrackEvent == nil {
+						log.Errorf("s.OnTrackEvent == nil")
+						continue
 					}
+					var TrackInfos []*TrackInfo
+					for _, v := range payload.TrackEvent.Tracks {
+						TrackInfos = append(TrackInfos, &TrackInfo{
+							Id:        v.Id,
+							Kind:      v.Kind,
+							Muted:     v.Muted,
+							Type:      MediaType(v.Type),
+							StreamId:  v.StreamId,
+							Label:     v.Label,
+							Width:     v.Width,
+							Height:    v.Height,
+							FrameRate: v.FrameRate,
+							Layer:     v.Layer,
+						})
+					}
+					trackEvent := TrackEvent{
+						State:  TrackEvent_State(payload.TrackEvent.State),
+						Uid:    payload.TrackEvent.Uid,
+						Tracks: TrackInfos,
+					}
+
+					log.Infof("s.OnTrackEvent trackEvent=%+v", trackEvent)
+					r.OnTrackEvent(trackEvent)
 			*/
+		case *rtc.Reply_Subscription:
+			if !payload.Subscription.Success {
+				log.Errorf("suscription error: %v", payload.Subscription.Error)
+			}
 		case *rtc.Reply_Error:
 			log.Errorf("Request error: %v", payload.Error)
 		default:
