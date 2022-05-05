@@ -15,6 +15,13 @@ import (
 	"time"
 )
 
+type Subscription struct {
+	TrackId   string
+	Mute      bool
+	Subscribe bool
+	Layer     string
+}
+
 type Target int32
 
 const (
@@ -102,42 +109,6 @@ func (r *RTC) Start(remoteSid, localSid string) error {
 		return err
 	}
 	return nil
-}
-
-// Close exit all session
-func (r *RTC) Close() {
-	peer := r.peer
-	// ↓↓↓↓↓ Copy from: https://github.com/pion/ion/blob/65dbd12eaad0f0e0a019b4d8ee80742930bcdc28/pkg/node/sfu/service.go#L97 ↓↓↓↓↓
-	if peer.Session() != nil {
-		log.Infof("[S=>C] close: sid => %v, uid => %v", peer.Session().ID(), peer.ID())
-		/*
-			uid := peer.ID()
-
-			s.mutex.Lock()
-			delete(s.sigs, peer.ID())
-			s.mutex.Unlock()
-
-			tracksMutex.Lock()
-			defer tracksMutex.Unlock()
-			if len(tracksInfo) > 0 {
-				s.BroadcastTrackEvent(uid, tracksInfo, rtc.TrackEvent_REMOVE)
-				log.Infof("broadcast tracks event %v, state = REMOVE", tracksInfo)
-			}
-		*/
-
-		// Remove down tracks that other peers subscribed from this peer
-		for _, downTrack := range peer.Subscriber().DownTracks() {
-			streamID := downTrack.StreamID()
-			for _, t := range r.tracksInfo {
-				if downTrack != nil && downTrack.ID() == t.Id {
-					log.Infof("remove down track[%v] from peer[%v]", downTrack.ID(), peer.ID())
-					peer.Subscriber().RemoveDownTrack(streamID, downTrack)
-					_ = downTrack.Stop()
-				}
-			}
-		}
-	}
-	// ↑↑↑↑↑ Copy from: https://github.com/pion/ion/blob/65dbd12eaad0f0e0a019b4d8ee80742930bcdc28/pkg/node/sfu/service.go#L97 ↑↑↑↑↑
 }
 
 // ↓↓↓↓↓ Copy from: https://github.com/pion/ion-sdk-go/blob/12e32a5871b905bf2bdf58bc45c2fdd2741c4f81/rtc.go ↓↓↓↓↓
@@ -435,4 +406,53 @@ func (r *RTC) SendAnswer(sdp webrtc.SessionDescription) error {
 	return nil
 }
 
+// Subscribe to tracks
+func (r *RTC) Subscribe(trackInfos []*Subscription) error {
+	if len(trackInfos) == 0 {
+		return errors.New("track id is empty")
+	}
+	var infos []*rtc.Subscription
+	for _, t := range trackInfos {
+		infos = append(infos, &rtc.Subscription{
+			TrackId:   t.TrackId,
+			Mute:      t.Mute,
+			Subscribe: t.Subscribe,
+			Layer:     t.Layer,
+		})
+	}
+
+	log.Infof("[C=>S] infos: %v", infos)
+	err := r.signaller.Send(
+		&rtc.Request{
+			Payload: &rtc.Request_Subscription{
+				Subscription: &rtc.SubscriptionRequest{
+					Subscriptions: infos,
+				},
+			},
+		},
+	)
+	return err
+}
+
 // ↑↑↑↑↑ Copy from: https://github.com/pion/ion-sdk-go/blob/12e32a5871b905bf2bdf58bc45c2fdd2741c4f81/rtc.go ↑↑↑↑↑
+
+// Close stop all track
+func (r *RTC) Close() error {
+	peer := r.peer
+	session := peer.Session()
+	if session != nil {
+		log.Infof("[S=>C] close: sid => %v, uid => %v", peer.Session().ID(), peer.ID())
+		// Send Request_Subscribe to unsubscribe all tracks
+		subs := make([]*Subscription, len(r.tracksInfo))
+		for i, upTrack := range r.tracksInfo {
+			subs[i] = &Subscription{
+				TrackId:   upTrack.Id,
+				Mute:      upTrack.Muted,
+				Subscribe: false,
+				Layer:     upTrack.Layer,
+			}
+		}
+		return r.Subscribe(subs)
+	}
+	return nil
+}
