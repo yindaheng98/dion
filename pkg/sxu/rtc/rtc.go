@@ -1,6 +1,7 @@
 package rtc
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"github.com/bep/debounce"
@@ -9,6 +10,7 @@ import (
 	"github.com/pion/ion/proto/rtc"
 	"github.com/pion/webrtc/v3"
 	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/status"
 	"io"
 	"sync"
@@ -43,14 +45,29 @@ type RTC struct {
 	RecvCandidates []webrtc.ICECandidateInit
 
 	tracksInfo []*rtc.TrackInfo
+
+	ctx    context.Context
+	cancel context.CancelFunc
 }
 
-func NewRTC(peer *UpPeerLocal, signaller rtc.RTC_SignalClient) *RTC {
+func NewRTC(sfu *ion_sfu.SFU, client rtc.RTCClient, Metadata metadata.MD) *RTC {
+	ctx, cancel := context.WithCancel(context.Background())
+	ctx = metadata.NewOutgoingContext(ctx, Metadata)
+	signaller, err := client.Signal(ctx)
+	if err != nil {
+		log.Errorf("Error when creating a signaller, retry it: %+v", err)
+		cancel()
+		return nil
+	}
+	peer := &UpPeerLocal{PeerLocal: ion_sfu.NewPeer(sfu)}
 	r := &RTC{
 		peer:      peer,
 		signaller: signaller,
 
 		uid: peer.ID(),
+
+		ctx:    ctx,
+		cancel: cancel,
 	}
 	r.sub = NewTransport(r, r.peer)
 	return r
@@ -438,23 +455,6 @@ func (r *RTC) Subscribe(trackInfos []*Subscription) error {
 
 // Close stop all track
 func (r *RTC) Close() error {
-	peer := r.peer
-	if len(r.tracksInfo) > 0 {
-		log.Infof("[S=>C] close: sid => %v, uid => %v", peer.Session().ID(), peer.ID())
-		// Send Request_Subscribe to unsubscribe all tracks
-		subs := make([]*Subscription, len(r.tracksInfo))
-		for i, upTrack := range r.tracksInfo {
-			subs[i] = &Subscription{
-				TrackId:   upTrack.Id,
-				Mute:      upTrack.Muted,
-				Subscribe: false,
-				Layer:     upTrack.Layer,
-			}
-		}
-		err := r.Subscribe(subs)
-		if err != nil {
-			log.Errorf("Error when sending closing signal: %+v", err)
-		}
-	}
+	r.cancel()
 	return r.peer.Close()
 }
