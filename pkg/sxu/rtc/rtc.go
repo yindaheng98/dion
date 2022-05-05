@@ -50,33 +50,32 @@ type RTC struct {
 	cancel context.CancelFunc
 }
 
-func NewRTC(sfu *ion_sfu.SFU, client rtc.RTCClient, Metadata metadata.MD) *RTC {
-	ctx, cancel := context.WithCancel(context.Background())
-	ctx = metadata.NewOutgoingContext(ctx, Metadata)
-	signaller, err := client.Signal(ctx)
-	if err != nil {
-		log.Errorf("Error when creating a signaller, retry it: %+v", err)
-		cancel()
-		return nil
-	}
+func NewRTC(sfu *ion_sfu.SFU) *RTC {
 	peer := &UpPeerLocal{PeerLocal: ion_sfu.NewPeer(sfu)}
 	r := &RTC{
-		peer:      peer,
-		signaller: signaller,
-
-		uid: peer.ID(),
-
-		ctx:    ctx,
-		cancel: cancel,
+		peer: peer,
+		uid:  peer.ID(),
 	}
 	r.sub = NewTransport(r, r.peer)
 	return r
 }
 
 // Start start a rtc from remote session to local session
-func (r *RTC) Start(remoteSid, localSid string) error {
-	err := r.peer.Join(localSid)
+func (r *RTC) Start(remoteSid, localSid string, client rtc.RTCClient, Metadata metadata.MD) error {
+	ctx, cancel := context.WithCancel(context.Background())
+	ctx = metadata.NewOutgoingContext(ctx, Metadata)
+	signaller, err := client.Signal(ctx)
 	if err != nil {
+		cancel()
+		return err
+	}
+	r.signaller = signaller
+	r.ctx = ctx
+	r.cancel = cancel
+
+	err = r.peer.Join(localSid)
+	if err != nil {
+		cancel()
 		return err
 	}
 
@@ -123,6 +122,7 @@ func (r *RTC) Start(remoteSid, localSid string) error {
 
 	err = r.SendJoin(remoteSid, r.peer.ID())
 	if err != nil {
+		cancel()
 		return err
 	}
 	return nil
