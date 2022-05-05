@@ -439,8 +439,7 @@ func (r *RTC) Subscribe(trackInfos []*Subscription) error {
 // Close stop all track
 func (r *RTC) Close() error {
 	peer := r.peer
-	session := peer.Session()
-	if session != nil {
+	if len(r.tracksInfo) > 0 {
 		log.Infof("[S=>C] close: sid => %v, uid => %v", peer.Session().ID(), peer.ID())
 		// Send Request_Subscribe to unsubscribe all tracks
 		subs := make([]*Subscription, len(r.tracksInfo))
@@ -452,7 +451,10 @@ func (r *RTC) Close() error {
 				Layer:     upTrack.Layer,
 			}
 		}
-		return r.Subscribe(subs)
+		err := r.Subscribe(subs)
+		if err != nil {
+			log.Errorf("Error when sending closing signal: %+v", err)
+		}
 	}
-	return nil
+	return r.peer.Close()
 }
