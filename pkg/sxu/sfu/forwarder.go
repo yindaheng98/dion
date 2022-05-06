@@ -9,7 +9,6 @@ import (
 	pb "github.com/yindaheng98/dion/proto"
 	"github.com/yindaheng98/dion/util"
 	"google.golang.org/grpc/metadata"
-	"sync"
 	"time"
 )
 
@@ -19,9 +18,6 @@ type Track struct {
 	util.ForwardTrackItem
 	ctx    context.Context
 	cancel context.CancelFunc
-
-	r   *rtc.RTC
-	rMu sync.Mutex // TODO: Single threaded the assessment
 }
 
 type ForwardController struct {
@@ -55,37 +51,55 @@ func (f *ForwardController) StartForwardTrack(trackInfo *pb.ForwardTrack) {
 	go f.forwardTrackRoutine(track)
 }
 
+func newRTC(track *Track, sfu *ion_sfu.SFU) (*rtc.RTC, context.Context, context.CancelFunc) {
+	ctx, cancel := context.WithCancel(track.ctx)
+	r := rtc.NewRTC(sfu)
+	r.OnError = func(err error) {
+		_ = r.Close()
+		select {
+		case <-ctx.Done():
+		default:
+			log.Errorf("Forwarding exited with an error: %+v", err)
+			cancel()
+		}
+	}
+	return r, ctx, cancel
+}
+
 // forwardTrackRoutine retry until success
+// !!!SINGLE THREAD for each Track!!!
 func (f *ForwardController) forwardTrackRoutine(track *Track) {
 	for {
-		track.rMu.Lock()
-		track.r = nil
-		r := rtc.NewRTC(f.sfu)
-		r.OnError = func(err error) {
-			track.rMu.Lock()
-			track.r = nil
-			track.rMu.Unlock()
-			_ = r.Close()
-			select {
-			case <-track.ctx.Done():
-			case <-time.After(RetryInterval):
-				log.Errorf("Forwarding exited with an error, retry it: %+v", err)
-				go f.forwardTrackRoutine(track)
-			}
-		}
+		r, ctx, cancel := newRTC(track, f.sfu)
 		err := r.Start(track.Track.RemoteSessionId, track.Track.LocalSessionId, f.client, f.Metadata)
 		if err != nil {
 			_ = r.Close()
 			select {
+			case <-ctx.Done():
+				return
 			case <-time.After(RetryInterval):
-				log.Errorf("Error when forwarding a track, retry it: %+v", err)
+				log.Errorf("Error when starting forward a track, retry it: %+v", err)
+				cancel()
 				continue
-			case <-track.ctx.Done():
 			}
 		}
-		track.r = r
-		track.rMu.Unlock()
-		break
+		for {
+			// TODO: 想办法检查SFU里的Track，只在Track有差别的时候才发送更新请求
+			// TODO: 需要从SFU端查询Track信息，应该hack SFU，在Track不变的时候返回一种特殊信息
+			// TODO: 似乎RID就是Layer？
+			if track.Track != nil {
+				log.Debugf("Syncing track: %+v", track.Track)
+				err := r.Update(track.Track)
+				if err != nil {
+					log.Errorf("Error syncing track, retry it: %+v", err)
+				}
+			}
+			select {
+			case <-ctx.Done():
+				return
+			case <-time.After(RetryInterval):
+			}
+		}
 	}
 }
 
@@ -95,10 +109,6 @@ func (f *ForwardController) StopForwardTrack(trackInfo *pb.ForwardTrack) {
 		old.cancel()                 // Stop routine
 		delete(f.tracks, item.Key()) // Delete track
 	}
-}
-
-func (f *ForwardController) syncTrackRoutine(track *Track) {
-
 }
 
 func (f *ForwardController) ReplaceForwardTrack(oldTrackInfo *pb.ForwardTrack, newTrackInfo *pb.ForwardTrack) {
