@@ -4,6 +4,7 @@ import (
 	"context"
 	log "github.com/pion/ion-log"
 	ion_sfu "github.com/pion/ion-sfu/pkg/sfu"
+	"github.com/pion/ion/pkg/ion"
 	pbrtc "github.com/pion/ion/proto/rtc"
 	"github.com/yindaheng98/dion/pkg/sxu/rtc"
 	"github.com/yindaheng98/dion/util"
@@ -14,9 +15,16 @@ import (
 const RetryInterval time.Duration = time.Second * 1
 
 type ForwardTrackRoutineFactory struct {
+	node     *ion.Node
 	sfu      *ion_sfu.SFU
-	client   pbrtc.RTCClient
 	Metadata metadata.MD
+}
+
+func NewForwardTrackRoutineFactory(node *ion.Node, sfu *ion_sfu.SFU) *ForwardTrackRoutineFactory {
+	return &ForwardTrackRoutineFactory{
+		sfu:  sfu,
+		node: node,
+	}
 }
 
 func newRTC(Ctx context.Context, sfu *ion_sfu.SFU) (*rtc.RTC, context.Context, context.CancelFunc) {
@@ -37,7 +45,7 @@ func newRTC(Ctx context.Context, sfu *ion_sfu.SFU) (*rtc.RTC, context.Context, c
 	return r, ctx, cancel
 }
 
-func (f ForwardTrackRoutineFactory) ForwardTrackRoutine(Ctx context.Context, updateCh <-chan util.ForwardTrackItem) {
+func (f ForwardTrackRoutineFactory) ForwardTrackRoutine(Ctx context.Context, updateCh <-chan util.ForwardTrackItem, init util.ForwardTrackItem) {
 	retryItemCh := make(chan util.ForwardTrackItem, 1)
 	for {
 		var item util.ForwardTrackItem
@@ -57,7 +65,24 @@ func (f ForwardTrackRoutineFactory) ForwardTrackRoutine(Ctx context.Context, upd
 		log.Infof("Starting track forward: %+v", item.Track)
 		// init the forwarding
 		r, ctx, cancel := newRTC(Ctx, f.sfu)
-		err := r.Start(item.Track.RemoteSessionId, item.Track.LocalSessionId, f.client, f.Metadata)
+
+		conn, err := f.node.NewNatsRPCClient(item.Track.Src.Service, item.Track.Src.Nid, map[string]interface{}{})
+		if err != nil { // if error
+			_ = r.Close() // Close
+			cancel()      // Close
+			select {
+			case <-Ctx.Done(): // this track should exit?
+				return // exit
+			case <-time.After(RetryInterval): // this track should not exit
+				log.Errorf("Error when connecting to node %s, retry it: %+v", item.Track.Src.Nid, err)
+				retryItemCh <- item // retry it
+				continue            // retry it
+			}
+		}
+
+		client := pbrtc.NewRTCClient(conn)
+
+		err = r.Start(item.Track.RemoteSessionId, item.Track.LocalSessionId, client, f.Metadata)
 		if err != nil { // if error
 			_ = r.Close() // Close
 			cancel()      // Close

@@ -39,7 +39,7 @@ func (f *ForwardRouter) StartForwardTrack(trackInfo *pb.ForwardTrack) {
 		updateCh:         updateCh,
 	}
 	f.tracks[track.Key()] = track
-	go f.ForwardTrackRoutine(ctx, updateCh) // One thread pre track
+	go f.ForwardTrackRoutine(ctx, updateCh, item) // One thread pre track
 }
 
 func (f *ForwardRouter) StopForwardTrack(trackInfo *pb.ForwardTrack) {
