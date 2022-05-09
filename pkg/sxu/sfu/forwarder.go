@@ -16,8 +16,9 @@ const RetryInterval time.Duration = time.Second * 1
 
 type Track struct {
 	util.ForwardTrackItem
-	ctx    context.Context
-	cancel context.CancelFunc
+	ctx      context.Context
+	cancel   context.CancelFunc
+	updateCh chan util.ForwardTrackItem
 }
 
 type ForwardController struct {
@@ -46,21 +47,23 @@ func (f *ForwardController) StartForwardTrack(trackInfo *pb.ForwardTrack) {
 		ForwardTrackItem: item,
 		ctx:              ctx,
 		cancel:           cancel,
+		updateCh:         make(chan util.ForwardTrackItem, 1),
 	}
 	f.tracks[track.Key()] = track
-	go f.forwardTrackRoutine(track)
+	go f.forwardTrackRoutine(track) // One thread pre track
 }
 
 func newRTC(track *Track, sfu *ion_sfu.SFU) (*rtc.RTC, context.Context, context.CancelFunc) {
 	ctx, cancel := context.WithCancel(track.ctx)
 	r := rtc.NewRTC(sfu)
 	r.OnError = func(err error) {
-		_ = r.Close()
+		_ = r.Close() // Close
+		cancel()      // Close
 		select {
-		case <-ctx.Done():
-		default:
-			log.Errorf("Forwarding exited with an error: %+v", err)
-			cancel()
+		case <-track.ctx.Done(): // this track should exit?
+			return // just exit
+		default: // should not exit?
+			log.Errorf("Forwarding exited with an error: %+v", err) // should retry
 		}
 	}
 	return r, ctx, cancel
@@ -72,32 +75,45 @@ func (f *ForwardController) forwardTrackRoutine(track *Track) {
 	for {
 		r, ctx, cancel := newRTC(track, f.sfu)
 		err := r.Start(track.Track.RemoteSessionId, track.Track.LocalSessionId, f.client, f.Metadata)
-		if err != nil {
-			_ = r.Close()
+		if err != nil { // if error
+			_ = r.Close() // Close
+			cancel()      // Close
 			select {
-			case <-ctx.Done():
-				return
-			case <-time.After(RetryInterval):
+			case <-track.ctx.Done(): // this track should exit?
+				return // exit
+			case <-time.After(RetryInterval): // this track should not exit
 				log.Errorf("Error when starting forward a track, retry it: %+v", err)
-				cancel()
-				continue
+				continue // retry
 			}
 		}
+		// Start successfully, the start updating
+		retryItemCh := make(chan util.ForwardTrackItem, 1)
 		for {
-			// TODO: 想办法检查SFU里的Track，只在Track有差别的时候才发送更新请求
-			// TODO: 需要从SFU端查询Track信息，应该hack SFU，在Track不变的时候返回一种特殊信息
-			// TODO: 似乎RID就是Layer？
-			if track.Track != nil {
-				log.Debugf("Syncing track: %+v", track.Track)
-				err := r.Update(track.Track)
-				if err != nil {
-					log.Errorf("Error syncing track, retry it: %+v", err)
-				}
-			}
+			var item util.ForwardTrackItem
 			select {
-			case <-ctx.Done():
+			case <-ctx.Done(): // some error occurred? updating should not continue
 				return
-			case <-time.After(RetryInterval):
+			case item = <-track.updateCh: // get item from update channel or retry channel
+			case item = <-retryItemCh: // get item from update channel or retry channel
+			}
+			if r.IsSame(item.Track) { // If is same
+				continue // Just skip
+			}
+			log.Debugf("Updating track: %+v", item.Track)
+			err := r.Update(item.Track) // Update it
+			if err != nil {
+				select {
+				case <-ctx.Done(): // Error occurred? updating should not continue
+					return
+				default: // should retry
+					log.Errorf("Error updating track, retry it: %+v", err)
+					retryItemCh <- item
+					select {
+					case <-ctx.Done(): // Error occurred? updating should not continue
+						return
+					case <-time.After(RetryInterval): // Delay to retry
+					}
+				}
 			}
 		}
 	}
@@ -121,5 +137,14 @@ func (f *ForwardController) ReplaceForwardTrack(oldTrackInfo *pb.ForwardTrack, n
 		f.StartForwardTrack(newTrackInfo) // Just start a new
 	} else { // From the same node and exist in current tracks
 		oldTrack.ForwardTrackItem = newItem // Change it
+		select {
+		case oldTrack.updateCh <- newItem: // Send to the update channel
+		default:
+			select {
+			case <-oldTrack.updateCh:
+			default:
+			}
+			oldTrack.updateCh <- newItem
+		}
 	}
 }
