@@ -4,10 +4,7 @@ import (
 	"context"
 	pb "github.com/yindaheng98/dion/proto"
 	"github.com/yindaheng98/dion/util"
-	"time"
 )
-
-const RetryInterval time.Duration = time.Second * 1
 
 type Track struct {
 	util.ForwardTrackItem
