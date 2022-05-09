@@ -29,13 +29,19 @@ func (t *testForwardTrackRoutineFactory) ForwardTrackRoutine(Ctx context.Context
 	r := t.running[updateCh]
 	fmt.Printf("No.%d started %d times\n", n, r)
 	t.Unlock()
+	first := true
 	for {
 		select {
 		case <-Ctx.Done(): // this forwarding should exit
 			fmt.Printf("No.%d exited\n", n)
 			return
 		case item = <-updateCh: // get item from update channel or retry channel
-			fmt.Printf("No.%d updating %+v\n", n, item)
+			if first {
+				fmt.Printf("No.%d starting %+v\n", n, item)
+				first = false
+			} else {
+				fmt.Printf("No.%d updating %+v\n", n, item)
+			}
 		}
 	}
 }
