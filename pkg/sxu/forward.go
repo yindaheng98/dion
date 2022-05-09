@@ -54,6 +54,7 @@ func (f ForwardTrackRoutineFactory) ForwardTrackRoutine(Ctx context.Context, upd
 			}
 		}
 
+		log.Infof("Starting track forward: %+v", item.Track)
 		// init the forwarding
 		r, ctx, cancel := newRTC(Ctx, f.sfu)
 		err := r.Start(item.Track.RemoteSessionId, item.Track.LocalSessionId, f.client, f.Metadata)
@@ -85,11 +86,11 @@ func (f ForwardTrackRoutineFactory) ForwardTrackRoutine(Ctx context.Context, upd
 				case item = <-retryItemCh: // get item from update channel or retry channel
 				}
 			}
-			if r.IsSame(item.Track) { // If is same
+			if r.IsSame(item.Track.Tracks) { // If is same
 				continue // Just skip
 			}
-			log.Debugf("Updating track: %+v", item.Track)
-			err := r.Update(item.Track) // Update it
+			log.Debugf("Updating track forward: %+v", item.Track)
+			err := r.Update(item.Track.Tracks) // Update it
 			if err != nil {
 				select {
 				case <-ctx.Done(): // Error occurred? updating should not continue

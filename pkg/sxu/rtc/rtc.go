@@ -415,9 +415,9 @@ var Layers = map[pb.Subscription_Layer]string{
 	pb.Subscription_F: "f",
 }
 
-func (r *RTC) Update(new *pb.ForwardTrack) error {
-	trackInfos := make([]*Subscription, len(new.Tracks))
-	for i, track := range new.Tracks {
+func (r *RTC) Update(tracks []*pb.Subscription) error {
+	trackInfos := make([]*Subscription, len(tracks))
+	for i, track := range tracks {
 		trackInfos[i] = &Subscription{
 			TrackId:   track.TrackId,
 			Mute:      track.Mute,
@@ -428,12 +428,12 @@ func (r *RTC) Update(new *pb.ForwardTrack) error {
 	return r.Subscribe(trackInfos)
 }
 
-func (r *RTC) IsSame(new *pb.ForwardTrack) bool {
+func (r *RTC) IsSame(tracks []*pb.Subscription) bool {
 	temp := map[string]*webrtc.TrackRemote{}
 	for _, t := range r.peer.Publisher().PublisherTracks() {
 		temp[t.Track.ID()] = t.Track
 	}
-	for _, sub := range new.Tracks {
+	for _, sub := range tracks {
 		if t, ok := temp[sub.TrackId]; ok {
 			if !TrackSame(sub, t) {
 				return false
