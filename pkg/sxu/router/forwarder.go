@@ -1,4 +1,4 @@
-package sfu
+package router
 
 import (
 	"context"
