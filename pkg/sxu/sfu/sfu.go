@@ -1,4 +1,4 @@
-package sxu
+package sfu
 
 import (
 	"github.com/cloudwebrtc/nats-discovery/pkg/discovery"
