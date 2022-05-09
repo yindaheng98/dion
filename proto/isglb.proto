@@ -39,7 +39,7 @@ message ForwardTrack {
 message ProceedTrack {
   repeated string srcSessionIdList = 1;
   string dstSessionId = 2;
-  string procedure = 3; //src track should be proceeded by what kind of procedure
+  google.protobuf.Any procedure = 3; //src track should be proceeded by what kind of procedure
   //TODO: procedure should be more specific
 }
 
