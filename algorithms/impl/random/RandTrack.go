@@ -1,10 +1,11 @@
 package random
 
 import (
+	"google.golang.org/protobuf/types/known/anypb"
 	"math/rand"
 
-	"github.com/pion/ion/pkg/util"
 	pb "github.com/yindaheng98/dion/proto"
+	"github.com/yindaheng98/dion/util"
 )
 
 // RandForwardTrack Generate a ForwardTrack
@@ -38,12 +39,17 @@ func RandChangeForwardTracks(tracks []*pb.ForwardTrack) []*pb.ForwardTrack {
 	return tracks
 }
 
+type RandProcedure struct {
+	Procedure string
+}
+
 // RandProceedTrack Generate a ProceedTrack
 func RandProceedTrack() *pb.ProceedTrack {
+	p, _ := anypb.New(&pb.ProceedTrack{DstSessionId: "Procedure-" + util.RandomString(2)})
 	return &pb.ProceedTrack{
 		SrcSessionIdList: []string{},
 		DstSessionId:     util.RandomString(4),
-		Procedure:        util.RandomString(2),
+		Procedure:        p,
 	}
 }
 
@@ -53,7 +59,8 @@ func RandChangeProceedTrack(track *pb.ProceedTrack) {
 		track.DstSessionId = util.RandomString(4)
 	}
 	if RandBool() {
-		track.Procedure = util.RandomString(2)
+		p, _ := anypb.New(&pb.ProceedTrack{DstSessionId: "Procedure-" + util.RandomString(2)})
+		track.Procedure = p
 	}
 	if len(track.SrcSessionIdList) > 0 && RandBool() {
 		track.SrcSessionIdList[rand.Intn(len(track.SrcSessionIdList))] = util.RandomString(4)
