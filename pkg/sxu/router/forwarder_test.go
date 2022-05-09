@@ -47,7 +47,7 @@ func (t *testForwardTrackRoutineFactory) ForwardTrackRoutine(Ctx context.Context
 }
 
 func TestForwardController(t *testing.T) {
-	f := NewForwardController(&testForwardTrackRoutineFactory{running: map[<-chan util.ForwardTrackItem]uint32{}})
+	f := NewForwardRouter(&testForwardTrackRoutineFactory{running: map[<-chan util.ForwardTrackItem]uint32{}})
 	var ts = []*pb.ForwardTrack{random.RandForwardTrack()}
 	for i := 0; i < 100; i++ {
 		switch rand.Intn(3) {

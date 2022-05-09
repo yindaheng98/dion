@@ -12,19 +12,19 @@ type Track struct {
 	updateCh chan util.ForwardTrackItem
 }
 
-type ForwardController struct {
+type ForwardRouter struct {
 	ForwardTrackRoutineFactory
 	tracks map[string]*Track
 }
 
-func NewForwardController(factory ForwardTrackRoutineFactory) *ForwardController {
-	return &ForwardController{
+func NewForwardRouter(factory ForwardTrackRoutineFactory) *ForwardRouter {
+	return &ForwardRouter{
 		ForwardTrackRoutineFactory: factory,
 		tracks:                     make(map[string]*Track),
 	}
 }
 
-func (f *ForwardController) StartForwardTrack(trackInfo *pb.ForwardTrack) {
+func (f *ForwardRouter) StartForwardTrack(trackInfo *pb.ForwardTrack) {
 	item := util.ForwardTrackItem{Track: trackInfo}
 	if old, ok := f.tracks[item.Key()]; ok {
 		f.ReplaceForwardTrack(old.Track, trackInfo)
@@ -42,7 +42,7 @@ func (f *ForwardController) StartForwardTrack(trackInfo *pb.ForwardTrack) {
 	go f.ForwardTrackRoutine(ctx, updateCh) // One thread pre track
 }
 
-func (f *ForwardController) StopForwardTrack(trackInfo *pb.ForwardTrack) {
+func (f *ForwardRouter) StopForwardTrack(trackInfo *pb.ForwardTrack) {
 	item := util.ForwardTrackItem{Track: trackInfo}
 	if old, ok := f.tracks[item.Key()]; ok {
 		old.cancel()                 // Stop routine
@@ -67,7 +67,7 @@ func replace(oldItemInList *Track, newItem util.ForwardTrackItem) {
 	}
 }
 
-func (f *ForwardController) ReplaceForwardTrack(oldTrackInfo *pb.ForwardTrack, newTrackInfo *pb.ForwardTrack) {
+func (f *ForwardRouter) ReplaceForwardTrack(oldTrackInfo *pb.ForwardTrack, newTrackInfo *pb.ForwardTrack) {
 	oldItem := util.ForwardTrackItem{Track: oldTrackInfo}
 	newItem := util.ForwardTrackItem{Track: newTrackInfo}
 	newItemInList, newExist := f.tracks[newItem.Key()]
