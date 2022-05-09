@@ -5,6 +5,12 @@ import (
 	"google.golang.org/protobuf/proto"
 )
 
+type ToolBox struct {
+	TrackRouter     TrackRouter
+	QualityReporter QualityReporter
+	SessionTracker  SessionTracker
+}
+
 // TrackRouter describe an abstract SFU that can route video tracks
 type TrackRouter interface {
 	// All these methods should be NON-BLOCK!

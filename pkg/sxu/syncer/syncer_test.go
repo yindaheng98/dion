@@ -1,7 +1,6 @@
 package syncer
 
 import (
-	"fmt"
 	"math/rand"
 	"testing"
 	"time"
@@ -14,33 +13,6 @@ import (
 	"github.com/yindaheng98/dion/pkg/isglb"
 	pb "github.com/yindaheng98/dion/proto"
 )
-
-type TestTrackRouter struct {
-}
-
-func (t TestTrackRouter) StartForwardTrack(trackInfo *pb.ForwardTrack) {
-	fmt.Printf("StartForwardTrack   | %+v\n", trackInfo)
-}
-
-func (t TestTrackRouter) StopForwardTrack(trackInfo *pb.ForwardTrack) {
-	fmt.Printf("StopForwardTrack    | %+v\n", trackInfo)
-}
-
-func (t TestTrackRouter) ReplaceForwardTrack(oldTrackInfo *pb.ForwardTrack, newTrackInfo *pb.ForwardTrack) {
-	fmt.Printf("ReplaceForwardTrack | %+v -> %+v\n", oldTrackInfo, newTrackInfo)
-}
-
-func (t TestTrackRouter) StartProceedTrack(trackInfo *pb.ProceedTrack) {
-	fmt.Printf("StartProceedTrack   | %+v\n", trackInfo)
-}
-
-func (t TestTrackRouter) StopProceedTrack(trackInfo *pb.ProceedTrack) {
-	fmt.Printf("StopProceedTrack    | %+v\n", trackInfo)
-}
-
-func (t TestTrackRouter) ReplaceProceedTrack(oldTrackInfo *pb.ProceedTrack, newTrackInfo *pb.ProceedTrack) {
-	fmt.Printf("ReplaceProceedTrack | %+v -> %+v\n", oldTrackInfo, newTrackInfo)
-}
 
 type TestQualityReporter struct {
 	random.RandReports
@@ -93,7 +65,11 @@ func TestISGLBSyncer(t *testing.T) {
 	}
 	syncer := NewSFUStatusSyncer(
 		&node, ISGLB.NID, random.RandNode(node.NID),
-		TestTrackRouter{}, TestQualityReporter{random.RandReports{}}, TestSessionTracker{},
+		ToolBox{
+			TrackRouter:     nil,
+			QualityReporter: TestQualityReporter{random.RandReports{}},
+			SessionTracker:  TestSessionTracker{},
+		},
 	)
 	syncer.Start()
 	<-time.After(30 * time.Second)

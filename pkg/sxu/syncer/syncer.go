@@ -34,10 +34,20 @@ type ISGLBSyncer struct {
 	sessionEventCh chan *SessionEvent
 }
 
-func NewSFUStatusSyncer(node *ion.Node, peerID string, descSFU *pbion.Node, router TrackRouter, reporter QualityReporter, session SessionTracker) *ISGLBSyncer {
+func NewSFUStatusSyncer(node *ion.Node, peerID string, descSFU *pbion.Node, toolbox ToolBox) *ISGLBSyncer {
 	isglbClient := isglb.NewISGLBClient(node, peerID, map[string]interface{}{})
 	if isglbClient == nil {
 		return nil
+	}
+	router, reporter, session := toolbox.TrackRouter, toolbox.QualityReporter, toolbox.SessionTracker
+	if router == nil {
+		router = StupidTrackRouter{}
+	}
+	if reporter == nil {
+		reporter = StupidQualityReporter{}
+	}
+	if session == nil {
+		session = StupidSessionTracker{}
 	}
 	s := &ISGLBSyncer{
 		client:  isglbClient,
