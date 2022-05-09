@@ -50,24 +50,53 @@ func (f *ForwardController) StopForwardTrack(trackInfo *pb.ForwardTrack) {
 	}
 }
 
+func replace(oldItemInList *Track, newItem util.ForwardTrackItem) {
+	// And replace the new
+	oldItemInList.ForwardTrackItem = newItem // Change it
+	select {
+	case oldItemInList.updateCh <- newItem: // Send to the update channel
+	default:
+		select {
+		case <-oldItemInList.updateCh:
+		default:
+		}
+		select {
+		case oldItemInList.updateCh <- newItem:
+		default:
+		}
+	}
+}
+
 func (f *ForwardController) ReplaceForwardTrack(oldTrackInfo *pb.ForwardTrack, newTrackInfo *pb.ForwardTrack) {
 	oldItem := util.ForwardTrackItem{Track: oldTrackInfo}
 	newItem := util.ForwardTrackItem{Track: newTrackInfo}
+	newItemInList, newExist := f.tracks[newItem.Key()]
 	if oldItem.Key() != newItem.Key() { // if not from the same node
-		f.StopForwardTrack(oldTrackInfo)  // Just stop the old
-		f.StartForwardTrack(newTrackInfo) // And start a new
-	} else if oldTrack, ok := f.tracks[oldItem.Key()]; !ok { // if not exist
-		f.StartForwardTrack(newTrackInfo) // Just start a new
-	} else { // From the same node and exist in current tracks
-		oldTrack.ForwardTrackItem = newItem // Change it
-		select {
-		case oldTrack.updateCh <- newItem: // Send to the update channel
-		default:
-			select {
-			case <-oldTrack.updateCh:
-			default:
+		_, oldExist := f.tracks[oldItem.Key()]
+		if oldExist {
+			if newExist {
+				// old item and new item both exists?
+				f.StopForwardTrack(oldTrackInfo) // Should stop the old
+				replace(newItemInList, newItem)  // And replace the newItemInList
+			} else {
+				// old item exist but new item not exists?
+				f.StopForwardTrack(oldTrackInfo)  // Just stop the old
+				f.StartForwardTrack(newTrackInfo) // And start a new
 			}
-			oldTrack.updateCh <- newItem
+		} else {
+			if newExist {
+				// old item not exists and new item exist?
+				replace(newItemInList, newItem) // And replace the newItemInList
+			} else {
+				// old item and new item both not exists?
+				f.StartForwardTrack(newTrackInfo) // Just start a new
+			}
+		}
+	} else { // if from the same node
+		if newExist { // exists?
+			replace(newItemInList, newItem) // Just replace the newItemInList
+		} else {
+			f.StartForwardTrack(newTrackInfo) // Just start a new
 		}
 	}
 }
