@@ -37,9 +37,10 @@ message ForwardTrack {
 
 // The track from srcSessionId was/should be proceeded and output track's session id is `dstSessionId`
 message ProceedTrack {
-  repeated string srcSessionIdList = 1;
-  string dstSessionId = 2;
-  google.protobuf.Any procedure = 3; //src track should be proceeded by what kind of procedure
+  string dstSessionId = 1;
+  google.protobuf.Any procedure = 2; //src track should be proceeded by what kind of procedure
+  repeated string srcSessionIdList = 3;
+  map<string, string>trackIdMap = 4;
   //TODO: procedure should be more specific
 }
 
