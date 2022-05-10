@@ -21,9 +21,9 @@ func (c *Config) Load(file string) error {
 	return config.Load(file, c)
 }
 
-// SFU represents a sfu node
-type SFU struct {
-	ion.Node
+// SFUServer represents a sfu server
+type SFUServer struct {
+	*ion.Node
 	s *sfu.SFUService
 	runner.Service
 	conf Config
@@ -31,23 +31,14 @@ type SFU struct {
 	sfu *ion_sfu.SFU
 }
 
-// New create a sfu node instance
-func New(nid string, sfu *ion_sfu.SFU) *SFU {
-	s := &SFU{
-		Node: ion.NewNode(nid),
-		sfu:  sfu,
-	}
-	return s
-}
-
-func (s *SFU) ConfigBase() runner.ConfigBase {
+func (s *SFUServer) ConfigBase() runner.ConfigBase {
 	return &s.conf
 }
 
-// NewSFU create a sfu node instance
-func NewSFU(nid string, sfu *ion_sfu.SFU) *SFU {
-	s := &SFU{
-		Node: ion.NewNode(nid),
+// NewSFUServer create a sfu node instance
+func NewSFUServer(node *ion.Node, sfu *ion_sfu.SFU) *SFUServer {
+	s := &SFUServer{
+		Node: node,
 		sfu:  sfu,
 	}
 	return s
@@ -56,7 +47,7 @@ func NewSFU(nid string, sfu *ion_sfu.SFU) *SFU {
 // ↓↓↓↓↓ COPY FROM https://github.com/pion/ion/blob/65dbd12eaad0f0e0a019b4d8ee80742930bcdc28/pkg/node/sfu/sfu.go ↓↓↓↓↓
 
 // Load load config file
-func (s *SFU) Load(confFile string) error {
+func (s *SFUServer) Load(confFile string) error {
 	err := s.conf.Load(confFile)
 	if err != nil {
 		log.Errorf("config load error: %v", err)
@@ -66,7 +57,7 @@ func (s *SFU) Load(confFile string) error {
 }
 
 // StartGRPC start with grpc.ServiceRegistrar
-func (s *SFU) StartGRPC(registrar grpc.ServiceRegistrar) error {
+func (s *SFUServer) StartGRPC(registrar grpc.ServiceRegistrar) error {
 	//s.s = sfu.NewSFUService(s.conf.Config)
 	s.s = sfu.NewSFUServiceWithSFU(s.sfu)
 	pb.RegisterRTCServer(registrar, s.s)
@@ -74,8 +65,8 @@ func (s *SFU) StartGRPC(registrar grpc.ServiceRegistrar) error {
 	return nil
 }
 
-// Start sfu node
-func (s *SFU) Start(conf Config) error {
+// Start sfu server
+func (s *SFUServer) Start(conf Config) error {
 	err := s.Node.Start(conf.Nats.URL)
 	if err != nil {
 		s.Close()
@@ -120,7 +111,7 @@ func (s *SFU) Start(conf Config) error {
 }
 
 // Close all
-func (s *SFU) Close() {
+func (s *SFUServer) Close() {
 	s.Node.Close()
 }
 
