@@ -22,7 +22,7 @@ func init() {
 
 type Config struct {
 	sfu.Config
-	isfu ion_sfu.Config `mapstructure:"isfu"`
+	ISFU ion_sfu.Config `mapstructure:"isfu"`
 }
 
 type SXU struct {
@@ -55,7 +55,7 @@ func (s *SXU) Start(conf Config) error {
 
 func (s *SXU) StartWithBuilder(conf Config, toolbox ToolBoxBuilder) error {
 	// Start internal SFU
-	s.isfu = ion_sfu.NewSFU(conf.isfu)
+	s.isfu = ion_sfu.NewSFU(conf.ISFU)
 
 	// Start SFU Signal service
 	s.server = sfu.NewSFUServer(&s.Node, s.isfu)
