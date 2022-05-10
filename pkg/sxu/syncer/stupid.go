@@ -6,30 +6,33 @@ import (
 	"time"
 )
 
-type StupidTrackRouter struct {
+type StupidTrackForwarder struct {
 }
 
-func (t StupidTrackRouter) StartForwardTrack(trackInfo *pb.ForwardTrack) {
+func (t StupidTrackForwarder) StartForwardTrack(trackInfo *pb.ForwardTrack) {
 	log.Warnf("No StartForwardTrack  in toolbox | %+v\n", trackInfo)
 }
 
-func (t StupidTrackRouter) StopForwardTrack(trackInfo *pb.ForwardTrack) {
+func (t StupidTrackForwarder) StopForwardTrack(trackInfo *pb.ForwardTrack) {
 	log.Warnf("No StopForwardTrack    in toolbox | %+v\n", trackInfo)
 }
 
-func (t StupidTrackRouter) ReplaceForwardTrack(oldTrackInfo *pb.ForwardTrack, newTrackInfo *pb.ForwardTrack) {
+func (t StupidTrackForwarder) ReplaceForwardTrack(oldTrackInfo *pb.ForwardTrack, newTrackInfo *pb.ForwardTrack) {
 	log.Warnf("No ReplaceForwardTrack in toolbox | %+v -> %+v\n", oldTrackInfo, newTrackInfo)
 }
 
-func (t StupidTrackRouter) StartProceedTrack(trackInfo *pb.ProceedTrack) {
+type StupidTrackProcesser struct {
+}
+
+func (t StupidTrackProcesser) StartProceedTrack(trackInfo *pb.ProceedTrack) {
 	log.Warnf("No StartProceedTrack   in toolbox | %+v\n", trackInfo)
 }
 
-func (t StupidTrackRouter) StopProceedTrack(trackInfo *pb.ProceedTrack) {
+func (t StupidTrackProcesser) StopProceedTrack(trackInfo *pb.ProceedTrack) {
 	log.Warnf("No StopProceedTrack    in toolbox | %+v\n", trackInfo)
 }
 
-func (t StupidTrackRouter) ReplaceProceedTrack(oldTrackInfo *pb.ProceedTrack, newTrackInfo *pb.ProceedTrack) {
+func (t StupidTrackProcesser) ReplaceProceedTrack(oldTrackInfo *pb.ProceedTrack, newTrackInfo *pb.ProceedTrack) {
 	log.Warnf("No ReplaceProceedTrack in toolbox | %+v -> %+v\n", oldTrackInfo, newTrackInfo)
 }
 

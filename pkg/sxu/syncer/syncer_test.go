@@ -66,7 +66,6 @@ func TestISGLBSyncer(t *testing.T) {
 	syncer := NewSFUStatusSyncer(
 		&node, ISGLB.NID, random.RandNode(node.NID),
 		ToolBox{
-			TrackRouter:     nil,
 			QualityReporter: TestQualityReporter{random.RandReports{}},
 			SessionTracker:  TestSessionTracker{},
 		},

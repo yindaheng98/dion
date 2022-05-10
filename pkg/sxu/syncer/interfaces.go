@@ -6,13 +6,14 @@ import (
 )
 
 type ToolBox struct {
-	TrackRouter     TrackRouter
+	TrackForwarder  TrackForwarder
+	TrackProcessor  TrackProcessor
 	QualityReporter QualityReporter
 	SessionTracker  SessionTracker
 }
 
 // TrackRouter describe an abstract SFU that can route video tracks
-type TrackRouter interface {
+type TrackRouter struct {
 	// All these methods should be NON-BLOCK!
 
 	TrackForwarder

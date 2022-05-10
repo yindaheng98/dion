@@ -39,9 +39,12 @@ func NewSFUStatusSyncer(node *ion.Node, peerID string, descSFU *pbion.Node, tool
 	if isglbClient == nil {
 		return nil
 	}
-	router, reporter, session := toolbox.TrackRouter, toolbox.QualityReporter, toolbox.SessionTracker
-	if router == nil {
-		router = StupidTrackRouter{}
+	forwarder, processor, reporter, session := toolbox.TrackForwarder, toolbox.TrackProcessor, toolbox.QualityReporter, toolbox.SessionTracker
+	if forwarder == nil {
+		forwarder = StupidTrackForwarder{}
+	}
+	if processor == nil {
+		processor = StupidTrackProcesser{}
 	}
 	if reporter == nil {
 		reporter = StupidQualityReporter{}
@@ -54,7 +57,10 @@ func NewSFUStatusSyncer(node *ion.Node, peerID string, descSFU *pbion.Node, tool
 		node:    node,
 		descSFU: descSFU,
 
-		router:   router,
+		router: TrackRouter{
+			TrackForwarder: forwarder,
+			TrackProcessor: processor,
+		},
 		reporter: reporter,
 		session:  session,
 
