@@ -53,11 +53,12 @@ func candidateSetting(pc *webrtc.PeerConnection, peer *ion_sfu.PeerLocal, errCh 
 }
 
 type Publisher struct {
-	peer   *ion_sfu.PeerLocal
-	pc     *webrtc.PeerConnection
-	errCh  chan error
-	ctx    context.Context
-	cancel context.CancelFunc
+	peer    *ion_sfu.PeerLocal
+	pc      *webrtc.PeerConnection
+	errCh   chan error
+	ctx     context.Context
+	cancel  context.CancelFunc
+	onClose func(err error)
 }
 
 func NewPublisher(peer *ion_sfu.PeerLocal, pc *webrtc.PeerConnection) Publisher {
@@ -125,10 +126,10 @@ func (p Publisher) Publish(sid string) error {
 func (p Publisher) logger() {
 	for {
 		select {
-		case <-p.errCh:
-			p.Close()
+		case err := <-p.errCh:
+			p.close(err)
 		case <-p.ctx.Done():
-			return
+			p.close(nil)
 		}
 	}
 }
@@ -141,7 +142,7 @@ func (p Publisher) AddTrack(track webrtc.TrackLocal) (*webrtc.RTPSender, error) 
 	return addTrack, nil
 }
 
-func (p Publisher) Close() {
+func (p Publisher) close(err0 error) {
 	p.cancel()
 	err := p.peer.Close()
 	if err != nil {
@@ -151,6 +152,13 @@ func (p Publisher) Close() {
 	if err != nil {
 		log.Errorf("Error when closing pc in publisher: %+v", err)
 	}
+	if p.onClose != nil {
+		p.onClose(err0)
+	}
+}
+
+func (p Publisher) Close() {
+	p.close(nil)
 }
 
 func (p Publisher) OnConnectionStateChange(f func(webrtc.PeerConnectionState)) {
