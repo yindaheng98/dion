@@ -10,6 +10,7 @@ import (
 	nrpc "github.com/cloudwebrtc/nats-grpc/pkg/rpc"
 	"github.com/cloudwebrtc/nats-grpc/pkg/rpc/reflection"
 	log "github.com/pion/ion-log"
+	ion_sfu "github.com/pion/ion-sfu/pkg/sfu"
 	isfu "github.com/pion/ion-sfu/pkg/sfu"
 	"github.com/pion/ion/pkg/ion"
 	"github.com/pion/ion/pkg/proto"
@@ -142,15 +143,22 @@ func (s *SFU) StartGRPC(registrar grpc.ServiceRegistrar) error {
 	return nil
 }
 
+// ↑↑↑↑↑ Copy from https://github.com/pion/ion/blob/65dbd12eaad0f0e0a019b4d8ee80742930bcdc28/pkg/node/sfu/sfu.go ↑↑↑↑↑
+
 // Start sfu node
-func (s *SFU) Start(conf Config) error {
+func (s *SFU) Start(conf Config, isfu *ion_sfu.SFU) error {
+	// ↓↓↓↓↓ Copy from https://github.com/pion/ion/blob/65dbd12eaad0f0e0a019b4d8ee80742930bcdc28/pkg/node/sfu/sfu.go ↓↓↓↓↓
+
 	err := s.Node.Start(conf.Nats.URL)
 	if err != nil {
 		s.Close()
 		return err
 	}
 
-	s.s = sfu.NewSFUService(conf.Config)
+	// ↑↑↑↑↑ Copy from https://github.com/pion/ion/blob/65dbd12eaad0f0e0a019b4d8ee80742930bcdc28/pkg/node/sfu/sfu.go ↑↑↑↑↑
+	s.s = sfu.NewSFUServiceWithSFU(isfu)
+	// ↓↓↓↓↓ Copy from https://github.com/pion/ion/blob/65dbd12eaad0f0e0a019b4d8ee80742930bcdc28/pkg/node/sfu/sfu.go ↓↓↓↓↓
+
 	//grpc service
 	pb.RegisterRTCServer(s.Node.ServiceRegistrar(), s.s)
 
