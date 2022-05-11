@@ -1,6 +1,8 @@
 package bridge
 
 import (
+	"context"
+	log "github.com/pion/ion-log"
 	ion_sfu "github.com/pion/ion-sfu/pkg/sfu"
 	"github.com/pion/ion/proto/rtc"
 	"github.com/pion/webrtc/v3"
@@ -24,94 +26,86 @@ func candidateSetting(pc *webrtc.PeerConnection, peer *ion_sfu.PeerLocal, errCh 
 		for _, c := range tpcCand {
 			err := pc.AddICECandidate(c)
 			if err != nil {
-				errCh <- err
+				log.Errorf("Cannot add ICECandidate: %+v", err)
+				select {
+				case errCh <- err:
+				default:
+				}
 				return
 			}
 		}
 	}
 	pc.OnICECandidate(func(candidate *webrtc.ICECandidate) {
 		// Just do it, peer can dealing with Stable state
+		if candidate == nil {
+			return
+		}
 		err := peer.Trickle(candidate.ToJSON(), int(Target))
 		if err != nil {
-			errCh <- err
+			log.Errorf("Cannot Trickle: %+v", err)
+			select {
+			case errCh <- err:
+			default:
+			}
 			return
 		}
 	})
-}
-
-type Subscriber struct {
-	peer ion_sfu.PeerLocal
-	pc   webrtc.PeerConnection
-}
-
-// Subscribe subscribe PeerConnection from PeerLocal
-func (p *Subscriber) Subscribe(sid string) error {
-	// subscribe from PeerLocal, so i should interact with Subscriber
-	errCh := make(chan error)
-	p.peer.OnOffer = func(sdp *webrtc.SessionDescription) {
-		err := p.pc.SetRemoteDescription(*sdp)
-		if err != nil {
-			errCh <- err
-			return
-		}
-		answer, err := p.pc.CreateAnswer(nil)
-		if err != nil {
-			errCh <- err
-			return
-		}
-		err = p.peer.SetRemoteDescription(answer)
-		if err != nil {
-			errCh <- err
-			return
-		}
-	}
-
-	candidateSetting(&p.pc, &p.peer, errCh, rtc.Target_SUBSCRIBER)
-
-	err := p.peer.Join(sid, "", ion_sfu.JoinConfig{
-		NoPublish:       true,
-		NoSubscribe:     false,
-		NoAutoSubscribe: false,
-	})
-	if err != nil {
-		return err
-	}
-	err, _ = <-errCh
-	return err
 }
 
 type Publisher struct {
-	peer ion_sfu.PeerLocal
-	pc   webrtc.PeerConnection
+	peer   *ion_sfu.PeerLocal
+	pc     *webrtc.PeerConnection
+	errCh  chan error
+	ctx    context.Context
+	cancel context.CancelFunc
+}
+
+func NewPublisher(peer *ion_sfu.PeerLocal, pc *webrtc.PeerConnection) Publisher {
+	ctx, cancel := context.WithCancel(context.Background())
+	return Publisher{peer: peer, pc: pc, errCh: make(chan error, 16), ctx: ctx, cancel: cancel}
 }
 
 // Publish publish PeerConnection to PeerLocal.Subscriber
-func (p *Publisher) Publish(sid string) error {
-	errCh := make(chan error)
+func (p Publisher) Publish(sid string) error {
+	errCh := p.errCh
 	p.pc.OnNegotiationNeeded(func() {
 		offer, err := p.pc.CreateOffer(nil)
 		if err != nil {
-			errCh <- err
+			log.Errorf("Cannot CreateOffer in pc: %+v", err)
+			select {
+			case errCh <- err:
+			default:
+			}
 			return
 		}
 		err = p.pc.SetLocalDescription(offer)
 		if err != nil {
-			errCh <- err
+			log.Errorf("Cannot SetLocalDescription to pc: %+v", err)
+			select {
+			case errCh <- err:
+			default:
+			}
 			return
 		}
 		answer, err := p.peer.Answer(offer)
 		if err != nil {
-			errCh <- err
+			log.Errorf("Cannot create Answer in peer: %+v", err)
+			select {
+			case errCh <- err:
+			default:
+			}
 			return
 		}
 		err = p.pc.SetRemoteDescription(*answer)
 		if err != nil {
-			errCh <- err
+			log.Errorf("Cannot SetRemoteDescription to pc: %+v", err)
+			select {
+			case errCh <- err:
+			default:
+			}
 			return
 		}
 	})
-
-	candidateSetting(&p.pc, &p.peer, errCh, rtc.Target_PUBLISHER)
 
 	err := p.peer.Join(sid, "", ion_sfu.JoinConfig{
 		NoPublish:       false,
@@ -121,6 +115,48 @@ func (p *Publisher) Publish(sid string) error {
 	if err != nil {
 		return err
 	}
-	err, _ = <-errCh
+
+	candidateSetting(p.pc, p.peer, p.errCh, rtc.Target_PUBLISHER)
+
+	go p.logger()
 	return err
+}
+
+func (p Publisher) logger() {
+	for {
+		select {
+		case <-p.errCh:
+			p.Close()
+		case <-p.ctx.Done():
+			return
+		}
+	}
+}
+
+func (p Publisher) AddTrack(track webrtc.TrackLocal) (*webrtc.RTPSender, error) {
+	addTrack, err := p.pc.AddTrack(track)
+	if err != nil {
+		return nil, err
+	}
+	return addTrack, nil
+}
+
+func (p Publisher) Close() {
+	p.cancel()
+	err := p.peer.Close()
+	if err != nil {
+		log.Errorf("Error when closing peer in publisher: %+v", err)
+	}
+	err = p.pc.Close()
+	if err != nil {
+		log.Errorf("Error when closing pc in publisher: %+v", err)
+	}
+}
+
+func (p Publisher) OnConnectionStateChange(f func(webrtc.PeerConnectionState)) {
+	p.pc.OnConnectionStateChange(f)
+}
+
+func (p Publisher) OnICEConnectionStateChange(f func(webrtc.ICEConnectionState)) {
+	p.pc.OnICEConnectionStateChange(f)
 }
