@@ -32,7 +32,7 @@ func makeVideo(ffmpegPath, videosize string, framerate int) io.ReadCloser {
 		"-video_size", videosize,
 		"-framerate", strconv.Itoa(framerate),
 		"-i", "/dev/urandom",
-		"-vf", "drawtext=text='%{localtime\\:%Y-%M-%d %H.%m.%S}'",
+		"-vf", "drawtext=text='%{localtime\\:%Y-%M-%d %H.%m.%S}' :fontsize=120",
 		"-vcodec", "libvpx",
 		"-b:v", "3M",
 		"-f", "ivf",
