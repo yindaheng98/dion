@@ -91,3 +91,15 @@ func (p bridgePeer) close(err0 error) {
 		p.OnClose(err0)
 	}
 }
+
+func (p bridgePeer) Close() {
+	p.close(nil)
+}
+
+func (p bridgePeer) OnConnectionStateChange(f func(webrtc.PeerConnectionState)) {
+	p.pc.OnConnectionStateChange(f)
+}
+
+func (p bridgePeer) OnICEConnectionStateChange(f func(webrtc.ICEConnectionState)) {
+	p.pc.OnICEConnectionStateChange(f)
+}

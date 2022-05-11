@@ -79,15 +79,3 @@ func (p Publisher) AddTrack(track webrtc.TrackLocal) (*webrtc.RTPSender, error) 
 	}
 	return addTrack, nil
 }
-
-func (p Publisher) Close() {
-	p.close(nil)
-}
-
-func (p Publisher) OnConnectionStateChange(f func(webrtc.PeerConnectionState)) {
-	p.pc.OnConnectionStateChange(f)
-}
-
-func (p Publisher) OnICEConnectionStateChange(f func(webrtc.ICEConnectionState)) {
-	p.pc.OnICEConnectionStateChange(f)
-}
