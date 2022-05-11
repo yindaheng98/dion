@@ -58,7 +58,7 @@ type Publisher struct {
 	errCh   chan error
 	ctx     context.Context
 	cancel  context.CancelFunc
-	onClose func(err error)
+	OnClose func(err error)
 }
 
 func NewPublisher(peer *ion_sfu.PeerLocal, pc *webrtc.PeerConnection) Publisher {
@@ -152,8 +152,8 @@ func (p Publisher) close(err0 error) {
 	if err != nil {
 		log.Errorf("Error when closing pc in publisher: %+v", err)
 	}
-	if p.onClose != nil {
-		p.onClose(err0)
+	if p.OnClose != nil {
+		p.OnClose(err0)
 	}
 }
 
