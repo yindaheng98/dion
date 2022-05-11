@@ -22,6 +22,8 @@ import (
 	ion_sfu "github.com/pion/ion-sfu/pkg/sfu"
 )
 
+const MyName = "stupid"
+
 // makeVideo Make a video
 func makeVideo(ffmpegPath, videosize string, framerate int) io.ReadCloser {
 	videoopt := []string{
@@ -163,7 +165,7 @@ func main() {
 	var confFile, session, ffmpeg, videosize string
 	var framerate int
 	flag.StringVar(&confFile, "conf", "cmd/stupid/sfu.toml", "sfu config file")
-	flag.StringVar(&session, "session", "stupid", "session of the video")
+	flag.StringVar(&session, "session", MyName, "session of the video")
 	flag.StringVar(&ffmpeg, "ffmpeg", "ffmpeg", "path to ffmpeg executable")
 	flag.StringVar(&videosize, "videosize", "1280x720", "size of the video")
 	flag.IntVar(&framerate, "framerate ", 30, "frame rate of the video")
@@ -189,7 +191,7 @@ func main() {
 		panic(err)
 	}
 
-	node := ion.NewNode("video-source")
+	node := ion.NewNode(MyName)
 	if err := node.Start(conf.Nats.URL); err != nil {
 		panic(err)
 	}
