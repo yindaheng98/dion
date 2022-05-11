@@ -186,9 +186,24 @@ func main() {
 	iSFU := ion_sfu.NewSFU(conf.Config)
 	pub := makePub(iSFU)
 	makeTrack(ffmpegOut, pub)
+	var OnClose func(err error)
+	OnClose = func(err error) {
+		if err != nil {
+			log.Errorf("Close with error! %+v", err)
+		}
+		pub := makePub(iSFU)
+		makeTrack(ffmpegOut, pub)
+		pub.OnClose = OnClose
+		err = pub.Publish(session)
+		if err != nil {
+			log.Errorf("Cannot push! %+v", err)
+		}
+	}
+	pub.OnClose = OnClose
 	err := pub.Publish(session)
 	if err != nil {
-		panic(err)
+		log.Errorf("Cannot push! %+v", err)
+		pub.Close()
 	}
 
 	node := ion.NewNode(MyName)
