@@ -5,7 +5,7 @@ import (
 	"github.com/pion/webrtc/v3"
 )
 
-// Copy from
+// ↓↓↓↓↓ Copy from https://github.com/pion/ion-sfu/blob/68545cc25230220435ee028d5a0af6e768a0a79a/pkg/sfu/mediaengine.go ↓↓↓↓↓
 const (
 	mimeTypeH264 = webrtc.MimeTypeH264
 	mimeTypeOpus = webrtc.MimeTypeOpus
@@ -17,6 +17,15 @@ const frameMarking = "urn:ietf:params:rtp-hdrext:framemarking"
 
 func getPublisherMediaEngine() (*webrtc.MediaEngine, error) {
 	me := &webrtc.MediaEngine{}
+
+	// ↑↑↑↑↑ Copy from https://github.com/pion/ion-sfu/blob/68545cc25230220435ee028d5a0af6e768a0a79a/pkg/sfu/mediaengine.go ↑↑↑↑↑
+	err := me.RegisterDefaultCodecs()
+	if err != nil {
+		return nil, err
+	}
+
+	// ↓↓↓↓↓ Copy from https://github.com/pion/ion-sfu/blob/68545cc25230220435ee028d5a0af6e768a0a79a/pkg/sfu/mediaengine.go ↓↓↓↓↓
+
 	if err := me.RegisterCodec(webrtc.RTPCodecParameters{
 		RTPCodecCapability: webrtc.RTPCodecCapability{MimeType: mimeTypeOpus, ClockRate: 48000, Channels: 2, SDPFmtpLine: "minptime=10;useinbandfec=1", RTCPFeedback: nil},
 		PayloadType:        111,
@@ -89,5 +98,13 @@ func getPublisherMediaEngine() (*webrtc.MediaEngine, error) {
 
 func getSubscriberMediaEngine() (*webrtc.MediaEngine, error) {
 	me := &webrtc.MediaEngine{}
+	// ↑↑↑↑↑ Copy from https://github.com/pion/ion-sfu/blob/68545cc25230220435ee028d5a0af6e768a0a79a/pkg/sfu/mediaengine.go ↑↑↑↑↑
+	err := me.RegisterDefaultCodecs()
+	if err != nil {
+		return nil, err
+	}
+	// ↓↓↓↓↓ Copy from https://github.com/pion/ion-sfu/blob/68545cc25230220435ee028d5a0af6e768a0a79a/pkg/sfu/mediaengine.go ↓↓↓↓↓
 	return me, nil
 }
+
+// ↑↑↑↑↑ Copy from https://github.com/pion/ion-sfu/blob/68545cc25230220435ee028d5a0af6e768a0a79a/pkg/sfu/mediaengine.go ↑↑↑↑↑
