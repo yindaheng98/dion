@@ -16,7 +16,8 @@ type Door interface {
 	// Lock your Door when leaving your house
 	// but some time, your Door can be Broken by some badGay
 	// so you need a watchdog
-	Lock(OnBroken func(badGay error))
+	// Or maybe you can not Lock your Door, so you should buy a new door
+	Lock(OnBroken func(badGay error)) error
 
 	// Repair your Door after it was Broken
 	// Maybe badGay is so bad that your door can not be repair
@@ -57,15 +58,23 @@ func (w *WatchDog) watch() {
 		if door == nil { // do not have a door?
 			door = w.house.NewDoor() // buy a new door
 		}
-		door.Lock(func(badGay error) {
+		err := door.Lock(func(badGay error) {
 			brokenCh <- badGay
 		})
+		if err != nil { // Can not Lock your Door
+			door.Remove() // You should remove the bad door
+			door = nil
+			select {
+			case <-w.ctx.Done(): // stop from watching your House?
+				return // just exit
+			default:
+				continue
+			}
+		}
 		select {
 		case <-w.ctx.Done(): // stop from watching your House?
-			if door != nil {
-				door.Remove()
-				door = nil
-			}
+			door.Remove()
+			door = nil
 			return // just exit
 		case <-brokenCh: // your door broken!
 			if !door.Repair() { // oh no, repair it
