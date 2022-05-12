@@ -12,6 +12,10 @@ type PublisherFactory struct {
 	sfu *ion_sfu.SFU
 }
 
+func NewPublisherFactory(sfu *ion_sfu.SFU) PublisherFactory {
+	return PublisherFactory{sfu: sfu}
+}
+
 func (p PublisherFactory) NewDoor() (util.Door, error) {
 	me, err := getSubscriberMediaEngine()
 	if err != nil {
@@ -40,7 +44,7 @@ func (p Publisher) Lock(sid util.Param, OnBroken func(badGay error)) error {
 	return p.publish(string(sid.(SID)), OnBroken)
 }
 
-func (p Publisher) Repair() bool {
+func (p Publisher) Repair(util.Param) bool {
 	return false
 }
 

@@ -12,6 +12,10 @@ type SubscriberFactory struct {
 	sfu *ion_sfu.SFU
 }
 
+func NewSubscriberFactory(sfu *ion_sfu.SFU) SubscriberFactory {
+	return SubscriberFactory{sfu: sfu}
+}
+
 func (s SubscriberFactory) NewDoor() (util.Door, error) {
 	me, err := getPublisherMediaEngine()
 	if err != nil {
@@ -40,7 +44,7 @@ func (s Subscriber) Lock(sid util.Param, OnBroken func(badGay error)) error {
 	return s.subscribe(string(sid.(SID)), OnBroken)
 }
 
-func (s Subscriber) Repair() bool {
+func (s Subscriber) Repair(util.Param) bool {
 	return false
 }
 
