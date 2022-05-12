@@ -5,6 +5,7 @@ import (
 	ion_sfu "github.com/pion/ion-sfu/pkg/sfu"
 	"github.com/pion/ion/proto/rtc"
 	"github.com/pion/webrtc/v3"
+	"github.com/yindaheng98/dion/util"
 )
 
 func candidateSetting(pc *webrtc.PeerConnection, peer *ion_sfu.PeerLocal, OnBroken func(error), Target rtc.Target) {
@@ -61,14 +62,16 @@ func (p bridgePeer) Remove() {
 	}
 }
 
-func newPeer(pr *ion_sfu.PeerLocal, pc *webrtc.PeerConnection) bridgePeer {
-	return bridgePeer{peer: pr, pc: pc}
-}
-
 func (p bridgePeer) OnConnectionStateChange(f func(webrtc.PeerConnectionState)) {
 	p.pc.OnConnectionStateChange(f)
 }
 
 func (p bridgePeer) OnICEConnectionStateChange(f func(webrtc.ICEConnectionState)) {
 	p.pc.OnICEConnectionStateChange(f)
+}
+
+type SID string
+
+func (s SID) Clone() util.Param {
+	return s
 }

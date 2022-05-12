@@ -10,14 +10,12 @@ import (
 
 type PublisherFactory struct {
 	sfu *ion_sfu.SFU
-	SID string
 }
 
 func (p PublisherFactory) NewDoor() (util.Door, error) {
-	peer := ion_sfu.NewPeer(p.sfu)
 	me, err := getSubscriberMediaEngine()
 	if err != nil {
-		log.Errorf("Cannot getPublisherMediaEngine for pc: %+v", err)
+		log.Errorf("Cannot getSubscriberMediaEngine for pc: %+v", err)
 		return nil, err
 	}
 	api := webrtc.NewAPI(webrtc.WithMediaEngine(me), webrtc.WithSettingEngine(webrtc.SettingEngine{}))
@@ -28,32 +26,26 @@ func (p PublisherFactory) NewDoor() (util.Door, error) {
 	}
 	return Publisher{
 		bridgePeer: bridgePeer{
-			peer: peer,
+			peer: ion_sfu.NewPeer(p.sfu),
 			pc:   pc,
 		},
-		sid: p.SID,
 	}, nil
 }
 
 type Publisher struct {
 	bridgePeer
-	sid string
 }
 
-func (p Publisher) Lock(OnBroken func(badGay error)) error {
-	return p.publish(p.sid, OnBroken)
+func (p Publisher) Lock(sid util.Param, OnBroken func(badGay error)) error {
+	return p.publish(string(sid.(SID)), OnBroken)
 }
 
-func (p bridgePeer) Repair() bool {
+func (p Publisher) Repair() bool {
 	return false
 }
 
-func NewPublisher(peer *ion_sfu.PeerLocal, pc *webrtc.PeerConnection) Publisher {
-	return Publisher{bridgePeer: newPeer(peer, pc)}
-}
-
 // publish publish PeerConnection to PeerLocal.Subscriber
-func (p bridgePeer) publish(sid string, OnBroken func(badGay error)) error {
+func (p Publisher) publish(sid string, OnBroken func(error)) error {
 	p.pc.OnNegotiationNeeded(func() {
 		offer, err := p.pc.CreateOffer(nil)
 		if err != nil {

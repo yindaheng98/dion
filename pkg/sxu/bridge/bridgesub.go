@@ -5,44 +5,64 @@ import (
 	ion_sfu "github.com/pion/ion-sfu/pkg/sfu"
 	"github.com/pion/ion/proto/rtc"
 	"github.com/pion/webrtc/v3"
+	"github.com/yindaheng98/dion/util"
 )
+
+type SubscriberFactory struct {
+	sfu *ion_sfu.SFU
+}
+
+func (s SubscriberFactory) NewDoor() (util.Door, error) {
+	me, err := getPublisherMediaEngine()
+	if err != nil {
+		log.Errorf("Cannot getPublisherMediaEngine for pc: %+v", err)
+		return nil, err
+	}
+	api := webrtc.NewAPI(webrtc.WithMediaEngine(me), webrtc.WithSettingEngine(webrtc.SettingEngine{}))
+	pc, err := api.NewPeerConnection(webrtc.Configuration{})
+	if err != nil {
+		log.Errorf("Cannot NewPeerConnection: %+v", err)
+		return nil, err
+	}
+	return Subscriber{
+		bridgePeer: bridgePeer{
+			peer: ion_sfu.NewPeer(s.sfu),
+			pc:   pc,
+		},
+	}, nil
+}
 
 type Subscriber struct {
 	bridgePeer
 }
 
-func NewSubscriber(peer *ion_sfu.PeerLocal, pc *webrtc.PeerConnection) Subscriber {
-	return Subscriber{bridgePeer: newPeer(peer, pc)}
+func (s Subscriber) Lock(sid util.Param, OnBroken func(badGay error)) error {
+	return s.subscribe(string(sid.(SID)), OnBroken)
 }
 
-func (s Subscriber) Subscribe(sid string) error {
-	errCh := s.errCh
+func (s Subscriber) Repair() bool {
+	return false
+}
+
+// subscribe subscribe PeerConnection to PeerLocal.Subscriber
+func (s Subscriber) subscribe(sid string, OnBroken func(error)) error {
 	s.peer.OnOffer = func(offer *webrtc.SessionDescription) {
 		err := s.pc.SetRemoteDescription(*offer)
 		if err != nil {
 			log.Errorf("Cannot SetRemoteDescription to pc: %+v", err)
-			select {
-			case errCh <- err:
-			default:
-			}
+			OnBroken(err)
 			return
 		}
 		answer, err := s.pc.CreateAnswer(nil)
 		if err != nil {
 			log.Errorf("Cannot CreateAnswer in pc: %+v", err)
-			select {
-			case errCh <- err:
-			default:
-			}
+			OnBroken(err)
 			return
 		}
 		err = s.peer.SetRemoteDescription(answer)
 		if err != nil {
 			log.Errorf("Cannot SetRemoteDescription in bridgePeer: %+v", err)
-			select {
-			case errCh <- err:
-			default:
-			}
+			OnBroken(err)
 			return
 		}
 	}
@@ -56,9 +76,8 @@ func (s Subscriber) Subscribe(sid string) error {
 		return err
 	}
 
-	candidateSetting(s.pc, s.peer, s.errCh, rtc.Target_SUBSCRIBER)
+	candidateSetting(s.pc, s.peer, OnBroken, rtc.Target_SUBSCRIBER)
 
-	go s.logger()
 	return err
 }
 
