@@ -5,6 +5,10 @@ import (
 	"sync"
 )
 
+type Param interface {
+	Clone() Param
+}
+
 // House is your house
 type House interface {
 	// NewDoor buy a new door for your House
@@ -18,7 +22,7 @@ type Door interface {
 	// but some time, your Door can be Broken by some badGay
 	// so you need a watchdog
 	// Or maybe you can not Lock your Door, so you should buy a new door
-	Lock(OnBroken func(badGay error)) error
+	Lock(param Param, OnBroken func(badGay error)) error
 
 	// Repair your Door after it was Broken
 	// Maybe badGay is so bad that your door can not be repair
@@ -48,11 +52,13 @@ func NewWatchDog(house House) *WatchDog {
 }
 
 // Watch let your dog start to watch your House
-func (w *WatchDog) Watch() {
-	go w.once.Do(w.watch)
+func (w *WatchDog) Watch(param Param) {
+	go w.once.Do(func() {
+		w.watch(param.Clone())
+	})
 }
 
-func (w *WatchDog) watch() {
+func (w *WatchDog) watch(param Param) {
 	brokenCh := make(chan error, 1)
 	var door Door = nil
 	for {
@@ -72,7 +78,7 @@ func (w *WatchDog) watch() {
 				}
 			}
 		}
-		err := door.Lock(func(badGay error) {
+		err := door.Lock(param, func(badGay error) {
 			select {
 			case brokenCh <- badGay:
 			default:
