@@ -29,16 +29,11 @@ func (s SubscriberFactory) NewDoor() (util.Door, error) {
 		log.Errorf("Cannot NewPeerConnection: %+v", err)
 		return nil, err
 	}
-	return Subscriber{
-		bridgePeer: bridgePeer{
-			peer: ion_sfu.NewPeer(s.sfu),
-			pc:   pc,
-		},
-	}, nil
+	return Subscriber{BridgePeer: NewBridgePeer(ion_sfu.NewPeer(s.sfu), pc)}, nil
 }
 
 type Subscriber struct {
-	bridgePeer
+	BridgePeer
 }
 
 func (s Subscriber) Lock(sid util.Param, OnBroken func(badGay error)) error {
@@ -66,7 +61,7 @@ func (s Subscriber) subscribe(sid string, OnBroken func(error)) error {
 		}
 		err = s.peer.SetRemoteDescription(answer)
 		if err != nil {
-			log.Errorf("Cannot SetRemoteDescription in bridgePeer: %+v", err)
+			log.Errorf("Cannot SetRemoteDescription in BridgePeer: %+v", err)
 			OnBroken(err)
 			return
 		}

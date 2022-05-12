@@ -29,16 +29,11 @@ func (p PublisherFactory) NewDoor() (util.Door, error) {
 		log.Errorf("Cannot NewPeerConnection: %+v", err)
 		return nil, err
 	}
-	return Publisher{
-		bridgePeer: bridgePeer{
-			peer: ion_sfu.NewPeer(p.sfu),
-			pc:   pc,
-		},
-	}, nil
+	return Publisher{BridgePeer: NewBridgePeer(ion_sfu.NewPeer(p.sfu), pc)}, nil
 }
 
 type Publisher struct {
-	bridgePeer
+	BridgePeer
 }
 
 func (p Publisher) Lock(sid util.Param, OnBroken func(badGay error)) error {

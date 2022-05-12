@@ -33,7 +33,7 @@ func candidateSetting(pc *webrtc.PeerConnection, peer *ion_sfu.PeerLocal, OnBrok
 		}
 	}
 	pc.OnICECandidate(func(candidate *webrtc.ICECandidate) {
-		// Just do it, bridgePeer can dealing with Stable state
+		// Just do it, BridgePeer can dealing with Stable state
 		if candidate == nil {
 			return
 		}
@@ -46,15 +46,19 @@ func candidateSetting(pc *webrtc.PeerConnection, peer *ion_sfu.PeerLocal, OnBrok
 	})
 }
 
-type bridgePeer struct {
+type BridgePeer struct {
 	peer *ion_sfu.PeerLocal
 	pc   *webrtc.PeerConnection
 }
 
-func (p bridgePeer) Remove() {
+func NewBridgePeer(peer *ion_sfu.PeerLocal, pc *webrtc.PeerConnection) BridgePeer {
+	return BridgePeer{peer: peer, pc: pc}
+}
+
+func (p BridgePeer) Remove() {
 	err := p.peer.Close()
 	if err != nil {
-		log.Errorf("Error when closing bridgePeer in publisher: %+v", err)
+		log.Errorf("Error when closing BridgePeer in publisher: %+v", err)
 	}
 	err = p.pc.Close()
 	if err != nil {
@@ -62,11 +66,11 @@ func (p bridgePeer) Remove() {
 	}
 }
 
-func (p bridgePeer) OnConnectionStateChange(f func(webrtc.PeerConnectionState)) {
+func (p BridgePeer) OnConnectionStateChange(f func(webrtc.PeerConnectionState)) {
 	p.pc.OnConnectionStateChange(f)
 }
 
-func (p bridgePeer) OnICEConnectionStateChange(f func(webrtc.ICEConnectionState)) {
+func (p BridgePeer) OnICEConnectionStateChange(f func(webrtc.ICEConnectionState)) {
 	p.pc.OnICEConnectionStateChange(f)
 }
 
