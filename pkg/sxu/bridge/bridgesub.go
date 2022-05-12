@@ -1,6 +1,7 @@
 package bridge
 
 import (
+	"fmt"
 	log "github.com/pion/ion-log"
 	ion_sfu "github.com/pion/ion-sfu/pkg/sfu"
 	"github.com/pion/ion/proto/rtc"
@@ -45,7 +46,7 @@ func (s Subscriber) Lock(sid util.Param, OnBroken func(badGay error)) error {
 }
 
 func (s Subscriber) Repair(util.Param) error {
-	return nil
+	return fmt.Errorf("Subscriber cannot be repaired ")
 }
 
 // subscribe subscribe PeerConnection to PeerLocal.Subscriber

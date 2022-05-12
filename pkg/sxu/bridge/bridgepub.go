@@ -1,6 +1,7 @@
 package bridge
 
 import (
+	"fmt"
 	log "github.com/pion/ion-log"
 	ion_sfu "github.com/pion/ion-sfu/pkg/sfu"
 	"github.com/pion/ion/proto/rtc"
@@ -45,7 +46,7 @@ func (p Publisher) Lock(sid util.Param, OnBroken func(badGay error)) error {
 }
 
 func (p Publisher) Repair(util.Param) error {
-	return nil
+	return fmt.Errorf("Publisher cannot be repaired ")
 }
 
 // publish publish PeerConnection to PeerLocal.Subscriber
