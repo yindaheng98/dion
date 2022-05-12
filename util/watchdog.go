@@ -1,17 +1,83 @@
 package util
 
+import (
+	"context"
+	"sync"
+)
+
+// House is your house
+type House interface {
+	// NewDoor buy a new door for your House
+	NewDoor() Door
+}
+
+// Door is the door of your house
 type Door interface {
+	// Lock your Door when leaving your house
+	// but some time, your Door can be Broken by some badGay
+	// so you need a watchdog
+	Lock(OnBroken func(badGay error))
+
+	// Repair your Door after it was Broken
+	// Maybe badGay is so bad that your door can not be repair
+	// you can return false and your watchdog can remove this door and buy a new door for you
+	Repair() bool
+
+	// Remove your Door after it was Broken
+	Remove()
 }
 
+// WatchDog is your watchdog
 type WatchDog struct {
+	house  House
+	ctx    context.Context
+	cancel context.CancelFunc
+
+	once sync.Once
 }
 
-// Watch let your dog start to watch your Door
+func NewWatchDog(house House) *WatchDog {
+	ctx, cancel := context.WithCancel(context.Background())
+	return &WatchDog{
+		house:  house,
+		ctx:    ctx,
+		cancel: cancel,
+	}
+}
+
+// Watch let your dog start to watch your House
 func (w *WatchDog) Watch() {
-
+	go w.once.Do(w.watch)
 }
 
-// Leave let your dog stop from watching your Door
-func (w *WatchDog) Leave() {
+func (w *WatchDog) watch() {
+	brokenCh := make(chan error)
+	var door Door = nil
+	for {
+		if door == nil { // do not have a door?
+			door = w.house.NewDoor() // buy a new door
+		}
+		door.Lock(func(badGay error) {
+			brokenCh <- badGay
+		})
+		select {
+		case <-w.ctx.Done(): // stop from watching your House?
+			if door != nil {
+				door.Remove()
+				door = nil
+			}
+			return // just exit
+		case <-brokenCh: // your door broken!
+			if !door.Repair() { // oh no, repair it
+				// badGay is so bad that your door can not be repaired
+				door.Remove() // remove it
+				door = nil
+			}
+		}
+	}
+}
 
+// Leave let your dog stop from watching your House
+func (w *WatchDog) Leave() {
+	w.cancel()
 }
