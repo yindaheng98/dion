@@ -27,7 +27,8 @@ type Door interface {
 	// Repair your Door after it was Broken
 	// Maybe badGay is so bad that your door can not be repair
 	// you can return false and your watchdog can remove this door and buy a new door for you
-	Repair() bool
+	// Also, you could use this to update param while watching
+	Repair(param Param) bool
 
 	// Remove your Door after it was Broken
 	Remove()
@@ -40,25 +41,28 @@ type WatchDog struct {
 	cancel context.CancelFunc
 
 	once sync.Once
+
+	param    Param
+	updateCh chan Param
 }
 
 func NewWatchDog(house House) *WatchDog {
 	ctx, cancel := context.WithCancel(context.Background())
 	return &WatchDog{
-		house:  house,
-		ctx:    ctx,
-		cancel: cancel,
+		house:    house,
+		ctx:      ctx,
+		cancel:   cancel,
+		updateCh: make(chan Param, 1),
 	}
 }
 
 // Watch let your dog start to watch your House
-func (w *WatchDog) Watch(param Param) {
-	go w.once.Do(func() {
-		w.watch(param.Clone())
-	})
+func (w *WatchDog) Watch(init Param) {
+	w.param = init.Clone()
+	go w.once.Do(w.watch)
 }
 
-func (w *WatchDog) watch(param Param) {
+func (w *WatchDog) watch() {
 	brokenCh := make(chan error, 1)
 	var door Door = nil
 	for {
@@ -78,7 +82,7 @@ func (w *WatchDog) watch(param Param) {
 				}
 			}
 		}
-		err := door.Lock(param, func(badGay error) {
+		err := door.Lock(w.param.Clone(), func(badGay error) {
 			select {
 			case brokenCh <- badGay:
 			default:
@@ -100,11 +104,33 @@ func (w *WatchDog) watch(param Param) {
 			door = nil
 			return // just exit
 		case <-brokenCh: // your door broken!
-			if !door.Repair() { // oh no, repair it
+			if !door.Repair(w.param.Clone()) { // oh no, repair it
 				// badGay is so bad that your door can not be repaired
 				door.Remove() // remove it
 				door = nil
 			}
+		case param := <-w.updateCh:
+			w.param = param
+			if !door.Repair(w.param.Clone()) { // update it
+				// Cannot?
+				door.Remove() // remove it
+				door = nil
+			}
+		}
+	}
+}
+
+func (w *WatchDog) Update(param Param) {
+	select {
+	case w.updateCh <- param.Clone():
+	default:
+		select {
+		case <-w.updateCh:
+		default:
+		}
+		select {
+		case w.updateCh <- param.Clone():
+		default:
 		}
 	}
 }
