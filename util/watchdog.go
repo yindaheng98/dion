@@ -8,7 +8,8 @@ import (
 // House is your house
 type House interface {
 	// NewDoor buy a new door for your House
-	NewDoor() Door
+	// the market maybe closed, if so, just return an error
+	NewDoor() (Door, error)
 }
 
 // Door is the door of your house
@@ -56,7 +57,20 @@ func (w *WatchDog) watch() {
 	var door Door = nil
 	for {
 		if door == nil { // do not have a door?
-			door = w.house.NewDoor() // buy a new door
+			var err error
+			door, err = w.house.NewDoor() // buy a new door
+			if err != nil {               // market closed?
+				if door != nil {
+					door.Remove() // your door is fake, do not use it!
+					door = nil
+				}
+				select {
+				case <-w.ctx.Done(): // stop from watching your House?
+					return // just exit
+				default:
+					continue
+				}
+			}
 		}
 		err := door.Lock(func(badGay error) {
 			select {
