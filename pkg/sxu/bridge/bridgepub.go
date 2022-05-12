@@ -44,8 +44,8 @@ func (p Publisher) Lock(sid util.Param, OnBroken func(badGay error)) error {
 	return p.publish(string(sid.(SID)), OnBroken)
 }
 
-func (p Publisher) Repair(util.Param) bool {
-	return false
+func (p Publisher) Repair(util.Param) error {
+	return nil
 }
 
 // publish publish PeerConnection to PeerLocal.Subscriber

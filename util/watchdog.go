@@ -28,7 +28,7 @@ type Door interface {
 	// Maybe badGay is so bad that your door can not be repair
 	// you can return false and your watchdog can remove this door and buy a new door for you
 	// Also, you could use this to update param while watching
-	Repair(param Param) bool
+	Repair(param Param) error
 
 	// Remove your Door after it was Broken
 	Remove()
@@ -104,14 +104,14 @@ func (w *WatchDog) watch() {
 			door = nil
 			return // just exit
 		case <-brokenCh: // your door broken!
-			if !door.Repair(w.param.Clone()) { // oh no, repair it
+			if err := door.Repair(w.param.Clone()); err != nil { // oh no, repair it
 				// badGay is so bad that your door can not be repaired
 				door.Remove() // remove it
 				door = nil
 			}
 		case param := <-w.updateCh:
 			w.param = param
-			if !door.Repair(w.param.Clone()) { // update it
+			if err := door.Repair(w.param.Clone()); err != nil { // update it
 				// Cannot?
 				door.Remove() // remove it
 				door = nil

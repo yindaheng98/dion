@@ -44,8 +44,8 @@ func (s Subscriber) Lock(sid util.Param, OnBroken func(badGay error)) error {
 	return s.subscribe(string(sid.(SID)), OnBroken)
 }
 
-func (s Subscriber) Repair(util.Param) bool {
-	return false
+func (s Subscriber) Repair(util.Param) error {
+	return nil
 }
 
 // subscribe subscribe PeerConnection to PeerLocal.Subscriber
