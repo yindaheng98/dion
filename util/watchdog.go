@@ -28,7 +28,7 @@ type Door interface {
 	// Maybe badGay is so bad that your door can not be repair
 	// you can return false and your watchdog can remove this door and buy a new door for you
 	// Also, you could use this to update param while watching
-	Repair(param Param) error
+	Repair(param Param, OnBroken func(badGay error)) error
 
 	// Remove your Door after it was Broken
 	Remove()
@@ -64,6 +64,12 @@ func (w *WatchDog) Watch(init Param) {
 
 func (w *WatchDog) watch() {
 	brokenCh := make(chan error, 1)
+	OnBroken := func(badGay error) {
+		select {
+		case brokenCh <- badGay:
+		default:
+		}
+	}
 	var door Door = nil
 	for {
 		if door == nil { // do not have a door?
@@ -82,12 +88,7 @@ func (w *WatchDog) watch() {
 				}
 			}
 		}
-		err := door.Lock(w.param.Clone(), func(badGay error) {
-			select {
-			case brokenCh <- badGay:
-			default:
-			}
-		})
+		err := door.Lock(w.param.Clone(), OnBroken)
 		if err != nil { // Can not Lock your Door
 			door.Remove() // You should remove the bad door
 			door = nil
@@ -104,14 +105,14 @@ func (w *WatchDog) watch() {
 			door = nil
 			return // just exit
 		case <-brokenCh: // your door broken!
-			if err := door.Repair(w.param.Clone()); err != nil { // oh no, repair it
+			if err := door.Repair(w.param.Clone(), OnBroken); err != nil { // oh no, repair it
 				// badGay is so bad that your door can not be repaired
 				door.Remove() // remove it
 				door = nil
 			}
 		case param := <-w.updateCh:
 			w.param = param
-			if err := door.Repair(w.param.Clone()); err != nil { // update it
+			if err := door.Repair(w.param.Clone(), OnBroken); err != nil { // update it
 				// Cannot?
 				door.Remove() // remove it
 				door = nil
