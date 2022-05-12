@@ -52,14 +52,17 @@ func (w *WatchDog) Watch() {
 }
 
 func (w *WatchDog) watch() {
-	brokenCh := make(chan error)
+	brokenCh := make(chan error, 1)
 	var door Door = nil
 	for {
 		if door == nil { // do not have a door?
 			door = w.house.NewDoor() // buy a new door
 		}
 		err := door.Lock(func(badGay error) {
-			brokenCh <- badGay
+			select {
+			case brokenCh <- badGay:
+			default:
+			}
 		})
 		if err != nil { // Can not Lock your Door
 			door.Remove() // You should remove the bad door
