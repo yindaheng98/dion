@@ -30,6 +30,8 @@ type Entrance struct {
 	entr Subscriber
 	exit Publisher
 	road Processor
+
+	sender *webrtc.RTPSender
 }
 
 func (e Entrance) Lock(init util.Param, OnBroken func(badGay error)) error {
@@ -69,6 +71,8 @@ func (e Entrance) Lock(init util.Param, OnBroken func(badGay error)) error {
 			return
 		}
 
+		e.sender = rtpSender
+
 		// Read incoming RTCP packets
 		// Before these packets are returned they are processed by interceptors. For things
 		// like NACK this needs to be called.
@@ -94,5 +98,9 @@ func (e Entrance) Update(param util.Param, OnBroken func(badGay error)) error {
 }
 
 func (e Entrance) Remove() {
+	err := e.exit.RemoveTrack(e.sender)
+	if err != nil {
+		log.Errorf("Cannot remove track")
+	}
 	e.entr.Remove()
 }

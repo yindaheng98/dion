@@ -98,3 +98,10 @@ func (p Publisher) AddTrack(track webrtc.TrackLocal) (*webrtc.RTPSender, error) 
 	}
 	return addTrack, nil
 }
+
+func (p Publisher) RemoveTrack(sender *webrtc.RTPSender) error {
+	if err := p.pc.RemoveTrack(sender); err != nil {
+		return err
+	}
+	return nil
+}
