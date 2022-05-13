@@ -40,7 +40,6 @@ message ProceedTrack {
   string dstSessionId = 1;
   google.protobuf.Any procedure = 2; //src track should be proceeded by what kind of procedure
   repeated string srcSessionIdList = 3;
-  map<string, string>trackIdMap = 4;
   //TODO: procedure should be more specific
 }
 
