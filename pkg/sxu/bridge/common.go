@@ -8,8 +8,20 @@ import (
 	"github.com/yindaheng98/dion/util"
 )
 
-func candidateSetting(pc *webrtc.PeerConnection, peer *ion_sfu.PeerLocal, OnBroken func(error), Target rtc.Target) {
+func candidateSetting(pc *webrtc.PeerConnection, peer *ion_sfu.PeerLocal, OnBroken func(error), Target rtc.Target) (addCandidate func()) {
 	var pcCand []webrtc.ICECandidateInit // Store unsended ICECandidate
+	addCandidate = func() {
+		tpcCand := pcCand
+		pcCand = []webrtc.ICECandidateInit{} // Clear it
+		for _, c := range tpcCand {
+			err := pc.AddICECandidate(c)
+			if err != nil {
+				log.Errorf("Cannot add ICECandidate: %+v", err)
+				OnBroken(err)
+				return
+			}
+		}
+	}
 	peer.OnIceCandidate = func(candidate *webrtc.ICECandidateInit, target int) {
 		if target != int(Target) { // detect target
 			return // I do not want other's candidate
@@ -44,6 +56,7 @@ func candidateSetting(pc *webrtc.PeerConnection, peer *ion_sfu.PeerLocal, OnBrok
 			return
 		}
 	})
+	return
 }
 
 type BridgePeer struct {

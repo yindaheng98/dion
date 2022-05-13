@@ -50,16 +50,25 @@ func (s Subscriber) Update(util.Param, func(error)) error {
 
 // subscribe subscribe PeerConnection to PeerLocal.Subscriber
 func (s Subscriber) subscribe(sid string, OnBroken func(error)) error {
+	addCandidate := candidateSetting(s.pc, s.peer, OnBroken, rtc.Target_SUBSCRIBER)
 	s.peer.OnOffer = func(offer *webrtc.SessionDescription) {
+		log.Infof("Bridge get a new offer to subscribe a track from SFU session %s", sid)
 		err := s.pc.SetRemoteDescription(*offer)
 		if err != nil {
 			log.Errorf("Cannot SetRemoteDescription to pc: %+v", err)
 			OnBroken(err)
 			return
 		}
+		addCandidate()
 		answer, err := s.pc.CreateAnswer(nil)
 		if err != nil {
 			log.Errorf("Cannot CreateAnswer in pc: %+v", err)
+			OnBroken(err)
+			return
+		}
+		err = s.pc.SetLocalDescription(answer)
+		if err != nil {
+			log.Errorf("Cannot SetLocalDescription in pc: %+v", err)
 			OnBroken(err)
 			return
 		}
@@ -79,8 +88,6 @@ func (s Subscriber) subscribe(sid string, OnBroken func(error)) error {
 	if err != nil {
 		return err
 	}
-
-	candidateSetting(s.pc, s.peer, OnBroken, rtc.Target_SUBSCRIBER)
 
 	return err
 }

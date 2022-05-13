@@ -50,7 +50,9 @@ func (p Publisher) Update(util.Param, func(error)) error {
 
 // publish publish PeerConnection to PeerLocal.Subscriber
 func (p Publisher) publish(sid string, OnBroken func(error)) error {
+	addCandidate := candidateSetting(p.pc, p.peer, OnBroken, rtc.Target_PUBLISHER)
 	p.pc.OnNegotiationNeeded(func() {
+		log.Infof("Bridge need a Negotiation to publish a track to SFU session %s", sid)
 		offer, err := p.pc.CreateOffer(nil)
 		if err != nil {
 			log.Errorf("Cannot CreateOffer in pc: %+v", err)
@@ -75,6 +77,7 @@ func (p Publisher) publish(sid string, OnBroken func(error)) error {
 			OnBroken(err)
 			return
 		}
+		addCandidate()
 	})
 
 	err := p.peer.Join(sid, "", ion_sfu.JoinConfig{
@@ -85,8 +88,6 @@ func (p Publisher) publish(sid string, OnBroken func(error)) error {
 	if err != nil {
 		return err
 	}
-
-	candidateSetting(p.pc, p.peer, OnBroken, rtc.Target_PUBLISHER)
 
 	return err
 }
