@@ -50,35 +50,8 @@ func (p Publisher) Update(util.Param, func(error)) error {
 
 // publish publish PeerConnection to PeerLocal.Subscriber
 func (p Publisher) publish(sid string, OnBroken func(error)) error {
-	addCandidate := candidateSetting(p.pc, p.peer, OnBroken, rtc.Target_PUBLISHER)
-	p.pc.OnNegotiationNeeded(func() {
-		log.Infof("Bridge need a Negotiation to publish a track to SFU session %s", sid)
-		offer, err := p.pc.CreateOffer(nil)
-		if err != nil {
-			log.Errorf("Cannot CreateOffer in pc: %+v", err)
-			OnBroken(err)
-			return
-		}
-		err = p.pc.SetLocalDescription(offer)
-		if err != nil {
-			log.Errorf("Cannot SetLocalDescription to pc: %+v", err)
-			OnBroken(err)
-			return
-		}
-		answer, err := p.peer.Answer(offer)
-		if err != nil {
-			log.Errorf("Cannot create Answer in peer: %+v", err)
-			OnBroken(err)
-			return
-		}
-		err = p.pc.SetRemoteDescription(*answer)
-		if err != nil {
-			log.Errorf("Cannot SetRemoteDescription to pc: %+v", err)
-			OnBroken(err)
-			return
-		}
-		addCandidate()
-	})
+	p.SetOnConnectionStateChange(OnBroken)
+	addCandidate := p.SetOnIceCandidate(OnBroken, rtc.Target_PUBLISHER)
 
 	err := p.peer.Join(sid, "", ion_sfu.JoinConfig{
 		NoPublish:       false,
@@ -89,20 +62,49 @@ func (p Publisher) publish(sid string, OnBroken func(error)) error {
 		return err
 	}
 
+	if err := p.onNegotiationNeeded(); err != nil {
+		return err
+	}
+
+	addCandidate()
+
 	return err
 }
-
+func (p Publisher) onNegotiationNeeded() error {
+	log.Infof("Bridge need a Negotiation to publish a track to SFU session")
+	offer, err := p.pc.CreateOffer(nil)
+	if err != nil {
+		log.Errorf("Cannot CreateOffer in pc: %+v", err)
+		return err
+	}
+	err = p.pc.SetLocalDescription(offer)
+	if err != nil {
+		log.Errorf("Cannot SetLocalDescription to pc: %+v", err)
+		return err
+	}
+	answer, err := p.peer.Answer(offer)
+	if err != nil {
+		log.Errorf("Cannot create Answer in peer: %+v", err)
+		return err
+	}
+	err = p.pc.SetRemoteDescription(*answer)
+	if err != nil {
+		log.Errorf("Cannot SetRemoteDescription to pc: %+v", err)
+		return err
+	}
+	return nil
+}
 func (p Publisher) AddTrack(track webrtc.TrackLocal) (*webrtc.RTPSender, error) {
 	addTrack, err := p.pc.AddTrack(track)
 	if err != nil {
 		return nil, err
 	}
-	return addTrack, nil
+	return addTrack, p.onNegotiationNeeded()
 }
 
 func (p Publisher) RemoveTrack(sender *webrtc.RTPSender) error {
 	if err := p.pc.RemoveTrack(sender); err != nil {
 		return err
 	}
-	return nil
+	return p.onNegotiationNeeded()
 }

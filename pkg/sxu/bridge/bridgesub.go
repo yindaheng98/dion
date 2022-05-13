@@ -50,7 +50,8 @@ func (s Subscriber) Update(util.Param, func(error)) error {
 
 // subscribe subscribe PeerConnection to PeerLocal.Subscriber
 func (s Subscriber) subscribe(sid string, OnBroken func(error)) error {
-	addCandidate := candidateSetting(s.pc, s.peer, OnBroken, rtc.Target_SUBSCRIBER)
+	s.SetOnConnectionStateChange(OnBroken)
+	addCandidate := s.SetOnIceCandidate(OnBroken, rtc.Target_SUBSCRIBER)
 	s.peer.OnOffer = func(offer *webrtc.SessionDescription) {
 		log.Infof("Bridge get a new offer to subscribe a track from SFU session %s", sid)
 		err := s.pc.SetRemoteDescription(*offer)
