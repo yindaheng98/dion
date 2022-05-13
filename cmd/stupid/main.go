@@ -57,9 +57,8 @@ func readConf(confFile string) Config {
 }
 
 func main() {
-	var confFile, session, ffmpeg, testvideo string
+	var confFile, ffmpeg, testvideo string
 	flag.StringVar(&confFile, "conf", "cmd/stupid/sfu.toml", "sfu config file")
-	flag.StringVar(&session, "session", MyName, "session of the video")
 	flag.StringVar(&ffmpeg, "ffmpeg", "ffmpeg", "path to ffmpeg executable")
 	flag.StringVar(&testvideo, "testvideo", "size=1280x720:rate=30", "size of the video")
 

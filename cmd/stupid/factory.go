@@ -98,27 +98,10 @@ func makeTrack(ffmpegOut io.ReadCloser, pub bridge.Publisher) error {
 		}
 	}()
 
-	// Set the handler for ICE connection state
-	// This will notify you when the peer has connected/disconnected
-	pub.OnICEConnectionStateChange(func(connectionState webrtc.ICEConnectionState) {
-		fmt.Printf("Connection State has changed %s \n", connectionState.String())
-		if connectionState == webrtc.ICEConnectionStateConnected {
-			iceConnectedCtxCancel()
-		}
-	})
+	pub.SetOnConnectionStateChange(func(err error) {
+		fmt.Println("Peer Connection has gone to failed exiting")
+		os.Exit(0)
+	}, iceConnectedCtxCancel)
 
-	// Set the handler for Peer connection state
-	// This will notify you when the peer has connected/disconnected
-	pub.OnConnectionStateChange(func(s webrtc.PeerConnectionState) {
-		fmt.Printf("Peer Connection State has changed: %s\n", s.String())
-
-		if s == webrtc.PeerConnectionStateFailed {
-			// Wait until PeerConnection has had no network activity for 30 seconds or another failure. It may be reconnected using an ICE Restart.
-			// Use webrtc.PeerConnectionStateDisconnected if you are interested in detecting faster timeout.
-			// Note that the PeerConnection may come back from PeerConnectionStateDisconnected.
-			fmt.Println("Peer Connection has gone to failed exiting")
-			os.Exit(0)
-		}
-	})
 	return nil
 }

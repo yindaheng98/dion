@@ -18,11 +18,13 @@ func NewBridgePeer(peer *ion_sfu.PeerLocal, pc *webrtc.PeerConnection) BridgePee
 	return BridgePeer{peer: peer, pc: pc}
 }
 
-func (p BridgePeer) SetOnConnectionStateChange(OnBroken func(error)) {
+func (p BridgePeer) SetOnConnectionStateChange(OnBroken func(error), OnConnected func()) {
 	p.pc.OnICEConnectionStateChange(func(state webrtc.ICEConnectionState) {
 		if state >= webrtc.ICEConnectionStateDisconnected {
 			log.Errorf("ICEConnectionStateDisconnected")
 			OnBroken(fmt.Errorf("ICEConnectionStateDisconnected %v", state))
+		} else if state == webrtc.ICEConnectionStateConnected {
+			OnConnected()
 		}
 	})
 	p.pc.OnConnectionStateChange(func(state webrtc.PeerConnectionState) {

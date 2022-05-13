@@ -50,8 +50,12 @@ func (p Publisher) Update(util.Param, func(error)) error {
 
 // publish publish PeerConnection to PeerLocal.Subscriber
 func (p Publisher) publish(sid string, OnBroken func(error)) error {
-	p.SetOnConnectionStateChange(OnBroken)
 	addCandidate := p.SetOnIceCandidate(OnBroken, rtc.Target_PUBLISHER)
+	p.pc.OnNegotiationNeeded(func() {
+		if err := p.onNegotiationNeeded(); err != nil {
+			OnBroken(err)
+		}
+	})
 
 	err := p.peer.Join(sid, "", ion_sfu.JoinConfig{
 		NoPublish:       false,
@@ -59,10 +63,6 @@ func (p Publisher) publish(sid string, OnBroken func(error)) error {
 		NoAutoSubscribe: false,
 	})
 	if err != nil {
-		return err
-	}
-
-	if err := p.onNegotiationNeeded(); err != nil {
 		return err
 	}
 
@@ -99,12 +99,12 @@ func (p Publisher) AddTrack(track webrtc.TrackLocal) (*webrtc.RTPSender, error) 
 	if err != nil {
 		return nil, err
 	}
-	return addTrack, p.onNegotiationNeeded()
+	return addTrack, nil
 }
 
 func (p Publisher) RemoveTrack(sender *webrtc.RTPSender) error {
 	if err := p.pc.RemoveTrack(sender); err != nil {
 		return err
 	}
-	return p.onNegotiationNeeded()
+	return nil
 }
