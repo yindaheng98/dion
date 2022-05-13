@@ -44,6 +44,10 @@ func (p Publisher) Repair(util.Param, func(error)) error {
 	return fmt.Errorf("Publisher cannot be repaired ")
 }
 
+func (p Publisher) Update(util.Param, func(error)) error {
+	return fmt.Errorf("Publisher cannot be updated ")
+}
+
 // publish publish PeerConnection to PeerLocal.Subscriber
 func (p Publisher) publish(sid string, OnBroken func(error)) error {
 	p.pc.OnNegotiationNeeded(func() {

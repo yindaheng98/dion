@@ -44,6 +44,10 @@ func (s Subscriber) Repair(util.Param, func(error)) error {
 	return fmt.Errorf("Subscriber cannot be repaired ")
 }
 
+func (s Subscriber) Update(util.Param, func(error)) error {
+	return fmt.Errorf("Subscriber cannot be updated ")
+}
+
 // subscribe subscribe PeerConnection to PeerLocal.Subscriber
 func (s Subscriber) subscribe(sid string, OnBroken func(error)) error {
 	s.peer.OnOffer = func(offer *webrtc.SessionDescription) {
