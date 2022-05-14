@@ -12,6 +12,7 @@ require (
 	github.com/pion/ion-log v1.2.2
 	github.com/pion/ion-sdk-go v0.7.0
 	github.com/pion/ion-sfu v1.11.0
+	github.com/pion/sdp/v3 v3.0.4
 	github.com/pion/webrtc/v3 v3.1.25
 	github.com/spf13/viper v1.11.0
 	google.golang.org/grpc v1.45.0
