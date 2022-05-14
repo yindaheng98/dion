@@ -39,29 +39,7 @@ func (e Entrance) Lock(init util.Param, OnBroken func(badGay error)) error {
 
 	e.entr.OnTrack(func(remote *webrtc.TrackRemote, receiver *webrtc.RTPReceiver) {
 		iceConnectedCtx, iceConnectedCtxCancel := context.WithCancel(context.Background())
-
-		// Set the handler for ICE connection state
-		// This will notify you when the peer has connected/disconnected
-		e.entr.OnICEConnectionStateChange(func(connectionState webrtc.ICEConnectionState) {
-			log.Debugf("Entrance's Connection State has changed %s \n", connectionState.String())
-			if connectionState == webrtc.ICEConnectionStateConnected {
-				iceConnectedCtxCancel()
-			}
-		})
-
-		// Set the handler for Peer connection state
-		// This will notify you when the peer has connected/disconnected
-		e.entr.OnConnectionStateChange(func(s webrtc.PeerConnectionState) {
-			log.Debugf("Entrance's Peer Connection State has changed: %s\n", s.String())
-
-			if s == webrtc.PeerConnectionStateFailed {
-				// Wait until PeerConnection has had no network activity for 30 seconds or another failure. It may be reconnected using an ICE Restart.
-				// Use webrtc.PeerConnectionStateDisconnected if you are interested in detecting faster timeout.
-				// Note that the PeerConnection may come back from PeerConnectionStateDisconnected.
-				log.Errorf("Entrance's Peer Connection has gone to failed exiting")
-				OnBroken(fmt.Errorf("PeerConnectionStateFailed"))
-			}
-		})
+		e.entr.SetOnConnectionStateChange(OnBroken, iceConnectedCtxCancel)
 
 		videoTrack := e.road.AddTrack(iceConnectedCtx, remote, receiver)
 
@@ -98,9 +76,11 @@ func (e Entrance) Update(param util.Param, OnBroken func(badGay error)) error {
 }
 
 func (e Entrance) Remove() {
-	err := e.exit.RemoveTrack(e.sender)
-	if err != nil {
-		log.Errorf("Cannot remove track")
+	if e.sender != nil {
+		err := e.exit.RemoveTrack(e.sender)
+		if err != nil {
+			log.Errorf("Cannot remove track: %+v", err)
+		}
 	}
 	e.entr.Remove()
 }

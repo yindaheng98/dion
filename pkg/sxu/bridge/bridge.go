@@ -58,38 +58,45 @@ type Bridge struct {
 }
 
 func (b Bridge) Update(param util.Param, OnBroken func(badGay error)) error {
-	track := param.Clone().(ProceedTrackParam).ProceedTrack
-	if b.track != nil && b.track.DstSessionId != track.DstSessionId {
+	track := param.Clone().(ProceedTrackParam).ProceedTrack           // Clone it
+	if b.track != nil && b.track.DstSessionId != track.DstSessionId { // check if it is mine
 		return fmt.Errorf("DstSessionId not match! ")
 	}
-	b.Processor.UpdateProcedure(track)
-	b.track = param.Clone().(ProceedTrackParam).ProceedTrack
-	return nil
-}
 
-func (b Bridge) Lock(init util.Param, OnBroken func(badGay error)) error {
-	track := init.Clone().(ProceedTrackParam).ProceedTrack
-
+	// Update it
+	sidSet := map[string]bool{} // Record the expected sessions
 	// Init Subscribers
 	for _, sid := range track.SrcSessionIdList {
+		sidSet[sid] = true // Record the expected sessions
 		if _, ok := b.entrances[sid]; !ok {
 			// make Entrance watchdog
 			b.entrances[sid] = util.NewWatchDog(b.fact)
 		}
 	}
+	b.Processor.UpdateProcedure(track)
 
+	// start Subscribers
+	for sid, entrance := range b.entrances {
+		if _, ok := sidSet[sid]; !ok { // if it is unexpected session
+			entrance.Leave() // stop it
+			delete(b.entrances, sid)
+		} else {
+			entrance.Watch(SID(sid))
+		}
+	}
+
+	b.track = param.Clone().(ProceedTrackParam).ProceedTrack // Store it
+	return nil
+}
+
+func (b Bridge) Lock(init util.Param, OnBroken func(badGay error)) error {
 	// start Publisher
+	track := init.(ProceedTrackParam).ProceedTrack
 	err := b.fact.exit.Lock(SID(track.DstSessionId), OnBroken)
 	if err != nil {
 		return err
 	}
-	b.Processor.UpdateProcedure(track)
-	b.track = init.Clone().(ProceedTrackParam).ProceedTrack
-	// start Subscribers
-	for sid, entrance := range b.entrances {
-		entrance.Watch(SID(sid))
-	}
-	return nil
+	return b.Update(init, OnBroken)
 }
 
 func (b Bridge) Repair(param util.Param, OnBroken func(error)) error {

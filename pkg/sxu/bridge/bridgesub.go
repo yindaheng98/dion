@@ -50,7 +50,6 @@ func (s Subscriber) Update(util.Param, func(error)) error {
 
 // subscribe subscribe PeerConnection to PeerLocal.Subscriber
 func (s Subscriber) subscribe(sid string, OnBroken func(error)) error {
-	s.SetOnConnectionStateChange(OnBroken)
 	addCandidate := s.SetOnIceCandidate(OnBroken, rtc.Target_SUBSCRIBER)
 	s.peer.OnOffer = func(offer *webrtc.SessionDescription) {
 		log.Infof("Bridge get a new offer to subscribe a track from SFU session %s", sid)
@@ -73,12 +72,14 @@ func (s Subscriber) subscribe(sid string, OnBroken func(error)) error {
 			OnBroken(err)
 			return
 		}
-		err = s.peer.SetRemoteDescription(answer)
-		if err != nil {
-			log.Errorf("Cannot SetRemoteDescription in BridgePeer: %+v", err)
-			OnBroken(err)
-			return
-		}
+		go func(answer webrtc.SessionDescription) {
+			err = s.peer.SetRemoteDescription(answer)
+			if err != nil {
+				log.Errorf("Cannot SetRemoteDescription in BridgePeer: %+v", err)
+				OnBroken(err)
+				return
+			}
+		}(answer)
 	}
 
 	err := s.peer.Join(sid, "", ion_sfu.JoinConfig{
