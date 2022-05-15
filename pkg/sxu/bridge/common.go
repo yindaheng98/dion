@@ -1,7 +1,6 @@
 package bridge
 
 import (
-	"fmt"
 	log "github.com/pion/ion-log"
 	ion_sfu "github.com/pion/ion-sfu/pkg/sfu"
 	"github.com/pion/ion/proto/rtc"
@@ -16,23 +15,6 @@ type BridgePeer struct {
 
 func NewBridgePeer(peer *ion_sfu.PeerLocal, pc *webrtc.PeerConnection) BridgePeer {
 	return BridgePeer{peer: peer, pc: pc}
-}
-
-func (p BridgePeer) SetOnConnectionStateChange(OnBroken func(error), OnConnected func()) {
-	p.pc.OnICEConnectionStateChange(func(state webrtc.ICEConnectionState) {
-		if state >= webrtc.ICEConnectionStateDisconnected {
-			log.Errorf("ICEConnectionStateDisconnected")
-			OnBroken(fmt.Errorf("ICEConnectionStateDisconnected %v", state))
-		} else if state == webrtc.ICEConnectionStateConnected {
-			OnConnected()
-		}
-	})
-	p.pc.OnConnectionStateChange(func(state webrtc.PeerConnectionState) {
-		if state >= webrtc.PeerConnectionStateDisconnected {
-			log.Errorf("PeerConnectionStateDisconnected")
-			OnBroken(fmt.Errorf("PeerConnectionStateDisconnected %v", state))
-		}
-	})
 }
 
 func (p BridgePeer) setOnIceCandidate(OnBroken func(error), Target rtc.Target) (addCandidate func()) {

@@ -34,6 +34,23 @@ type Entrance struct {
 	sender *webrtc.RTPSender
 }
 
+func (p BridgePeer) SetOnConnectionStateChange(OnBroken func(error), OnConnected func()) {
+	p.pc.OnICEConnectionStateChange(func(state webrtc.ICEConnectionState) {
+		if state >= webrtc.ICEConnectionStateDisconnected {
+			log.Errorf("ICEConnectionStateDisconnected")
+			OnBroken(fmt.Errorf("ICEConnectionStateDisconnected %v", state))
+		} else if state == webrtc.ICEConnectionStateConnected {
+			OnConnected()
+		}
+	})
+	p.pc.OnConnectionStateChange(func(state webrtc.PeerConnectionState) {
+		if state >= webrtc.PeerConnectionStateDisconnected {
+			log.Errorf("PeerConnectionStateDisconnected")
+			OnBroken(fmt.Errorf("PeerConnectionStateDisconnected %v", state))
+		}
+	})
+}
+
 func (e Entrance) Lock(init util.Param, OnBroken func(badGay error)) error {
 	sid := init.(SID)
 
