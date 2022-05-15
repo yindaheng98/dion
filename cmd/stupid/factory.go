@@ -16,22 +16,21 @@ import (
 )
 
 type PublisherFactory struct {
-	sfu       *ion_sfu.SFU
+	bridge.PublisherFactory
 	ffmpegOut io.ReadCloser
 }
 
 func NewPublisherFactory(ffmpegOut io.ReadCloser, sfu *ion_sfu.SFU) PublisherFactory {
-	return PublisherFactory{ffmpegOut: ffmpegOut, sfu: sfu}
+	return PublisherFactory{ffmpegOut: ffmpegOut, PublisherFactory: bridge.NewPublisherFactory(sfu)}
 }
 
 func (p PublisherFactory) NewDoor() (util.Door, error) {
-	pc, err := webrtc.NewPeerConnection(webrtc.Configuration{})
+	pub, err := p.PublisherFactory.NewDoor()
 	if err != nil {
-		log.Errorf("Cannot NewPeerConnection: %+v", err)
+		log.Errorf("Cannot PublisherFactory.NewDoor: %+v", err)
 		return nil, err
 	}
-	pub := bridge.Publisher{BridgePeer: bridge.NewBridgePeer(ion_sfu.NewPeer(p.sfu), pc)}
-	err = makeTrack(p.ffmpegOut, pub)
+	err = makeTrack(p.ffmpegOut, pub.(bridge.Publisher))
 	if err != nil {
 		log.Errorf("Cannot makeTrack: %+v", err)
 		return nil, err
@@ -100,7 +99,6 @@ func makeTrack(ffmpegOut io.ReadCloser, pub bridge.Publisher) error {
 
 	pub.SetOnConnectionStateChange(func(err error) {
 		fmt.Println("Peer Connection has gone to failed exiting")
-		os.Exit(0)
 	}, iceConnectedCtxCancel)
 
 	return nil
