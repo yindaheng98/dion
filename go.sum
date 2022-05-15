@@ -836,6 +836,8 @@ github.com/yindaheng98/ion v1.10.1-0.20220426115625-f36c15970110 h1:vW8F3YnPgPj2
 github.com/yindaheng98/ion v1.10.1-0.20220426115625-f36c15970110/go.mod h1:sZkEnZ9Nuyd6PrJzn2F04sX1U2yMohQIqb2oYEJvN+g=
 github.com/yindaheng98/ion v1.10.1-0.20220504093032-621bc1f2c46e h1:Rv7l0jGgjkkFhsCU9gjavbEMDzxGg3cOXVf6210AmyI=
 github.com/yindaheng98/ion v1.10.1-0.20220504093032-621bc1f2c46e/go.mod h1:sZkEnZ9Nuyd6PrJzn2F04sX1U2yMohQIqb2oYEJvN+g=
+github.com/yindaheng98/ion v1.10.1-0.20220514150638-6b0975406105 h1:8MvbTIUYBLqwLKKMugAMb/mYEYAXOT888k0qV95EvZo=
+github.com/yindaheng98/ion v1.10.1-0.20220514150638-6b0975406105/go.mod h1:sZkEnZ9Nuyd6PrJzn2F04sX1U2yMohQIqb2oYEJvN+g=
 github.com/yindaheng98/ion-sdk-go v0.7.1-0.20220426113245-a9894b608a13 h1:ZrNrMWrydkKGK7SEkXjp7ZJXdCQAn8O/viwcxVwd05c=
 github.com/yindaheng98/ion-sdk-go v0.7.1-0.20220426113245-a9894b608a13/go.mod h1:UHoekVt+1v/51mLfqFCfHnVGGfA918ZcvvxdVxvNLvo=
 github.com/yindaheng98/ion-sfu v1.11.1-0.20220511085802-4d9e05891799 h1:09GOvvvYxTgOI8rVTU44fuSn7qNQsPY061umyCsgy94=
