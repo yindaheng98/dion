@@ -37,7 +37,7 @@ func (b BridgeFactory) NewDoor() (util.Door, error) {
 	}
 	pub := pubDoor.(Publisher)
 	return Bridge{
-		fact: EntranceFactory{
+		EntranceFactory: EntranceFactory{
 			SubscriberFactory: b.sub,
 			exit:              pub,
 			road:              b.pro,
@@ -49,7 +49,7 @@ func (b BridgeFactory) NewDoor() (util.Door, error) {
 }
 
 type Bridge struct {
-	fact EntranceFactory // Bridge should have the ability to generate Entrance
+	EntranceFactory // Bridge should have the ability to generate Entrance
 	// But Bridge only have 1 Publisher in EntranceFactory, if this Publisher broken, the the bridge broken
 	Processor
 
@@ -70,7 +70,7 @@ func (b Bridge) Update(param util.Param, OnBroken func(badGay error)) error {
 		sidSet[sid] = true // Record the expected sessions
 		if _, ok := b.entrances[sid]; !ok {
 			// make Entrance watchdog
-			b.entrances[sid] = util.NewWatchDog(b.fact)
+			b.entrances[sid] = util.NewWatchDog(b.EntranceFactory)
 		}
 	}
 	b.Processor.UpdateProcedure(track)
@@ -92,7 +92,7 @@ func (b Bridge) Update(param util.Param, OnBroken func(badGay error)) error {
 func (b Bridge) Lock(init util.Param, OnBroken func(badGay error)) error {
 	// start Publisher
 	track := init.(ProceedTrackParam).ProceedTrack
-	err := b.fact.exit.Lock(SID(track.DstSessionId), OnBroken)
+	err := b.exit.Lock(SID(track.DstSessionId), OnBroken)
 	if err != nil {
 		return err
 	}
@@ -109,5 +109,5 @@ func (b Bridge) Remove() {
 		entrance.Leave()
 		delete(b.entrances, sid)
 	}
-	b.fact.exit.Remove()
+	b.exit.Remove()
 }
