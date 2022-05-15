@@ -1,7 +1,6 @@
 package bridge
 
 import (
-	"context"
 	"fmt"
 	log "github.com/pion/ion-log"
 	ion_sfu "github.com/pion/ion-sfu/pkg/sfu"
@@ -29,13 +28,7 @@ func (p TestSubscriberFactory) NewDoor() (util.Door, error) {
 		return nil, err
 	}
 	sub := subDoor.(Subscriber)
-	iceConnectedCtx, iceConnectedCtxCancel := context.WithCancel(context.Background())
-	sub.SetOnConnectionStateChange(func(err error) {
-		log.Errorf("onTrack closed: %+v", err)
-	}, iceConnectedCtxCancel)
 	sub.OnTrack(func(remote *webrtc.TrackRemote, receiver *webrtc.RTPReceiver) {
-		log.Warnf("onTrack: %+v", remote)
-		<-iceConnectedCtx.Done()
 		log.Warnf("onTrack started: %+v", remote)
 
 		for {

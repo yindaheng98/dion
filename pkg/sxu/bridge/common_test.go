@@ -2,7 +2,6 @@ package bridge
 
 import (
 	"bufio"
-	"context"
 	"fmt"
 	log "github.com/pion/ion-log"
 	ion_sfu "github.com/pion/ion-sfu/pkg/sfu"
@@ -64,16 +63,11 @@ func makeTrack(ffmpegOut io.ReadCloser, pub Publisher) error {
 		}
 	}()
 
-	iceConnectedCtx, iceConnectedCtxCancel := context.WithCancel(context.Background())
-
 	go func() {
 		ivf, header, ivfErr := ivfreader.NewWith(ffmpegOut)
 		if ivfErr != nil {
 			panic(ivfErr)
 		}
-
-		// Wait for connection established
-		<-iceConnectedCtx.Done()
 
 		// Send our video file frame at a time. Pace our sending so we send it at the same speed it should be played back as.
 		// This isn't required since the video is timestamped, but we will such much higher loss if we send all at once.
@@ -98,10 +92,6 @@ func makeTrack(ffmpegOut io.ReadCloser, pub Publisher) error {
 			}
 		}
 	}()
-
-	pub.SetOnConnectionStateChange(func(err error) {
-		fmt.Println("Peer Connection has gone to failed exiting")
-	}, iceConnectedCtxCancel)
 
 	return nil
 }
