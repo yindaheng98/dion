@@ -17,6 +17,7 @@ type House interface {
 }
 
 // Door is the door of your house
+// All the methods will SINGLE-THREADED access
 type Door interface {
 	// Lock your Door when leaving your house
 	// but some time, your Door can be Broken by some badGay
