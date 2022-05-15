@@ -30,6 +30,7 @@ const (
 	Target_SUBSCRIBER Target = 1
 )
 
+// RTC TODO 需要改造为Door给WatchDog用
 type RTC struct {
 	peer      *UpPeerLocal
 	signaller rtc.RTC_SignalClient
@@ -57,6 +58,7 @@ func NewRTC(sfu *ion_sfu.SFU) *RTC {
 	return r
 }
 
+// Start TODO 需要改造为Door.Lock给WatchDog用
 // Start start a rtc from remote session to local session
 func (r *RTC) Start(remoteSid, localSid string, client rtc.RTCClient, Metadata metadata.MD) error {
 	ctx, cancel := context.WithCancel(context.Background())
@@ -91,6 +93,7 @@ func (r *RTC) GetSubStats() webrtc.StatsReport {
 	return r.sub.pc.GetStats()
 }
 
+// trickle TODO 需要将所有报错均改造为返回报错模式以便无限断线重连
 // trickle receive candidate from sfu and add to pc
 func (r *RTC) trickle(candidate webrtc.ICECandidateInit, target Target) {
 	log.Debugf("[S=>C] id=%v candidate=%v target=%v", r.uid, candidate, target)
@@ -175,6 +178,7 @@ func (r *RTC) onSingalHandleOnce() {
 	})
 }
 
+// onSingalHandle TODO 需要将所有报错均改造为返回报错模式以便无限断线重连
 func (r *RTC) onSingalHandle() error {
 	for {
 		//only one goroutine for recving from stream, no need to lock
@@ -332,6 +336,7 @@ func (r *RTC) SendJoin(sid string, uid string /*offer webrtc.SessionDescription,
 	return err
 }
 
+// SendTrickle TODO 需要改造为返回报错模式
 func (r *RTC) SendTrickle(candidate *webrtc.ICECandidate, target Target) {
 	log.Debugf("[C=>S] [%v] candidate=%v target=%v", r.uid, candidate, target)
 	bytes, err := json.Marshal(candidate.ToJSON())
