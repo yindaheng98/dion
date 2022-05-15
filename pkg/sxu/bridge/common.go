@@ -35,7 +35,7 @@ func (p BridgePeer) SetOnConnectionStateChange(OnBroken func(error), OnConnected
 	})
 }
 
-func (p BridgePeer) SetOnIceCandidate(OnBroken func(error), Target rtc.Target) (addCandidate func()) {
+func (p BridgePeer) setOnIceCandidate(OnBroken func(error), Target rtc.Target) (addCandidate func()) {
 	var pcCand []webrtc.ICECandidateInit // Store unsended ICECandidate
 	addCandidate = func() {
 		tpcCand := pcCand
@@ -89,11 +89,11 @@ func (p BridgePeer) SetOnIceCandidate(OnBroken func(error), Target rtc.Target) (
 func (p BridgePeer) Remove() {
 	err := p.peer.Close()
 	if err != nil {
-		log.Errorf("Error when closing BridgePeer in publisher: %+v", err)
+		log.Errorf("Error when closing peer in BridgePeer: %+v", err)
 	}
 	err = p.pc.Close()
 	if err != nil {
-		log.Errorf("Error when closing pc in publisher: %+v", err)
+		log.Errorf("Error when closing pc in BridgePeer: %+v", err)
 	}
 }
 
