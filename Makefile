@@ -1,20 +1,27 @@
 GO_LDFLAGS = -ldflags "-s -w"
 GO_VERSION = 1.16
 
-all: go_deps core
+download:
+	go mod download -x
+vendor: download
+	go mod vendor
 
-go_deps:
-	go mod download -x && go mod vendor
 
-core:
-	go build -o bin/islb $(GO_LDFLAGS) cmd/isglb/main.go
+go_deps: download vendor
+
+isglb: go_deps
+	go build -o isglb $(GO_LDFLAGS) github.com/yindaheng98/dion/cmd/isglb
+sxu: go_deps
+	go build -o sxu $(GO_LDFLAGS) github.com/yindaheng98/dion/cmd/sxu
+stupid: go_deps
+	go build -o stupid $(GO_LDFLAGS) github.com/yindaheng98/dion/cmd/stupid
+
+all: isglb sxu stupid
 
 clean:
 	rm -rf bin
 	rm -rf vendor
 
-vendor:
-	go mod vendor
 
 proto: vendor protoc_install proto_core
 
