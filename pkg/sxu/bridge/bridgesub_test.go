@@ -146,10 +146,6 @@ func (p TestSubscriberFactory) NewDoor() (util.Door, error) {
 	return sub, nil
 }
 
-func onTrack(remote *webrtc.TrackRemote, receiver *webrtc.RTPReceiver) {
-	log.Warnf("onTrack: %+v", remote)
-}
-
 const MyName = "stupid"
 
 // makeVideo Make a video

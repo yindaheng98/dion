@@ -50,7 +50,7 @@ func (p Publisher) Update(util.Param, func(error)) error {
 
 // publish publish PeerConnection to PeerLocal.Subscriber
 func (p Publisher) publish(sid string, OnBroken func(error)) error {
-	addCandidate := p.SetOnIceCandidate(OnBroken, rtc.Target_PUBLISHER)
+	addCandidate := p.setOnIceCandidate(OnBroken, rtc.Target_PUBLISHER)
 	p.pc.OnNegotiationNeeded(func() {
 		if err := p.onNegotiationNeeded(); err != nil {
 			OnBroken(err)
