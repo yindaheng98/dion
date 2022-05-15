@@ -105,8 +105,9 @@ func (b Bridge) Repair(param util.Param, OnBroken func(error)) error {
 
 func (b Bridge) Remove() {
 	// start Subscribers
-	for _, entrance := range b.entrances {
+	for sid, entrance := range b.entrances {
 		entrance.Leave()
+		delete(b.entrances, sid)
 	}
 	b.fact.exit.Remove()
 }

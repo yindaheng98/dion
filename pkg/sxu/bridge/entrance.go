@@ -58,7 +58,7 @@ func (e Entrance) Lock(init util.Param, OnBroken func(badGay error)) error {
 		iceConnectedCtx, iceConnectedCtxCancel := context.WithCancel(context.Background())
 		e.entr.SetOnConnectionStateChange(OnBroken, iceConnectedCtxCancel)
 
-		videoTrack := e.road.AddTrack(iceConnectedCtx, remote, receiver)
+		videoTrack := e.road.AddTrack(iceConnectedCtx, remote, receiver, OnBroken)
 
 		rtpSender, videoTrackErr := e.exit.AddTrack(videoTrack)
 		if videoTrackErr != nil {
