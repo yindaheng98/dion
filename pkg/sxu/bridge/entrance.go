@@ -1,7 +1,6 @@
 package bridge
 
 import (
-	"context"
 	"fmt"
 	log "github.com/pion/ion-log"
 	"github.com/pion/webrtc/v3"
@@ -15,21 +14,22 @@ type EntranceFactory struct {
 }
 
 func (e EntranceFactory) NewDoor() (util.Door, error) {
-	entr, err := e.SubscriberFactory.NewDoor()
+	sub, err := e.SubscriberFactory.NewDoor()
 	if err != nil {
 		return nil, err
 	}
 	return Entrance{
-		entr: entr.(Subscriber),
-		exit: e.exit,
-		road: e.road,
+		Subscriber: sub.(Subscriber),
+		exit:       e.exit,
+		road:       e.road,
 	}, nil
 }
 
+// Entrance of a Bridge
 type Entrance struct {
-	entr Subscriber
-	exit Publisher
-	road Processor
+	Subscriber           // Subscriber is its entrance, Entrance is also a Subscriber
+	exit       Publisher // Publisher is its exit
+	road       Processor
 
 	sender *webrtc.RTPSender
 }
@@ -40,6 +40,7 @@ func (p BridgePeer) SetOnConnectionStateChange(OnBroken func(error), OnConnected
 			log.Errorf("ICEConnectionStateDisconnected")
 			OnBroken(fmt.Errorf("ICEConnectionStateDisconnected %v", state))
 		} else if state == webrtc.ICEConnectionStateConnected {
+			log.Infof("ICEConnectionStateDisconnected")
 			OnConnected()
 		}
 	})
@@ -47,6 +48,9 @@ func (p BridgePeer) SetOnConnectionStateChange(OnBroken func(error), OnConnected
 		if state >= webrtc.PeerConnectionStateDisconnected {
 			log.Errorf("PeerConnectionStateDisconnected")
 			OnBroken(fmt.Errorf("PeerConnectionStateDisconnected %v", state))
+		} else if state == webrtc.PeerConnectionStateConnected {
+			log.Infof("ICEConnectionStateDisconnected")
+			OnConnected()
 		}
 	})
 }
@@ -54,11 +58,8 @@ func (p BridgePeer) SetOnConnectionStateChange(OnBroken func(error), OnConnected
 func (e Entrance) Lock(init util.Param, OnBroken func(badGay error)) error {
 	sid := init.(SID)
 
-	e.entr.OnTrack(func(remote *webrtc.TrackRemote, receiver *webrtc.RTPReceiver) {
-		iceConnectedCtx, iceConnectedCtxCancel := context.WithCancel(context.Background())
-		e.entr.SetOnConnectionStateChange(OnBroken, iceConnectedCtxCancel)
-
-		videoTrack := e.road.AddTrack(iceConnectedCtx, remote, receiver, OnBroken)
+	e.Subscriber.OnTrack(func(remote *webrtc.TrackRemote, receiver *webrtc.RTPReceiver) {
+		videoTrack := e.road.AddTrack(remote, receiver, OnBroken)
 
 		rtpSender, videoTrackErr := e.exit.AddTrack(videoTrack)
 		if videoTrackErr != nil {
@@ -81,7 +82,7 @@ func (e Entrance) Lock(init util.Param, OnBroken func(badGay error)) error {
 		}()
 	})
 
-	return e.entr.Lock(sid, OnBroken)
+	return e.Subscriber.Lock(sid, OnBroken)
 }
 
 func (e Entrance) Repair(param util.Param, OnBroken func(badGay error)) error {
@@ -99,5 +100,5 @@ func (e Entrance) Remove() {
 			log.Errorf("Cannot remove track: %+v", err)
 		}
 	}
-	e.entr.Remove()
+	e.Subscriber.Remove()
 }

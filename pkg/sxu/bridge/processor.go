@@ -1,7 +1,6 @@
 package bridge
 
 import (
-	"context"
 	"github.com/pion/webrtc/v3"
 	pb "github.com/yindaheng98/dion/proto"
 )
@@ -14,7 +13,7 @@ type Processor interface {
 	// r/w should begin after `<-shouldBegin.Done()`
 	// r/w should stop when error occurred
 	// Should be NON-BLOCK!
-	AddTrack(shouldBegin context.Context, remote *webrtc.TrackRemote, receiver *webrtc.RTPReceiver, OnBroken func(badGay error)) (local webrtc.TrackLocal)
+	AddTrack(remote *webrtc.TrackRemote, receiver *webrtc.RTPReceiver, OnBroken func(badGay error)) (local webrtc.TrackLocal)
 
 	// UpdateProcedure update the procedure in the Processor
 	UpdateProcedure(procedure *pb.ProceedTrack)
