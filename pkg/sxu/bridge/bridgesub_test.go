@@ -119,12 +119,30 @@ func NewTestSubscriberFactory(sfu *ion_sfu.SFU) TestSubscriberFactory {
 }
 
 func (p TestSubscriberFactory) NewDoor() (util.Door, error) {
-	sub, err := p.SubscriberFactory.NewDoor()
+	subDoor, err := p.SubscriberFactory.NewDoor()
 	if err != nil {
 		log.Errorf("Cannot SubscriberFactory.NewDoor: %+v", err)
 		return nil, err
 	}
-	sub.(Subscriber).OnTrack(onTrack)
+	sub := subDoor.(Subscriber)
+	iceConnectedCtx, iceConnectedCtxCancel := context.WithCancel(context.Background())
+	sub.SetOnConnectionStateChange(func(err error) {
+		log.Errorf("onTrack closed: %+v", err)
+	}, iceConnectedCtxCancel)
+	sub.OnTrack(func(remote *webrtc.TrackRemote, receiver *webrtc.RTPReceiver) {
+		log.Warnf("onTrack: %+v", remote)
+		<-iceConnectedCtx.Done()
+		log.Warnf("onTrack started: %+v", remote)
+
+		for {
+			// Read RTP packets being sent to Pion
+			_, _, readErr := remote.ReadRTP()
+			fmt.Println("RTP Packat read from SFU")
+			if readErr != nil {
+				panic(readErr)
+			}
+		}
+	})
 	return sub, nil
 }
 
