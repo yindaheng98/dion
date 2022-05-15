@@ -45,7 +45,7 @@ func newRTC(Ctx context.Context, sfu *ion_sfu.SFU) (*rtc.RTC, context.Context, c
 	return r, ctx, cancel
 }
 
-func (f ForwardTrackRoutineFactory) ForwardTrackRoutine(Ctx context.Context, updateCh <-chan util.ForwardTrackItem, init util.ForwardTrackItem) {
+func (f ForwardTrackRoutineFactory) ForwardTrackRoutine(Ctx context.Context, updateCh <-chan util.ForwardTrackItem) {
 	retryItemCh := make(chan util.ForwardTrackItem, 1)
 	for {
 		var item util.ForwardTrackItem

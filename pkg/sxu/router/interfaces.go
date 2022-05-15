@@ -10,7 +10,7 @@ import (
 type ForwardTrackRoutineFactory interface {
 	// ForwardTrackRoutine forward a track according to the item in updateCh
 	// Should retry until the ctx exit
-	ForwardTrackRoutine(ctx context.Context, updateCh <-chan util.ForwardTrackItem, init util.ForwardTrackItem)
+	ForwardTrackRoutine(ctx context.Context, updateCh <-chan util.ForwardTrackItem)
 }
 
 type ProcessorFactory interface {
