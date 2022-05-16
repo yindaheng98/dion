@@ -58,7 +58,6 @@ func NewRTC(sfu *ion_sfu.SFU) *RTC {
 	return r
 }
 
-// Start TODO 需要改造为Door.Lock给WatchDog用
 // Start start a rtc from remote session to local session
 func (r *RTC) Start(remoteSid, localSid string, client rtc.RTCClient, Metadata metadata.MD) error {
 	ctx, cancel := context.WithCancel(context.Background())
@@ -93,16 +92,17 @@ func (r *RTC) GetSubStats() webrtc.StatsReport {
 	return r.sub.pc.GetStats()
 }
 
-// trickle TODO 需要将所有报错均改造为返回报错模式以便无限断线重连
+// ↑↑↑↑↑ Copy from: https://github.com/pion/ion-sdk-go/blob/12e32a5871b905bf2bdf58bc45c2fdd2741c4f81/rtc.go ↑↑↑↑↑
+
 // trickle receive candidate from sfu and add to pc
-func (r *RTC) trickle(candidate webrtc.ICECandidateInit, target Target) {
+func (r *RTC) trickle(candidate webrtc.ICECandidateInit, target Target) error {
 	log.Debugf("[S=>C] id=%v candidate=%v target=%v", r.uid, candidate, target)
 	var t *Transport
 	if target == Target_SUBSCRIBER {
 		t = r.sub
 	} else {
 		// t = r.pub
-		return
+		return nil
 	}
 
 	if t.pc.CurrentRemoteDescription() == nil {
@@ -111,10 +111,13 @@ func (r *RTC) trickle(candidate webrtc.ICECandidateInit, target Target) {
 		err := t.pc.AddICECandidate(candidate)
 		if err != nil {
 			log.Errorf("id=%v err=%v", r.uid, err)
+			return err
 		}
 	}
-
+	return nil
 }
+
+// ↓↓↓↓↓ Copy from: https://github.com/pion/ion-sdk-go/blob/12e32a5871b905bf2bdf58bc45c2fdd2741c4f81/rtc.go ↓↓↓↓↓
 
 // negotiate sub negotiate
 func (r *RTC) negotiate(sdp webrtc.SessionDescription) error {
@@ -130,7 +133,10 @@ func (r *RTC) negotiate(sdp webrtc.SessionDescription) error {
 	if len(r.sub.SendCandidates) > 0 {
 		for _, cand := range r.sub.SendCandidates {
 			log.Debugf("[C=>S] id=%v send sub.SendCandidates r.uid, r.rtc.trickle cand=%v", r.uid, cand)
-			r.SendTrickle(cand, Target_SUBSCRIBER)
+			err := r.SendTrickle(cand, Target_SUBSCRIBER)
+			if err != nil {
+				return err
+			}
 		}
 		r.sub.SendCandidates = []*webrtc.ICECandidate{}
 	}
@@ -178,7 +184,6 @@ func (r *RTC) onSingalHandleOnce() {
 	})
 }
 
-// onSingalHandle TODO 需要将所有报错均改造为返回报错模式以便无限断线重连
 func (r *RTC) onSingalHandle() error {
 	for {
 		//only one goroutine for recving from stream, no need to lock
@@ -201,9 +206,11 @@ func (r *RTC) onSingalHandle() error {
 			}
 
 			log.Errorf("[%v] Error receiving RTC response: %v", r.uid, err)
-			if r.OnError != nil {
-				r.OnError(err)
-			}
+			/*
+				if r.OnError != nil {
+					r.OnError(err)
+				}
+			*/
 			return err
 		}
 
@@ -245,9 +252,10 @@ func (r *RTC) onSingalHandle() error {
 				err := r.negotiate(sdp)
 				if err != nil {
 					log.Errorf("error: %v", err)
+					// ↑↑↑↑↑ Copy from: https://github.com/pion/ion-sdk-go/blob/12e32a5871b905bf2bdf58bc45c2fdd2741c4f81/rtc.go ↑↑↑↑↑
+					return err
 				}
 			} else if sdp.Type == webrtc.SDPTypeAnswer {
-				// ↑↑↑↑↑ Copy from: https://github.com/pion/ion-sdk-go/blob/12e32a5871b905bf2bdf58bc45c2fdd2741c4f81/rtc.go ↑↑↑↑↑
 				log.Infof("[%v] [description] got answer call sdp=%+v, but i do not have a publisher", r.uid, sdp)
 			}
 			// ↓↓↓↓↓ Copy from: https://github.com/pion/ion-sdk-go/blob/12e32a5871b905bf2bdf58bc45c2fdd2741c4f81/rtc.go ↓↓↓↓↓
@@ -255,43 +263,50 @@ func (r *RTC) onSingalHandle() error {
 			var candidate webrtc.ICECandidateInit
 			_ = json.Unmarshal([]byte(payload.Trickle.Init), &candidate)
 			log.Infof("[%v] [trickle] type=%v candidate=%v", r.uid, payload.Trickle.Target, candidate)
-			r.trickle(candidate, Target(payload.Trickle.Target))
+			// ↑↑↑↑↑ Copy from: https://github.com/pion/ion-sdk-go/blob/12e32a5871b905bf2bdf58bc45c2fdd2741c4f81/rtc.go ↑↑↑↑↑
+			err := r.trickle(candidate, Target(payload.Trickle.Target))
+			if err != nil {
+				return err
+			}
+			// ↓↓↓↓↓ Copy from: https://github.com/pion/ion-sdk-go/blob/12e32a5871b905bf2bdf58bc45c2fdd2741c4f81/rtc.go ↓↓↓↓↓
+		case *rtc.Reply_TrackEvent:
 			/*
-				case *rtc.Reply_TrackEvent:
-					if r.OnTrackEvent == nil {
-						log.Errorf("s.OnTrackEvent == nil")
-						continue
-					}
-					var TrackInfos []*TrackInfo
-					for _, v := range payload.TrackEvent.Tracks {
-						TrackInfos = append(TrackInfos, &TrackInfo{
-							Id:        v.Id,
-							Kind:      v.Kind,
-							Muted:     v.Muted,
-							Type:      MediaType(v.Type),
-							StreamId:  v.StreamId,
-							Label:     v.Label,
-							Width:     v.Width,
-							Height:    v.Height,
-							FrameRate: v.FrameRate,
-							Layer:     v.Layer,
-						})
-					}
-					trackEvent := TrackEvent{
-						State:  TrackEvent_State(payload.TrackEvent.State),
-						Uid:    payload.TrackEvent.Uid,
-						Tracks: TrackInfos,
-					}
+				if r.OnTrackEvent == nil {
+					log.Errorf("s.OnTrackEvent == nil")
+					continue
+				}
+				var TrackInfos []*TrackInfo
+				for _, v := range payload.TrackEvent.Tracks {
+					TrackInfos = append(TrackInfos, &TrackInfo{
+						Id:        v.Id,
+						Kind:      v.Kind,
+						Muted:     v.Muted,
+						Type:      MediaType(v.Type),
+						StreamId:  v.StreamId,
+						Label:     v.Label,
+						Width:     v.Width,
+						Height:    v.Height,
+						FrameRate: v.FrameRate,
+						Layer:     v.Layer,
+					})
+				}
+				trackEvent := TrackEvent{
+					State:  TrackEvent_State(payload.TrackEvent.State),
+					Uid:    payload.TrackEvent.Uid,
+					Tracks: TrackInfos,
+				}
 
-					log.Infof("s.OnTrackEvent trackEvent=%+v", trackEvent)
-					r.OnTrackEvent(trackEvent)
+				log.Infof("s.OnTrackEvent trackEvent=%+v", trackEvent)
+				r.OnTrackEvent(trackEvent)
 			*/
 		case *rtc.Reply_Subscription:
 			if !payload.Subscription.Success {
 				log.Errorf("suscription error: %v", payload.Subscription.Error)
+				return errors.New(payload.Subscription.Error.String())
 			}
 		case *rtc.Reply_Error:
 			log.Errorf("Request error: %v", payload.Error)
+			return errors.New(payload.Error.String())
 		default:
 			log.Errorf("Unknown RTC type!!!!%v", payload)
 		}
@@ -336,14 +351,16 @@ func (r *RTC) SendJoin(sid string, uid string /*offer webrtc.SessionDescription,
 	return err
 }
 
-// SendTrickle TODO 需要改造为返回报错模式
-func (r *RTC) SendTrickle(candidate *webrtc.ICECandidate, target Target) {
+// ↑↑↑↑↑ Copy from: https://github.com/pion/ion-sdk-go/blob/12e32a5871b905bf2bdf58bc45c2fdd2741c4f81/rtc.go ↑↑↑↑↑
+
+func (r *RTC) SendTrickle(candidate *webrtc.ICECandidate, target Target) error {
 	log.Debugf("[C=>S] [%v] candidate=%v target=%v", r.uid, candidate, target)
 	bytes, err := json.Marshal(candidate.ToJSON())
 	if err != nil {
 		log.Errorf("error: %v", err)
-		return
+		return err
 	}
+	// ↓↓↓↓↓ Copy from: https://github.com/pion/ion-sdk-go/blob/12e32a5871b905bf2bdf58bc45c2fdd2741c4f81/rtc.go ↓↓↓↓↓
 	go r.onSingalHandleOnce()
 	r.Lock()
 	err = r.signaller.Send(
@@ -360,7 +377,11 @@ func (r *RTC) SendTrickle(candidate *webrtc.ICECandidate, target Target) {
 	if err != nil {
 		log.Errorf("[%v] err=%v", r.uid, err)
 	}
+	// ↑↑↑↑↑ Copy from: https://github.com/pion/ion-sdk-go/blob/12e32a5871b905bf2bdf58bc45c2fdd2741c4f81/rtc.go ↑↑↑↑↑
+	return err
 }
+
+// ↓↓↓↓↓ Copy from: https://github.com/pion/ion-sdk-go/blob/12e32a5871b905bf2bdf58bc45c2fdd2741c4f81/rtc.go ↓↓↓↓↓
 
 func (r *RTC) SendAnswer(sdp webrtc.SessionDescription) error {
 	log.Infof("[C=>S] [%v] sdp=%v", r.uid, sdp)
