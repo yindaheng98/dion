@@ -54,7 +54,6 @@ func NewRTC(sfu *ion_sfu.SFU) *RTC {
 		peer: peer,
 		uid:  peer.ID(),
 	}
-	r.sub = NewTransport(r, r.peer)
 	return r
 }
 
@@ -76,6 +75,7 @@ func (r *RTC) Start(remoteSid, localSid string, client rtc.RTCClient, Metadata m
 		cancel()
 		return err
 	}
+	r.sub = NewTransport(r, r.peer)
 
 	err = r.SendJoin(remoteSid, r.peer.ID())
 	if err != nil {
