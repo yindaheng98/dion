@@ -123,20 +123,20 @@ func TestForwardTrackRoutineFactory(t *testing.T) {
 	}
 
 	sxu := NewSFU()
-	iSFU := sxu.sfu
 	err = sxu.Start(conf)
 	if err != nil {
 		t.Error(err)
 		return
 	}
+	iSFU := sxu.sfu
 
 	builder := DefaultToolBoxBuilder{}
 	toolbox := builder.Build(&sxu.Node, iSFU)
 	trackStupid := &pb.ForwardTrack{
 		Src: &pbion.Node{
 			Dc:      "dc1",
-			Nid:     "sfu-G0blWd",
-			Service: "sfu",
+			Nid:     "stupid",
+			Service: "rtc",
 			Rpc:     nil,
 		},
 		RemoteSessionId: "stupid",
@@ -147,8 +147,8 @@ func TestForwardTrackRoutineFactory(t *testing.T) {
 	trackStupid2 := &pb.ForwardTrack{
 		Src: &pbion.Node{
 			Dc:      "dc1",
-			Nid:     "sfu-G0blWd",
-			Service: "sfu",
+			Nid:     "stupid",
+			Service: "rtc",
 			Rpc:     nil,
 		},
 		RemoteSessionId: "stupid",

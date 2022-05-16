@@ -68,8 +68,7 @@ func (f ForwardTrackRoutineFactory) ForwardTrackRoutine(Ctx context.Context, upd
 
 		conn, err := f.node.NewNatsRPCClient(item.Track.Src.Service, item.Track.Src.Nid, map[string]interface{}{})
 		if err != nil { // if error
-			_ = r.Close() // Close
-			cancel()      // Close
+			cancel() // Close
 			select {
 			case <-Ctx.Done(): // this track should exit?
 				return // exit
