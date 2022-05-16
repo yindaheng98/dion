@@ -61,7 +61,7 @@ func (G GRPCConn) Repair(param util.Param, OnBroken func(badGay error)) error {
 }
 
 func (G GRPCConn) Update(param util.Param, OnBroken func(badGay error)) error {
-	return fmt.Errorf("GRPCConn cannot be Updated")
+	return G.Repair(param, OnBroken)
 }
 
 func (G GRPCConn) Remove() {
