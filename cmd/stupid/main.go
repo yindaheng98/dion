@@ -6,7 +6,6 @@ import (
 	"fmt"
 	log "github.com/pion/ion-log"
 	ion_sfu "github.com/pion/ion-sfu/pkg/sfu"
-	"github.com/pion/ion/pkg/ion"
 	"github.com/yindaheng98/dion/pkg/sxu/bridge"
 	"github.com/yindaheng98/dion/util"
 	"io"
@@ -81,13 +80,7 @@ func main() {
 	dog := util.NewWatchDog(pub)
 	dog.Watch(bridge.SID(MyName))
 
-	node := ion.NewNode(MyName)
-	if err := node.Start(conf.Nats.URL); err != nil {
-		panic(err)
-	}
-	defer node.Close()
-
-	server := NewSFU()
+	server := NewSFU(MyName)
 	if err := server.Start(conf, iSFU); err != nil {
 		panic(err)
 	}

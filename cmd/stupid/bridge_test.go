@@ -124,10 +124,11 @@ func TestBridge(t *testing.T) {
 	confFile := "/root/Programs/dion/cmd/stupid/sfu.toml"
 	ffmpeg := "/root/Programs/ffmpeg"
 	testvideo := "size=1280x720:rate=30"
+	filter := "drawtext=text='%{localtime\\:%Y-%M-%d %H.%m.%S}':fontsize=60:x=(w-text_w)/2:y=(h-text_h)/2"
 
 	conf := readConf(confFile)
 
-	ffmpegOut := makeVideo(ffmpeg, testvideo)
+	ffmpegOut := makeVideo(ffmpeg, testvideo, filter)
 
 	log.Init(conf.Log.Level)
 	log.Infof("--- starting sfu node ---")
@@ -153,7 +154,7 @@ func TestBridge(t *testing.T) {
 	}
 	defer node.Close()
 
-	server := NewSFU()
+	server := NewSFU(MyName)
 	if err := server.Start(conf, iSFU); err != nil {
 		panic(err)
 	}
