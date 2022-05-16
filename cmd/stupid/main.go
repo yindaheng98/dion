@@ -19,11 +19,11 @@ import (
 const MyName = "stupid"
 
 // makeVideo Make a video
-func makeVideo(ffmpegPath, param string) io.ReadCloser {
+func makeVideo(ffmpegPath, param, filter string) io.ReadCloser {
 	videoopt := []string{
 		"-f", "lavfi",
 		"-i", "testsrc=" + param,
-		"-vf", "drawtext=text='%{localtime\\:%Y-%M-%d %H.%m.%S}' :fontsize=120",
+		"-vf", filter,
 		"-vcodec", "libvpx",
 		"-b:v", "3M",
 		"-f", "ivf",
@@ -57,10 +57,11 @@ func readConf(confFile string) Config {
 }
 
 func main() {
-	var confFile, ffmpeg, testvideo string
+	var confFile, ffmpeg, testvideo, filter string
 	flag.StringVar(&confFile, "conf", "cmd/stupid/sfu.toml", "sfu config file")
 	flag.StringVar(&ffmpeg, "ffmpeg", "ffmpeg", "path to ffmpeg executable")
-	flag.StringVar(&testvideo, "testvideo", "size=1280x720:rate=30", "size of the video")
+	flag.StringVar(&testvideo, "testvideo", "size=1280x720:rate=30", "ffmpeg -i testsrc=???")
+	flag.StringVar(&filter, "filter", "drawtext=text='%{localtime\\:%Y-%M-%d %H.%m.%S}':fontsize=60:x=(w-text_w)/2:y=(h-text_h)/2", "ffmpeg -vf ???")
 
 	flag.Parse()
 
@@ -70,7 +71,7 @@ func main() {
 	}
 	conf := readConf(confFile)
 
-	ffmpegOut := makeVideo(ffmpeg, testvideo)
+	ffmpegOut := makeVideo(ffmpeg, testvideo, filter)
 
 	log.Init(conf.Log.Level)
 	log.Infof("--- starting sfu node ---")
