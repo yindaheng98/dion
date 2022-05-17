@@ -1,7 +1,6 @@
 package rtc
 
 import (
-	log "github.com/pion/ion-log"
 	ion_sfu "github.com/pion/ion-sfu/pkg/sfu"
 	"github.com/pion/ion/proto/rtc"
 	"github.com/pion/webrtc/v3"
@@ -47,8 +46,6 @@ func (p *UpPeerLocal) GetStats() webrtc.StatsReport {
 	return p.peer.Publisher().PeerConnection().GetStats()
 }
 
-func (p *UpPeerLocal) Close() {
-	if err := p.peer.Close(); err != nil {
-		log.Errorf("Error when closing: %+v", err)
-	}
+func (p *UpPeerLocal) Close() error {
+	return p.peer.Close()
 }

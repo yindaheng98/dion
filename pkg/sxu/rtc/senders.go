@@ -45,8 +45,12 @@ func (r *RTC) SendJoin(sid string, uid string /*offer webrtc.SessionDescription,
 // ↑↑↑↑↑ Copy from: https://github.com/pion/ion-sdk-go/blob/12e32a5871b905bf2bdf58bc45c2fdd2741c4f81/rtc.go ↑↑↑↑↑
 
 func (r *RTC) SendTrickle(candidate *webrtc.ICECandidate, target Target) error {
+	return r.SendTrickleInit(candidate.ToJSON(), target)
+}
+
+func (r *RTC) SendTrickleInit(candidate webrtc.ICECandidateInit, target Target) error {
 	log.Debugf("[C=>S] [%v] candidate=%v target=%v", r.uid, candidate, target)
-	bytes, err := json.Marshal(candidate.ToJSON())
+	bytes, err := json.Marshal(candidate)
 	if err != nil {
 		log.Errorf("error: %v", err)
 		return err
