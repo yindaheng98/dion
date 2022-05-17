@@ -8,9 +8,6 @@ type BlockedDoor interface {
 	// BLock Lock your Door and block until some error occurred
 	BLock(param Param, OnBroken func(badGay error)) error
 
-	// Repair same as Door.Repair
-	Repair(param Param, OnBroken func(badGay error)) error
-
 	// Update same as Door.Update
 	Update(param Param, OnBroken func(badGay error)) error
 
@@ -21,6 +18,7 @@ type BlockedDoor interface {
 
 type unBlockedDoor struct {
 	door   BlockedDoor
+	param  Param
 	ctx    context.Context
 	cancel context.CancelFunc
 }
@@ -36,34 +34,36 @@ func newUnBlockedDoor(door BlockedDoor) unBlockedDoor {
 }
 
 func (u unBlockedDoor) Lock(param Param, OnBroken func(badGay error)) error {
+	u.param = param.Clone()
 	select {
 	case <-u.ctx.Done(): // routine is not running
 		u.ctx, u.cancel = context.WithCancel(context.Background())
-		go u.routine(param, OnBroken) // run the routine
+		go u.routine(OnBroken) // run the routine
 	default: // if not
 	}
 	return nil // just return
 }
 
-func (u unBlockedDoor) routine(param Param, OnBroken func(badGay error)) {
+func (u unBlockedDoor) routine(OnBroken func(badGay error)) {
 	for {
+		err := u.door.BLock(u.param.Clone(), OnBroken)
 		select {
 		case <-u.ctx.Done(): // routine should stop
 			return
 		default:
-		}
-		err := u.door.BLock(param, OnBroken)
-		if err != nil {
-			OnBroken(err)
+			if err != nil {
+				OnBroken(err)
+			}
 		}
 	}
 }
 
 func (u unBlockedDoor) Repair(param Param, OnBroken func(badGay error)) error {
-	return u.door.Repair(param, OnBroken)
+	return u.Update(param, OnBroken)
 }
 
 func (u unBlockedDoor) Update(param Param, OnBroken func(badGay error)) error {
+	u.param = param.Clone()
 	return u.door.Update(param, OnBroken)
 }
 
@@ -88,7 +88,7 @@ func (u unBlockedHouse) NewDoor() (Door, error) {
 	if err != nil {
 		return nil, err
 	}
-	return unBlockedDoor{door: b}, nil
+	return newUnBlockedDoor(b), nil
 }
 
 func NewWatchDogWithBlock(bhouse BlockedHouse) *WatchDog {
