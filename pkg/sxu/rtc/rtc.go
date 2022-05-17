@@ -77,6 +77,7 @@ func (r *RTC) Start(remoteSid, localSid string, client rtc.RTCClient, Metadata m
 		cancel()
 		return err
 	}
+	go r.onSingalHandleOnce()
 	return nil
 }
 

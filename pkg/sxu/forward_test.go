@@ -51,7 +51,7 @@ func (s *SFU) Load(confFile string) error {
 
 // StartGRPC start with grpc.ServiceRegistrar
 func (s *SFU) StartGRPC(registrar grpc.ServiceRegistrar) error {
-	s.sfu = ion_sfu.NewSFU(s.conf.ISFU)
+	s.sfu = ion_sfu.NewSFU(s.conf.Config)
 	s.s = sfu.NewSFUServiceWithSFU(s.sfu)
 	rtc.RegisterRTCServer(registrar, s.s)
 	log.Infof("sfu pb.RegisterRTCServer(registrar, s.s)")
@@ -63,7 +63,7 @@ func (s *SFU) Start(conf Config) error {
 	// ↑↑↑↑↑ COPY FROM https://github.com/pion/ion/blob/65dbd12eaad0f0e0a019b4d8ee80742930bcdc28/pkg/node/sfu/sfu.go ↑↑↑↑↑
 
 	// Start internal SFU
-	s.sfu = ion_sfu.NewSFU(conf.ISFU)
+	s.sfu = ion_sfu.NewSFU(conf.Config)
 
 	// ↓↓↓↓↓ COPY FROM https://github.com/pion/ion/blob/65dbd12eaad0f0e0a019b4d8ee80742930bcdc28/pkg/node/sfu/sfu.go ↓↓↓↓↓
 	err := s.Node.Start(conf.Nats.URL)
@@ -117,7 +117,7 @@ func (s *SFU) Close() {
 
 func TestForwardTrackRoutineFactory(t *testing.T) {
 	conf := Config{}
-	err := conf.Load("D:\\Documents\\MyPrograms\\dion\\pkg\\sxu\\sfu.toml")
+	err := conf.Load("D:\\Documents\\MyPrograms\\dion\\pkg\\sxu\\sfu.toml") // TODO: 怎么读完还是没正常初始化？what fuck
 	if err != nil {
 		panic(err)
 	}

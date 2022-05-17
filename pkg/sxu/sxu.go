@@ -27,11 +27,6 @@ func init() {
 	ion_sfu.Logger = logrLogger.WithName("sxu")
 }
 
-type Config struct {
-	sfu.Config
-	ISFU ion_sfu.Config `mapstructure:"isfu"`
-}
-
 type SXU struct {
 	ion.Node
 	s *sfu.SFUService
@@ -80,7 +75,7 @@ func (s *SXU) Start(conf Config) error {
 	// ↑↑↑↑↑ COPY FROM https://github.com/pion/ion/blob/65dbd12eaad0f0e0a019b4d8ee80742930bcdc28/pkg/node/sfu/sfu.go ↑↑↑↑↑
 
 	// Start internal SFU
-	s.sfu = ion_sfu.NewSFU(conf.ISFU)
+	s.sfu = ion_sfu.NewSFU(conf.Config)
 
 	// ↓↓↓↓↓ COPY FROM https://github.com/pion/ion/blob/65dbd12eaad0f0e0a019b4d8ee80742930bcdc28/pkg/node/sfu/sfu.go ↓↓↓↓↓
 	err := s.Node.Start(conf.Nats.URL)
