@@ -25,49 +25,50 @@ const (
 	Target_SUBSCRIBER Target = 1
 )
 
-// RTC
 type RTC struct {
-	peer      *UpPeerLocal
+	sfu *ion_sfu.SFU
+
+	peer      UpPeerLocal
 	signaller rtc.RTC_SignalClient
-
-	uid string
+	uid       string
 	sync.Mutex
-
-	ctx    context.Context
-	cancel context.CancelFunc
 }
 
 func NewRTC(sfu *ion_sfu.SFU) *RTC {
-	p := &UpPeerLocal{peer: ion_sfu.NewPeer(sfu)}
-	r := &RTC{
-		peer: p,
-		uid:  p.peer.ID(),
+	return &RTC{
+		sfu: sfu,
 	}
-	return r
 }
 
 // Run start a rtc from remote session to local session
 func (r *RTC) Run(remoteSid, localSid string, client rtc.RTCClient, Metadata metadata.MD) error {
 	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	// Initialize GRPC signaller
 	ctx = metadata.NewOutgoingContext(ctx, Metadata)
 	signaller, err := client.Signal(ctx)
 	if err != nil {
-		cancel()
 		return err
 	}
+	defer func(signaller rtc.RTC_SignalClient) {
+		if err := signaller.CloseSend(); err != nil {
+			log.Errorf("Error when CloseSend: %+v", err)
+		}
+	}(signaller)
 	r.signaller = signaller
-	r.ctx = ctx
-	r.cancel = cancel
 
-	err = r.peer.Join(localSid)
-	if err != nil {
-		cancel()
-		return err
-	}
-	r.peer.OnICECandidate(func(c *webrtc.ICECandidateInit) {
+	// Initialize UpPeerLocal
+	peer := UpPeerLocal{peer: ion_sfu.NewPeer(r.sfu)}
+	defer func(peer UpPeerLocal) {
+		if err := peer.Close(); err != nil {
+			log.Errorf("Error when Close PeerLocal: %+v", err)
+		}
+	}(peer)
+	peer.OnICECandidate(func(c *webrtc.ICECandidateInit) {
 		if c == nil {
 			// Gathering done
-			log.Infof("gather candidate done")
+			log.Infof("id=%s gather candidate done", r.uid)
 			return
 		}
 		//append before join session success
@@ -77,11 +78,19 @@ func (r *RTC) Run(remoteSid, localSid string, client rtc.RTCClient, Metadata met
 		}
 	})
 
-	err = r.SendJoin(remoteSid, r.uid)
+	// Join a local session
+	err = r.peer.Join(localSid)
 	if err != nil {
-		cancel()
 		return err
 	}
+
+	// Join a remote session
+	err = r.SendJoin(remoteSid, r.uid)
+	if err != nil {
+		return err
+	}
+
+	// Handle messages
 	return r.onSingalHandle()
 }
 
@@ -155,6 +164,5 @@ func (r *RTC) IsSame(tracks []*pb.Subscription) bool {
 
 // Close stop all track
 func (r *RTC) Close() error {
-	r.cancel()
-	return r.peer.Close()
+	return r.signaller.CloseSend()
 }
