@@ -85,11 +85,11 @@ func (e Entrance) Lock(init util.Param, OnBroken func(badGay error)) error {
 	return e.Subscriber.Lock(sid, OnBroken)
 }
 
-func (e Entrance) Repair(param util.Param, OnBroken func(badGay error)) error {
+func (e Entrance) Repair(param util.Param) error {
 	return fmt.Errorf("Entrance cannot be repaired ")
 }
 
-func (e Entrance) Update(param util.Param, OnBroken func(badGay error)) error {
+func (e Entrance) Update(param util.Param) error {
 	return fmt.Errorf("Entrance cannot be updated ")
 }
 

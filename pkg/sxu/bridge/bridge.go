@@ -57,7 +57,7 @@ type Bridge struct {
 	entrances map[string]*util.WatchDog
 }
 
-func (b Bridge) Update(param util.Param, OnBroken func(badGay error)) error {
+func (b Bridge) Update(param util.Param) error {
 	track := param.Clone().(ProceedTrackParam).ProceedTrack           // Clone it
 	if b.track != nil && b.track.DstSessionId != track.DstSessionId { // check if it is mine
 		return fmt.Errorf("DstSessionId not match! ")
@@ -96,10 +96,10 @@ func (b Bridge) Lock(init util.Param, OnBroken func(badGay error)) error {
 	if err != nil {
 		return err
 	}
-	return b.Update(init, OnBroken)
+	return b.Update(init)
 }
 
-func (b Bridge) Repair(param util.Param, OnBroken func(error)) error {
+func (b Bridge) Repair(param util.Param) error {
 	return fmt.Errorf("Bridge cannot be repaired ")
 }
 

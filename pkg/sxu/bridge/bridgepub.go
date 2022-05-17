@@ -40,11 +40,11 @@ func (p Publisher) Lock(sid util.Param, OnBroken func(badGay error)) error {
 	return p.publish(string(sid.(SID)), OnBroken)
 }
 
-func (p Publisher) Repair(util.Param, func(error)) error {
+func (p Publisher) Repair(util.Param) error {
 	return fmt.Errorf("Publisher cannot be repaired ")
 }
 
-func (p Publisher) Update(util.Param, func(error)) error {
+func (p Publisher) Update(util.Param) error {
 	return fmt.Errorf("Publisher cannot be updated ")
 }
 

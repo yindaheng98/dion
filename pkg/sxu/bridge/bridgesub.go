@@ -40,11 +40,11 @@ func (s Subscriber) Lock(sid util.Param, OnBroken func(badGay error)) error {
 	return s.subscribe(string(sid.(SID)), OnBroken)
 }
 
-func (s Subscriber) Repair(util.Param, func(error)) error {
+func (s Subscriber) Repair(util.Param) error {
 	return fmt.Errorf("Subscriber cannot be repaired ")
 }
 
-func (s Subscriber) Update(util.Param, func(error)) error {
+func (s Subscriber) Update(util.Param) error {
 	return fmt.Errorf("Subscriber cannot be updated ")
 }
 
