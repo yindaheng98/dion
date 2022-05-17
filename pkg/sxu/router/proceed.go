@@ -6,12 +6,11 @@ import (
 	"github.com/yindaheng98/dion/pkg/sxu/bridge"
 	pb "github.com/yindaheng98/dion/proto"
 	"github.com/yindaheng98/dion/util"
-	"google.golang.org/protobuf/proto"
 )
 
 type proceeding struct {
 	*util.WatchDog
-	info *pb.ProceedTrack
+	util.ProceedTrackItem
 }
 
 // ProceedRouter controls the track proceed in SFU
@@ -22,36 +21,40 @@ type ProceedRouter struct {
 }
 
 func (p ProceedRouter) StartProceedTrack(trackInfo *pb.ProceedTrack) {
-	proc, ok := p.proceedings[trackInfo.DstSessionId]
+	item := util.ProceedTrackItem{Track: trackInfo}
+	proc, ok := p.proceedings[item.Key()]
 	if ok { // peer exist?
-		p.ReplaceProceedTrack(proc.info, trackInfo) // if exist, just update
+		p.ReplaceProceedTrack(proc.Track, trackInfo) // if exist, just update
 		return
 	}
-	pro := p.factory.New(proto.Clone(trackInfo).(*pb.ProceedTrack))
+	pro := p.factory.New(item.Clone().(util.ProceedTrackItem).Track)
 	proc = proceeding{
-		WatchDog: util.NewWatchDog(bridge.NewBridgeFactory(p.sfu, pro)),
-		info:     proto.Clone(trackInfo).(*pb.ProceedTrack),
+		WatchDog:         util.NewWatchDog(bridge.NewBridgeFactory(p.sfu, pro)),
+		ProceedTrackItem: item.Clone().(util.ProceedTrackItem),
 	}
-	proc.Watch(bridge.ProceedTrackParam{ProceedTrack: proto.Clone(trackInfo).(*pb.ProceedTrack)})
-	p.proceedings[trackInfo.DstSessionId] = proc
+	proc.Watch(bridge.ProceedTrackParam{ProceedTrack: item.Clone().(util.ProceedTrackItem).Track})
+	p.proceedings[item.Key()] = proc
 }
 
 func (p ProceedRouter) StopProceedTrack(trackInfo *pb.ProceedTrack) {
-	if proc, ok := p.proceedings[trackInfo.DstSessionId]; ok { // peer exist?
+	item := util.ProceedTrackItem{Track: trackInfo}
+	if proc, ok := p.proceedings[item.Key()]; ok { // peer exist?
 		proc.Leave() // if exist, just stop
-		delete(p.proceedings, trackInfo.DstSessionId)
+		delete(p.proceedings, item.Key())
 	}
 }
 
 func (p ProceedRouter) ReplaceProceedTrack(oldTrackInfo *pb.ProceedTrack, newTrackInfo *pb.ProceedTrack) {
-	if oldTrackInfo.DstSessionId != newTrackInfo.DstSessionId {
-		log.Warnf("Cannot ReplaceProceedTrack when DstSessionId is not same")
+	olditem := util.ProceedTrackItem{Track: oldTrackInfo}
+	newitem := util.ProceedTrackItem{Track: newTrackInfo}
+	if olditem.Key() != newitem.Key() {
+		log.Warnf("Cannot ReplaceProceedTrack when util.ProceedTrackItem.Key() is not same")
 		return
 	}
-	proc, ok := p.proceedings[oldTrackInfo.DstSessionId]
+	proc, ok := p.proceedings[olditem.Key()]
 	if !ok { // peer not exist?
 		return // just return
 	}
-	proc.Update(bridge.ProceedTrackParam{ProceedTrack: proto.Clone(newTrackInfo).(*pb.ProceedTrack)})
-	proc.info = proto.Clone(newTrackInfo).(*pb.ProceedTrack)
+	proc.Update(bridge.ProceedTrackParam{ProceedTrack: newitem.Clone().(util.ProceedTrackItem).Track})
+	proc.Track = newitem.Clone().(util.ProceedTrackItem).Track
 }
