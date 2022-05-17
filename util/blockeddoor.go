@@ -6,6 +6,7 @@ import "context"
 // So the methods will MULTI-THREADED access
 type BlockedDoor interface {
 	// BLock Lock your Door and block until some error occurred
+	// 如果出错了会直接再次调用BLock，而不是新建BlockedDoor
 	BLock(init Param) error
 
 	// Update same as Door.Update
