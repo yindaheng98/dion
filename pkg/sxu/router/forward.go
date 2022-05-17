@@ -1,102 +1,58 @@
 package router
 
 import (
-	"context"
+	log "github.com/pion/ion-log"
+	"github.com/yindaheng98/dion/pkg/sxu/bridge"
+	"github.com/yindaheng98/dion/pkg/sxu/signaller"
 	pb "github.com/yindaheng98/dion/proto"
 	"github.com/yindaheng98/dion/util"
 )
 
-type Track struct {
+type forwarding struct {
+	*util.WatchDog
 	util.ForwardTrackItem
-	cancel   context.CancelFunc
-	updateCh chan util.ForwardTrackItem
 }
 
 type ForwardRouter struct {
-	ForwardTrackRoutineFactory
-	tracks map[string]*Track
+	factory     signaller.SignallerFactory
+	forwardings map[string]forwarding // map<NID, map<SID, forwarding>>
 }
 
-func NewForwardRouter(factory ForwardTrackRoutineFactory) *ForwardRouter {
-	return &ForwardRouter{
-		ForwardTrackRoutineFactory: factory,
-		tracks:                     make(map[string]*Track),
-	}
-}
-
-func (f *ForwardRouter) StartForwardTrack(trackInfo *pb.ForwardTrack) {
+func (f ForwardRouter) StartForwardTrack(trackInfo *pb.ForwardTrack) {
 	item := util.ForwardTrackItem{Track: trackInfo}
-	if old, ok := f.tracks[item.Key()]; ok {
-		f.ReplaceForwardTrack(old.Track, trackInfo)
+	proc, ok := f.forwardings[item.Key()]
+	if ok { // peer exist?
+		f.ReplaceForwardTrack(proc.Track, trackInfo) // if exist, just update
 		return
 	}
-	ctx, cancel := context.WithCancel(context.Background())
-	updateCh := make(chan util.ForwardTrackItem, 1)
-	updateCh <- item
-	track := &Track{
-		ForwardTrackItem: item,
-		cancel:           cancel,
-		updateCh:         updateCh,
+
+	proc = forwarding{
+		WatchDog:         util.NewWatchDogWithBlock(f.factory),
+		ForwardTrackItem: item.Clone().(util.ForwardTrackItem),
 	}
-	f.tracks[track.Key()] = track
-	go f.ForwardTrackRoutine(ctx, updateCh) // One thread pre track
+	proc.Watch(bridge.ProceedTrackParam{ProceedTrack: item.Clone().(util.ProceedTrackItem).Track})
+	f.forwardings[item.Key()] = proc
 }
 
-func (f *ForwardRouter) StopForwardTrack(trackInfo *pb.ForwardTrack) {
+func (f ForwardRouter) StopForwardTrack(trackInfo *pb.ForwardTrack) {
 	item := util.ForwardTrackItem{Track: trackInfo}
-	if old, ok := f.tracks[item.Key()]; ok {
-		old.cancel()                 // Stop routine
-		delete(f.tracks, item.Key()) // Delete track
+	if proc, ok := f.forwardings[item.Key()]; ok { // peer exist?
+		proc.Leave() // if exist, just stop
+		delete(f.forwardings, item.Key())
 	}
 }
 
-func replace(oldItemInList *Track, newItem util.ForwardTrackItem) {
-	// And replace the new
-	oldItemInList.ForwardTrackItem = newItem // Change it
-	select {
-	case oldItemInList.updateCh <- newItem: // Send to the update channel
-	default:
-		select {
-		case <-oldItemInList.updateCh:
-		default:
-		}
-		select {
-		case oldItemInList.updateCh <- newItem:
-		default:
-		}
+func (f ForwardRouter) ReplaceForwardTrack(oldTrackInfo *pb.ForwardTrack, newTrackInfo *pb.ForwardTrack) {
+	olditem := util.ForwardTrackItem{Track: oldTrackInfo}
+	newitem := util.ForwardTrackItem{Track: newTrackInfo}
+	if olditem.Key() != newitem.Key() {
+		log.Warnf("Cannot ReplaceForwardTrack when util.ForwardTrackItem.Key() is not same")
+		return
 	}
-}
-
-func (f *ForwardRouter) ReplaceForwardTrack(oldTrackInfo *pb.ForwardTrack, newTrackInfo *pb.ForwardTrack) {
-	oldItem := util.ForwardTrackItem{Track: oldTrackInfo}
-	newItem := util.ForwardTrackItem{Track: newTrackInfo}
-	newItemInList, newExist := f.tracks[newItem.Key()]
-	if oldItem.Key() != newItem.Key() { // if not from the same node
-		_, oldExist := f.tracks[oldItem.Key()]
-		if oldExist {
-			if newExist {
-				// old item and new item both exists?
-				f.StopForwardTrack(oldTrackInfo) // Should stop the old
-				replace(newItemInList, newItem)  // And replace the newItemInList
-			} else {
-				// old item exist but new item not exists?
-				f.StopForwardTrack(oldTrackInfo)  // Just stop the old
-				f.StartForwardTrack(newTrackInfo) // And start a new
-			}
-		} else {
-			if newExist {
-				// old item not exists and new item exist?
-				replace(newItemInList, newItem) // And replace the newItemInList
-			} else {
-				// old item and new item both not exists?
-				f.StartForwardTrack(newTrackInfo) // Just start a new
-			}
-		}
-	} else { // if from the same node
-		if newExist { // exists?
-			replace(newItemInList, newItem) // Just replace the newItemInList
-		} else {
-			f.StartForwardTrack(newTrackInfo) // Just start a new
-		}
+	proc, ok := f.forwardings[olditem.Key()]
+	if !ok { // peer not exist?
+		return // just return
 	}
+	proc.Update(signaller.ForwardTrackParam{ForwardTrack: newitem.Clone().(util.ForwardTrackItem).Track})
+	proc.Track = newitem.Clone().(util.ForwardTrackItem).Track
 }
