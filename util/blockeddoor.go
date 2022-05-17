@@ -6,10 +6,10 @@ import "context"
 // So the methods will MULTI-THREADED access
 type BlockedDoor interface {
 	// BLock Lock your Door and block until some error occurred
-	BLock(param Param, OnBroken func(badGay error)) error
+	BLock(init Param) error
 
 	// Update same as Door.Update
-	Update(param Param, OnBroken func(badGay error)) error
+	Update(param Param) error
 
 	// Remove same as Door.Remove
 	// !!! when Remove called, BLock should exit !!!
@@ -46,7 +46,7 @@ func (u unBlockedDoor) Lock(param Param, OnBroken func(badGay error)) error {
 
 func (u unBlockedDoor) routine(OnBroken func(badGay error)) {
 	for {
-		err := u.door.BLock(u.param.Clone(), OnBroken)
+		err := u.door.BLock(u.param.Clone())
 		select {
 		case <-u.ctx.Done(): // routine should stop
 			return
@@ -58,13 +58,13 @@ func (u unBlockedDoor) routine(OnBroken func(badGay error)) {
 	}
 }
 
-func (u unBlockedDoor) Repair(param Param, OnBroken func(badGay error)) error {
-	return u.Update(param, OnBroken)
+func (u unBlockedDoor) Repair(param Param) error {
+	return u.Update(param)
 }
 
-func (u unBlockedDoor) Update(param Param, OnBroken func(badGay error)) error {
+func (u unBlockedDoor) Update(param Param) error {
 	u.param = param.Clone()
-	return u.door.Update(param, OnBroken)
+	return u.door.Update(param)
 }
 
 func (u unBlockedDoor) Remove() {
