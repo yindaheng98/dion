@@ -20,6 +20,14 @@ type ProceedRouter struct {
 	proceedings map[string]proceeding
 }
 
+func NewProceedRouter(sfu *ion_sfu.SFU, factory ProcessorFactory) ProceedRouter {
+	return ProceedRouter{
+		sfu:         sfu,
+		factory:     factory,
+		proceedings: map[string]proceeding{},
+	}
+}
+
 func (p ProceedRouter) StartProceedTrack(trackInfo *pb.ProceedTrack) {
 	item := util.ProceedTrackItem{Track: trackInfo}
 	proc, ok := p.proceedings[item.Key()]
@@ -27,7 +35,7 @@ func (p ProceedRouter) StartProceedTrack(trackInfo *pb.ProceedTrack) {
 		p.ReplaceProceedTrack(proc.Track, trackInfo) // if exist, just update
 		return
 	}
-	pro := p.factory.New(item.Clone().(util.ProceedTrackItem).Track)
+	pro := p.factory.NewProcessor(item.Clone().(util.ProceedTrackItem).Track)
 	proc = proceeding{
 		WatchDog:         util.NewWatchDog(bridge.NewBridgeFactory(p.sfu, pro)),
 		ProceedTrackItem: item.Clone().(util.ProceedTrackItem),

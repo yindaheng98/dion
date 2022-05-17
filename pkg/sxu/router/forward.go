@@ -18,6 +18,13 @@ type ForwardRouter struct {
 	forwardings map[string]forwarding // map<NID, map<SID, forwarding>>
 }
 
+func NewForwardRouter(factory signaller.SignallerFactory) ForwardRouter {
+	return ForwardRouter{
+		factory:     factory,
+		forwardings: map[string]forwarding{},
+	}
+}
+
 func (f ForwardRouter) StartForwardTrack(trackInfo *pb.ForwardTrack) {
 	item := util.ForwardTrackItem{Track: trackInfo}
 	proc, ok := f.forwardings[item.Key()]

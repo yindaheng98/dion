@@ -6,5 +6,5 @@ import (
 )
 
 type ProcessorFactory interface {
-	New(init *pb.ProceedTrack) bridge.Processor
+	NewProcessor(init *pb.ProceedTrack) bridge.Processor
 }
