@@ -91,8 +91,8 @@ func (r *RTC) onSingalHandle() error {
 				log.Infof("[%v] [description] got offer call s.OnNegotiate sdp=%+v", r.uid, sdp)
 				err := r.negotiate(sdp)
 				if err != nil {
-					log.Errorf("error: %v", err)
 					// ↑↑↑↑↑ Copy from: https://github.com/pion/ion-sdk-go/blob/12e32a5871b905bf2bdf58bc45c2fdd2741c4f81/rtc.go ↑↑↑↑↑
+					log.Errorf("error when negotiate: %v", err)
 					return err
 				}
 			} else if sdp.Type == webrtc.SDPTypeAnswer {
@@ -106,6 +106,7 @@ func (r *RTC) onSingalHandle() error {
 			// ↑↑↑↑↑ Copy from: https://github.com/pion/ion-sdk-go/blob/12e32a5871b905bf2bdf58bc45c2fdd2741c4f81/rtc.go ↑↑↑↑↑
 			err := r.trickle(candidate, Target(payload.Trickle.Target))
 			if err != nil {
+				log.Errorf("error when trickle: %v", err)
 				return err
 			}
 			// ↓↓↓↓↓ Copy from: https://github.com/pion/ion-sdk-go/blob/12e32a5871b905bf2bdf58bc45c2fdd2741c4f81/rtc.go ↓↓↓↓↓
