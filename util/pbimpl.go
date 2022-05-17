@@ -36,7 +36,7 @@ type ForwardTrackItem struct {
 }
 
 func (i ForwardTrackItem) Key() string {
-	return i.Track.Src.Nid + i.Track.RemoteSessionId
+	return i.Track.Src.Nid + i.Track.RemoteSessionId // !!!重要!!!不允许多次转发同一个节点的同一个Session
 }
 
 func (i ForwardTrackItem) Compare(data DisorderSetItem) bool {
@@ -64,7 +64,7 @@ type ProceedTrackItem struct {
 }
 
 func (i ProceedTrackItem) Key() string {
-	return i.Track.DstSessionId
+	return i.Track.DstSessionId // !!!重要!!!不允许多个处理结果放进一个Session里
 }
 func (i ProceedTrackItem) Compare(data DisorderSetItem) bool {
 	srcTrackList1 := Strings(data.(ProceedTrackItem).Track.SrcSessionIdList).ToDisorderSetItemList()
