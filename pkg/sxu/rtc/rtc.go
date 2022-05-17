@@ -30,13 +30,8 @@ type RTC struct {
 	peer      *UpPeerLocal
 	signaller rtc.RTC_SignalClient
 
-	OnError    func(error)
-	uid        string
-	handleOnce sync.Once
+	uid string
 	sync.Mutex
-
-	SendCandidates []*webrtc.ICECandidate
-	RecvCandidates []webrtc.ICECandidateInit
 
 	ctx    context.Context
 	cancel context.CancelFunc

@@ -13,17 +13,6 @@ import (
 
 // ↓↓↓↓↓ Copy from: https://github.com/pion/ion-sdk-go/blob/12e32a5871b905bf2bdf58bc45c2fdd2741c4f81/rtc.go ↓↓↓↓↓
 
-func (r *RTC) onSingalHandleOnce() {
-	// onSingalHandle is wrapped in a once and only started after another public
-	// method is called to ensure the user has the opportunity to register handlers
-	r.handleOnce.Do(func() {
-		err := r.onSingalHandle()
-		if r.OnError != nil {
-			r.OnError(err)
-		}
-	})
-}
-
 func (r *RTC) onSingalHandle() error {
 	for {
 		//only one goroutine for recving from stream, no need to lock
