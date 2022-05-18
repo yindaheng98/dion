@@ -14,18 +14,30 @@ import (
 	pb "github.com/yindaheng98/dion/proto"
 )
 
-type TestQualityReporter struct {
-	random.RandReports
+type TestTransmissionReporter struct {
+	random.RandTransmissionReport
 }
 
-func (t TestQualityReporter) FetchReport() *pb.QualityReport {
-	<-time.After(time.Duration(rand.Int31n(10)) * time.Second)
-	for {
-		reports := t.RandReports.RandReports()
-		if len(reports) > 0 {
-			return reports[rand.Intn(len(reports))]
+func (t TestTransmissionReporter) Bind(ch chan<- *pb.TransmissionReport) {
+	go func(ch chan<- *pb.TransmissionReport) {
+		for {
+			<-time.After(time.Duration(rand.Int31n(10)) * time.Second)
+			ch <- t.RandReport()
 		}
-	}
+	}(ch)
+}
+
+type TestComputationReporter struct {
+	random.RandComputationReport
+}
+
+func (t TestComputationReporter) Bind(ch chan<- *pb.ComputationReport) {
+	go func(ch chan<- *pb.ComputationReport) {
+		for {
+			<-time.After(time.Duration(rand.Int31n(10)) * time.Second)
+			ch <- t.RandReport()
+		}
+	}(ch)
 }
 
 type TestSessionTracker struct {
@@ -66,8 +78,9 @@ func TestISGLBSyncer(t *testing.T) {
 	syncer := NewSFUStatusSyncer(
 		&node, ISGLB.NID, random.RandNode(node.NID),
 		ToolBox{
-			QualityReporter: TestQualityReporter{random.RandReports{}},
-			SessionTracker:  TestSessionTracker{},
+			TransmissionReporter: TestTransmissionReporter{random.RandTransmissionReport{}},
+			ComputationReporter:  TestComputationReporter{random.RandComputationReport{}},
+			SessionTracker:       TestSessionTracker{},
 		},
 	)
 	syncer.Start()
