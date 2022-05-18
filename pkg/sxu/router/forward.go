@@ -2,6 +2,7 @@ package router
 
 import (
 	log "github.com/pion/ion-log"
+	ion_sfu "github.com/pion/ion-sfu/pkg/sfu"
 	"github.com/yindaheng98/dion/pkg/sxu/bridge"
 	"github.com/yindaheng98/dion/pkg/sxu/signaller"
 	pb "github.com/yindaheng98/dion/proto"
@@ -18,9 +19,9 @@ type ForwardRouter struct {
 	forwardings map[string]forwarding // map<NID, map<SID, forwarding>>
 }
 
-func NewForwardRouter(factory signaller.SignallerFactory) ForwardRouter {
+func NewForwardRouter(cp signaller.ConnPool, sfu *ion_sfu.SFU) ForwardRouter {
 	return ForwardRouter{
-		factory:     factory,
+		factory:     signaller.NewSignallerFactory(cp, sfu),
 		forwardings: map[string]forwarding{},
 	}
 }
@@ -34,7 +35,7 @@ func (f ForwardRouter) StartForwardTrack(trackInfo *pb.ForwardTrack) {
 	}
 
 	proc = forwarding{
-		WatchDog:         util.NewWatchDogWithBlock(f.factory),
+		WatchDog:         util.NewWatchDogWithBlockedDoor(f.factory),
 		ForwardTrackItem: item.Clone().(util.ForwardTrackItem),
 	}
 	proc.Watch(bridge.ProceedTrackParam{ProceedTrack: item.Clone().(util.ProceedTrackItem).Track})

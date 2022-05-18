@@ -19,19 +19,39 @@ func (t ForwardTrackParam) Clone() util.Param {
 	return ForwardTrackParam{ForwardTrack: proto.Clone(t.ForwardTrack).(*pb.ForwardTrack)}
 }
 
+type SignallerFactory struct {
+	cp       ConnPool
+	sfu      *ion_sfu.SFU
+	Metadata metadata.MD
+}
+
+func (f SignallerFactory) NewDoor() (util.BlockedDoor, error) {
+	return Signaller{
+		cp:       f.cp,
+		sfu:      f.sfu,
+		Metadata: f.Metadata,
+	}, nil
+}
+
+func NewSignallerFactory(cp ConnPool, sfu *ion_sfu.SFU) SignallerFactory {
+	return SignallerFactory{
+		cp:  cp,
+		sfu: sfu,
+	}
+}
+
 type Signaller struct {
-	ConnPool
-	sfu        *ion_sfu.SFU
-	Metadata   metadata.MD
-	updatingCh chan *pb.ForwardTrack
+	cp       ConnPool
+	sfu      *ion_sfu.SFU
+	Metadata metadata.MD
 
 	r      *rtc.RTC
 	cancel context.CancelFunc
 }
 
-func (s *Signaller) BLock(param util.Param) error {
+func (s Signaller) BLock(param util.Param) error {
 	track := param.Clone().(ForwardTrackParam).ForwardTrack
-	conn := s.ConnPool.GetConn(track.Src.Service, track.Src.Nid)
+	conn := s.cp.GetConn(track.Src.Service, track.Src.Nid)
 	client := pbrtc.NewRTCClient(conn)
 
 	ctx, cancel := context.WithCancel(context.Background())
@@ -53,12 +73,12 @@ func (s *Signaller) BLock(param util.Param) error {
 	return s.r.Run(track.RemoteSessionId, track.LocalSessionId)
 }
 
-func (s *Signaller) Update(param util.Param) error {
+func (s Signaller) Update(param util.Param) error {
 	track := param.Clone().(ForwardTrackParam).ForwardTrack
 	return s.r.Update(track.Tracks)
 }
 
-func (s *Signaller) Remove() {
+func (s Signaller) Remove() {
 	if s.cancel != nil {
 		s.cancel()
 	}
