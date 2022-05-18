@@ -49,7 +49,7 @@ type UnblockedDoor interface {
 	Remove()
 }
 
-type UnblockedWatchDog struct {
+type WatchDogWithUnblockedDoor struct {
 	house  House
 	ctx    context.Context
 	cancel context.CancelFunc
@@ -62,7 +62,7 @@ type UnblockedWatchDog struct {
 
 func NewWatchDogWithUnblockedDoor(house House) WatchDog {
 	ctx, cancel := context.WithCancel(context.Background())
-	return &UnblockedWatchDog{
+	return &WatchDogWithUnblockedDoor{
 		house:    house,
 		ctx:      ctx,
 		cancel:   cancel,
@@ -70,12 +70,12 @@ func NewWatchDogWithUnblockedDoor(house House) WatchDog {
 	}
 }
 
-func (w *UnblockedWatchDog) Watch(init Param) {
+func (w *WatchDogWithUnblockedDoor) Watch(init Param) {
 	w.param = init.Clone()
 	go w.once.Do(w.watch)
 }
 
-func (w *UnblockedWatchDog) watch() {
+func (w *WatchDogWithUnblockedDoor) watch() {
 	brokenCh := make(chan error, 1)
 	OnBroken := func(badGay error) {
 		select {
@@ -134,7 +134,7 @@ func (w *UnblockedWatchDog) watch() {
 	}
 }
 
-func (w *UnblockedWatchDog) Update(param Param) {
+func (w *WatchDogWithUnblockedDoor) Update(param Param) {
 	select {
 	case w.updateCh <- param.Clone():
 	default:
@@ -149,6 +149,6 @@ func (w *UnblockedWatchDog) Update(param Param) {
 	}
 }
 
-func (w *UnblockedWatchDog) Leave() {
+func (w *WatchDogWithUnblockedDoor) Leave() {
 	w.cancel()
 }
