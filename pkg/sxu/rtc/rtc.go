@@ -1,9 +1,7 @@
 package rtc
 
 import (
-	"context"
 	log "github.com/pion/ion-log"
-	ion_sfu "github.com/pion/ion-sfu/pkg/sfu"
 	"github.com/pion/ion/proto/rtc"
 	"github.com/pion/webrtc/v3"
 	pb "github.com/yindaheng98/dion/proto"
@@ -26,46 +24,24 @@ const (
 )
 
 type RTC struct {
-	sfu *ion_sfu.SFU
-
-	peer      UpPeerLocal
 	signaller rtc.RTC_SignalClient
+	peer      UpPeerLocal
 	uid       string
 	sync.Mutex
 }
 
-func NewRTC(sfu *ion_sfu.SFU) *RTC {
+func NewRTC(peer UpPeerLocal, signaller rtc.RTC_SignalClient) *RTC {
 	return &RTC{
-		sfu: sfu,
+		signaller: signaller,
+		peer:      peer,
+		uid:       peer.peer.ID(),
 	}
 }
 
 // Run start a rtc from remote session to local session
 func (r *RTC) Run(remoteSid, localSid string, client rtc.RTCClient, Metadata metadata.MD) error {
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
 
-	// Initialize GRPC signaller
-	ctx = metadata.NewOutgoingContext(ctx, Metadata)
-	signaller, err := client.Signal(ctx)
-	if err != nil {
-		return err
-	}
-	defer func(signaller rtc.RTC_SignalClient) {
-		if err := signaller.CloseSend(); err != nil {
-			log.Errorf("Error when CloseSend: %+v", err)
-		}
-	}(signaller)
-	r.signaller = signaller
-
-	// Initialize UpPeerLocal
-	peer := UpPeerLocal{peer: ion_sfu.NewPeer(r.sfu)}
-	defer func(peer UpPeerLocal) {
-		if err := peer.Close(); err != nil {
-			log.Errorf("Error when Close PeerLocal: %+v", err)
-		}
-	}(peer)
-	peer.OnICECandidate(func(c *webrtc.ICECandidateInit) {
+	r.peer.OnICECandidate(func(c *webrtc.ICECandidateInit) {
 		if c == nil {
 			// Gathering done
 			log.Infof("id=%s gather candidate done", r.uid)
@@ -79,7 +55,7 @@ func (r *RTC) Run(remoteSid, localSid string, client rtc.RTCClient, Metadata met
 	})
 
 	// Join a local session
-	err = r.peer.Join(localSid)
+	err := r.peer.Join(localSid)
 	if err != nil {
 		return err
 	}
@@ -160,9 +136,4 @@ func (r *RTC) IsSame(tracks []*pb.Subscription) bool {
 		}
 	}
 	return true
-}
-
-// Close stop all track
-func (r *RTC) Close() error {
-	return r.signaller.CloseSend()
 }
