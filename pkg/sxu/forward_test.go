@@ -82,7 +82,7 @@ func (s *SFU) Start(conf Config) error {
 
 	node := discovery.Node{
 		DC:      conf.Global.Dc,
-		Service: ServiceSXU, //proto.ServiceRTC,
+		Service: proto.ServiceRTC,
 		NID:     s.Node.NID,
 		RPC: discovery.RPC{
 			Protocol: discovery.NGRPC,
@@ -154,10 +154,10 @@ func TestForwardTrackRoutineFactory(t *testing.T) {
 		RemoteSessionId: "stupid",
 		LocalSessionId:  "stupid2",
 	}
-	toolbox.TrackForwarder.ReplaceForwardTrack(trackStupid, trackStupid2)
-	<-time.After(5 * time.Second)
-	toolbox.TrackForwarder.StartForwardTrack(trackStupid)
-	<-time.After(5 * time.Second)
-	toolbox.TrackForwarder.StopForwardTrack(trackStupid)
-	<-time.After(5 * time.Second)
+	for {
+		toolbox.TrackForwarder.ReplaceForwardTrack(trackStupid, trackStupid2)
+		<-time.After(5 * time.Second)
+		toolbox.TrackForwarder.ReplaceForwardTrack(trackStupid2, trackStupid)
+		<-time.After(5 * time.Second)
+	}
 }
