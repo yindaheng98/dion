@@ -39,7 +39,7 @@ type SXU struct {
 	syncer  *syncer.ISGLBSyncer
 }
 
-func NewSXU(toolbox ToolBoxBuilder) *SXU {
+func New(toolbox ToolBoxBuilder) *SXU {
 	if toolbox == nil {
 		toolbox = NewDefaultToolBoxBuilder()
 	}
