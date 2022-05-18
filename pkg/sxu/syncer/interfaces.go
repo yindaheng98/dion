@@ -6,14 +6,15 @@ import (
 )
 
 type ToolBox struct {
-	TrackForwarder  TrackForwarder
-	TrackProcessor  TrackProcessor
-	QualityReporter QualityReporter
-	SessionTracker  SessionTracker
+	TrackForwarder       TrackForwarder
+	TrackProcessor       TrackProcessor
+	TransmissionReporter TransmissionReporter
+	ComputationReporter  ComputationReporter
+	SessionTracker       SessionTracker
 }
 
-// TrackRouter describe an abstract SFU that can route video tracks
-type TrackRouter struct {
+// trackRouter describe an abstract SFU that can route video tracks
+type trackRouter struct {
 	// All these methods should be NON-BLOCK!
 
 	TrackForwarder
@@ -44,11 +45,18 @@ type TrackProcessor interface {
 	ReplaceProceedTrack(oldTrackInfo *pb.ProceedTrack, newTrackInfo *pb.ProceedTrack)
 }
 
-// QualityReporter describe an abstract SFU that can report the running quality
-type QualityReporter interface {
-	// FetchReport fetch a quality report
-	// Block until return a new quality report
-	FetchReport() *pb.QualityReport
+// TransmissionReporter describe an abstract SFU that can report the Transmission quality
+type TransmissionReporter interface {
+	// Bind TransmissionReporter to a channel
+	// you should push your TransmissionReport into this channel
+	Bind(chan<- *pb.TransmissionReport)
+}
+
+// ComputationReporter describe an abstract SFU that can report the Transmission quality
+type ComputationReporter interface {
+	// Bind ComputationReporter to a channel
+	// you should push your ComputationReport into this channel
+	Bind(chan<- *pb.ComputationReport)
 }
 
 type SessionEvent_State int32

@@ -20,8 +20,8 @@ type ISGLBSyncer struct {
 	node    *ion.Node
 	descSFU *pbion.Node
 
-	router   TrackRouter
-	reporter QualityReporter
+	router   trackRouter
+	reporter *qualityReporter
 	session  SessionTracker
 
 	clientSet       *util.DisorderSet
@@ -39,29 +39,33 @@ func NewSFUStatusSyncer(node *ion.Node, peerID string, descSFU *pbion.Node, tool
 	if isglbClient == nil {
 		return nil
 	}
-	forwarder, processor, reporter, session := toolbox.TrackForwarder, toolbox.TrackProcessor, toolbox.QualityReporter, toolbox.SessionTracker
+	forwarder, processor, session := toolbox.TrackForwarder, toolbox.TrackProcessor, toolbox.SessionTracker
 	if forwarder == nil {
 		forwarder = StupidTrackForwarder{}
 	}
 	if processor == nil {
 		processor = StupidTrackProcesser{}
 	}
-	if reporter == nil {
-		reporter = StupidQualityReporter{}
-	}
 	if session == nil {
 		session = StupidSessionTracker{}
+	}
+	tr, cr := toolbox.TransmissionReporter, toolbox.ComputationReporter
+	if tr == nil {
+		tr = &StupidTransmissionReporter{}
+	}
+	if cr == nil {
+		cr = &StupidComputationReporter{}
 	}
 	s := &ISGLBSyncer{
 		client:  isglbClient,
 		node:    node,
 		descSFU: descSFU,
 
-		router: TrackRouter{
+		router: trackRouter{
 			TrackForwarder: forwarder,
 			TrackProcessor: processor,
 		},
-		reporter: reporter,
+		reporter: newQualityReporter(tr, cr),
 		session:  session,
 
 		clientSet:       util.NewDisorderSet(),

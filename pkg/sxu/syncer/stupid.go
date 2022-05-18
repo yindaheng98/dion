@@ -3,6 +3,7 @@ package syncer
 import (
 	log "github.com/pion/ion-log"
 	pb "github.com/yindaheng98/dion/proto"
+	"sync"
 	"time"
 )
 
@@ -38,13 +39,26 @@ func (t StupidTrackProcesser) ReplaceProceedTrack(oldTrackInfo *pb.ProceedTrack,
 
 var WarnDalay = 4 * time.Second
 
-type StupidQualityReporter struct {
+type StupidTransmissionReporter struct {
+	sync.Once
 }
 
-func (d StupidQualityReporter) FetchReport() *pb.QualityReport {
-	log.Warnf("No FetchReport in toolbox")
-	<-time.After(WarnDalay)
-	return nil
+func (d *StupidTransmissionReporter) Bind(chan<- *pb.TransmissionReport) {
+	go d.Do(func() {
+		log.Warnf("No TransmissionReporter in toolbox")
+		<-time.After(WarnDalay)
+	})
+}
+
+type StupidComputationReporter struct {
+	sync.Once
+}
+
+func (d *StupidComputationReporter) Bind(chan<- *pb.ComputationReport) {
+	go d.Do(func() {
+		log.Warnf("No ComputationReporter in toolbox")
+		<-time.After(WarnDalay)
+	})
 }
 
 type StupidSessionTracker struct {

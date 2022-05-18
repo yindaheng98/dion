@@ -70,8 +70,10 @@ message ComputationReport {
 
 message QualityReport {
   google.protobuf.Timestamp timestamp = 1;
-  repeated TransmissionReport transmission = 2;
-  repeated ComputationReport computation = 3;
+  oneof report {
+    TransmissionReport transmission = 2;
+    ComputationReport computation = 3;
+  }
 }
 
 message SyncRequest {
