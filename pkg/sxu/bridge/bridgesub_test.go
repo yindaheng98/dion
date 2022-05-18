@@ -21,7 +21,7 @@ func NewTestSubscriberFactory(sfu *ion_sfu.SFU) TestSubscriberFactory {
 	return TestSubscriberFactory{SubscriberFactory: SubscriberFactory{sfu: sfu}}
 }
 
-func (p TestSubscriberFactory) NewDoor() (util.Door, error) {
+func (p TestSubscriberFactory) NewDoor() (util.UnblockedDoor, error) {
 	subDoor, err := p.SubscriberFactory.NewDoor()
 	if err != nil {
 		log.Errorf("Cannot SubscriberFactory.NewDoor: %+v", err)

@@ -25,12 +25,12 @@ type Param interface {
 type House interface {
 	// NewDoor buy a new door for your House
 	// the market maybe closed, if so, just return an error
-	NewDoor() (Door, error)
+	NewDoor() (UnblockedDoor, error)
 }
 
-// Door is the door of your house
+// UnblockedDoor is the door of your house
 // All the methods will SINGLE-THREADED access
-type Door interface {
+type UnblockedDoor interface {
 	// Lock your Door when leaving your house
 	// but some time, your Door can be Broken by some badGay
 	// so you need a watchdog
@@ -83,7 +83,7 @@ func (w *UnblockedWatchDog) watch() {
 		default:
 		}
 	}
-	var door Door = nil
+	var door UnblockedDoor = nil
 	for {
 		if door == nil { // do not have a door?
 			var err error

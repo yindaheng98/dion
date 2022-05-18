@@ -17,7 +17,7 @@ func NewPublisherFactory(sfu *ion_sfu.SFU) PublisherFactory {
 	return PublisherFactory{sfu: sfu}
 }
 
-func (p PublisherFactory) NewDoor() (util.Door, error) {
+func (p PublisherFactory) NewDoor() (util.UnblockedDoor, error) {
 	me, err := getSubscriberMediaEngine()
 	if err != nil {
 		log.Errorf("Cannot getSubscriberMediaEngine for pc: %+v", err)

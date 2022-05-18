@@ -23,7 +23,7 @@ func NewPublisherFactory(ffmpegOut io.ReadCloser, sfu *ion_sfu.SFU) PublisherFac
 	return PublisherFactory{ffmpegOut: ffmpegOut, PublisherFactory: bridge.NewPublisherFactory(sfu)}
 }
 
-func (p PublisherFactory) NewDoor() (util.Door, error) {
+func (p PublisherFactory) NewDoor() (util.UnblockedDoor, error) {
 	pub, err := p.PublisherFactory.NewDoor()
 	if err != nil {
 		log.Errorf("Cannot PublisherFactory.NewDoor: %+v", err)

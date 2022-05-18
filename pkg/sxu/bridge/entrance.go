@@ -13,7 +13,7 @@ type EntranceFactory struct {
 	road Processor
 }
 
-func (e EntranceFactory) NewDoor() (util.Door, error) {
+func (e EntranceFactory) NewDoor() (util.UnblockedDoor, error) {
 	sub, err := e.SubscriberFactory.NewDoor()
 	if err != nil {
 		return nil, err

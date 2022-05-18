@@ -30,7 +30,7 @@ func NewBridgeFactory(sfu *ion_sfu.SFU, pro Processor) BridgeFactory {
 	}
 }
 
-func (b BridgeFactory) NewDoor() (util.Door, error) {
+func (b BridgeFactory) NewDoor() (util.UnblockedDoor, error) {
 	pubDoor, err := b.PublisherFactory.NewDoor()
 	if err != nil {
 		return nil, err
