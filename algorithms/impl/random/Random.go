@@ -2,6 +2,7 @@ package random
 
 import (
 	"fmt"
+	"google.golang.org/protobuf/types/known/anypb"
 	"math/rand"
 
 	"github.com/golang/protobuf/ptypes/timestamp"
@@ -79,31 +80,46 @@ func (r *Random) UpdateSFUStatus(current []*pb.SFUStatus, reports []*pb.QualityR
 	return
 }
 
-type RandReports struct {
-	reports []*pb.QualityReport
+type RandTransmissionReport struct {
+	reports []*pb.TransmissionReport
 }
 
-func (r *RandReports) RandReports() (reports []*pb.QualityReport) {
-	for _, report := range r.reports {
-		if RandBool() || RandBool() || RandBool() {
-			reports = append(reports, report)
-		}
+func (r *RandTransmissionReport) RandReport() *pb.TransmissionReport {
+	t, _ := anypb.New(&timestamp.Timestamp{Seconds: rand.Int63()})
+	report := &pb.TransmissionReport{
+		Report: t,
+	}
+	if RandBool() && len(r.reports) > 0 {
+		report = r.reports[rand.Intn(len(r.reports))]
+	} else {
 		if RandBool() {
-			continue
-		}
-		if RandBool() {
-			t := &timestamp.Timestamp{}
-			t.Seconds = rand.Int63()
-			report.Timestamp = t
+			r.reports = append(r.reports, report)
 		}
 	}
 	if RandBool() {
-		t := &timestamp.Timestamp{}
-		t.Seconds = rand.Int63()
-		reports = append(reports, &pb.QualityReport{
-			Timestamp: t,
-		})
+		report.Report, _ = anypb.New(&timestamp.Timestamp{Seconds: rand.Int63()})
 	}
-	r.reports = reports
-	return
+	return report
+}
+
+type RandComputationReport struct {
+	reports []*pb.ComputationReport
+}
+
+func (r *RandComputationReport) RandReport() *pb.ComputationReport {
+	t, _ := anypb.New(&timestamp.Timestamp{Seconds: rand.Int63()})
+	report := &pb.ComputationReport{
+		Report: t,
+	}
+	if RandBool() && len(r.reports) > 0 {
+		report = r.reports[rand.Intn(len(r.reports))]
+	} else {
+		if RandBool() {
+			r.reports = append(r.reports, report)
+		}
+	}
+	if RandBool() {
+		report.Report, _ = anypb.New(&timestamp.Timestamp{Seconds: rand.Int63()})
+	}
+	return report
 }
