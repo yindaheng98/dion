@@ -100,9 +100,10 @@ L:
 
 		// start the door
 		errCh := make(chan error, 1)
-		go func(errCh chan<- error, param Param) {
-			errCh <- door.BLock(param)
-		}(errCh, param.Clone())
+		go func(door BlockedDoor, errCh chan<- error, param Param) {
+			err := door.BLock(param)
+			errCh <- err
+		}(door, errCh, param.Clone())
 
 		// wait for the exit or update
 		retryCh := make(chan Param, 1)

@@ -3,7 +3,6 @@ package router
 import (
 	log "github.com/pion/ion-log"
 	ion_sfu "github.com/pion/ion-sfu/pkg/sfu"
-	"github.com/yindaheng98/dion/pkg/sxu/bridge"
 	"github.com/yindaheng98/dion/pkg/sxu/signaller"
 	pb "github.com/yindaheng98/dion/proto"
 	"github.com/yindaheng98/dion/util"
@@ -38,7 +37,7 @@ func (f ForwardRouter) StartForwardTrack(trackInfo *pb.ForwardTrack) {
 		WatchDog:         util.NewWatchDogWithBlockedDoor(f.factory),
 		ForwardTrackItem: item.Clone().(util.ForwardTrackItem),
 	}
-	proc.Watch(bridge.ProceedTrackParam{ProceedTrack: item.Clone().(util.ProceedTrackItem).Track})
+	proc.Watch(signaller.ForwardTrackParam{ForwardTrack: item.Clone().(util.ForwardTrackItem).Track})
 	f.forwardings[item.Key()] = proc
 }
 

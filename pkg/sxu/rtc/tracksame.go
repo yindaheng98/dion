@@ -1,6 +1,8 @@
 package rtc
 
 import (
+	"fmt"
+	log "github.com/pion/ion-log"
 	"github.com/pion/webrtc/v3"
 	pb "github.com/yindaheng98/dion/proto"
 )
@@ -50,6 +52,10 @@ func (r *RTC) isSame(tracks []*pb.Subscription) bool {
 }
 
 func (r *RTC) Update(tracks []*pb.Subscription) error {
+	if r.peer.peer.Publisher() == nil {
+		log.Warnf("Cannot update: peer not start")
+		return fmt.Errorf("peer not start")
+	}
 	if !r.isSame(tracks) {
 		return r.update(tracks)
 	}

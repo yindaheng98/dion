@@ -2,6 +2,8 @@ package signaller
 
 import (
 	"context"
+	"fmt"
+	log "github.com/pion/ion-log"
 	ion_sfu "github.com/pion/ion-sfu/pkg/sfu"
 	pbrtc "github.com/pion/ion/proto/rtc"
 	rtc "github.com/yindaheng98/dion/pkg/sxu/rtc"
@@ -26,7 +28,7 @@ type SignallerFactory struct {
 }
 
 func (f SignallerFactory) NewDoor() (util.BlockedDoor, error) {
-	return Signaller{
+	return &Signaller{
 		cp:       f.cp,
 		sfu:      f.sfu,
 		Metadata: f.Metadata,
@@ -49,7 +51,7 @@ type Signaller struct {
 	cancel context.CancelFunc
 }
 
-func (s Signaller) BLock(param util.Param) error {
+func (s *Signaller) BLock(param util.Param) error {
 	track := param.Clone().(ForwardTrackParam).ForwardTrack
 	conn, err := s.cp.GetConn(track.Src.Service, track.Src.Nid)
 	if err != nil {
@@ -76,12 +78,16 @@ func (s Signaller) BLock(param util.Param) error {
 	return s.r.Run(track.RemoteSessionId, track.LocalSessionId)
 }
 
-func (s Signaller) Update(param util.Param) error {
+func (s *Signaller) Update(param util.Param) error {
+	if s.r == nil {
+		log.Warnf("Cannot update: peer not start")
+		return fmt.Errorf("peer not start")
+	}
 	track := param.Clone().(ForwardTrackParam).ForwardTrack
 	return s.r.Update(track.Tracks)
 }
 
-func (s Signaller) Remove() {
+func (s *Signaller) Remove() {
 	if s.cancel != nil {
 		s.cancel()
 	}
