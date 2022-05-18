@@ -5,6 +5,7 @@ import (
 	log "github.com/pion/ion-log"
 	isfu "github.com/pion/ion-sfu/pkg/sfu"
 	"github.com/spf13/viper"
+	"github.com/yindaheng98/dion/config"
 	"os"
 )
 
@@ -14,24 +15,9 @@ const (
 	portRangeLimit = 100
 )
 
-type global struct {
-	Dc string `mapstructure:"dc"`
-}
-
-type natsConf struct {
-	URL string `mapstructure:"url"`
-}
-
-// Config defines parameters for the logger
-type logConf struct {
-	Level string `mapstructure:"level"`
-}
-
 // Config for sfu node
 type Config struct {
-	Global global   `mapstructure:"global"`
-	Log    logConf  `mapstructure:"log"`
-	Nats   natsConf `mapstructure:"nats"`
+	config.Common
 	isfu.Config
 }
 

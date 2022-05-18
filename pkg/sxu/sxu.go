@@ -41,7 +41,7 @@ type SXU struct {
 
 func NewSXU(toolbox ToolBoxBuilder) *SXU {
 	if toolbox == nil {
-		toolbox = DefaultToolBoxBuilder{}
+		toolbox = NewDefaultToolBoxBuilder()
 	}
 	return &SXU{
 		Node:    ion.NewNode("sxu-" + util.RandomString(8)),
@@ -64,9 +64,27 @@ func (s *SXU) Load(confFile string) error {
 // StartGRPC start with grpc.ServiceRegistrar
 func (s *SXU) StartGRPC(registrar grpc.ServiceRegistrar) error {
 	//s.s = sfu.NewSFUService(s.conf.Config)
+	// ↑↑↑↑↑ COPY FROM https://github.com/pion/ion/blob/65dbd12eaad0f0e0a019b4d8ee80742930bcdc28/pkg/node/sfu/sfu.go ↑↑↑↑↑
+
+	// Start internal SFU
+	s.sfu = ion_sfu.NewSFU(s.conf.Config)
+
+	// ↓↓↓↓↓ COPY FROM https://github.com/pion/ion/blob/65dbd12eaad0f0e0a019b4d8ee80742930bcdc28/pkg/node/sfu/sfu.go ↓↓↓↓↓
 	s.s = sfu.NewSFUServiceWithSFU(s.sfu)
 	pb.RegisterRTCServer(registrar, s.s)
 	log.Infof("sfu pb.RegisterRTCServer(registrar, s.s)")
+	// ↑↑↑↑↑ COPY FROM https://github.com/pion/ion/blob/65dbd12eaad0f0e0a019b4d8ee80742930bcdc28/pkg/node/sfu/sfu.go ↑↑↑↑↑
+
+	// Start syncer
+	s.syncer = syncer.NewSFUStatusSyncer(&s.Node, "*", &pbion.Node{
+		Dc:      s.conf.Global.Dc,
+		Nid:     s.Node.NID,
+		Service: ServiceSXU,
+		Rpc:     nil,
+	}, s.toolbox.Build(&s.Node, s.sfu))
+	s.syncer.Start()
+
+	// ↓↓↓↓↓ COPY FROM https://github.com/pion/ion/blob/65dbd12eaad0f0e0a019b4d8ee80742930bcdc28/pkg/node/sfu/sfu.go ↓↓↓↓↓
 	return nil
 }
 

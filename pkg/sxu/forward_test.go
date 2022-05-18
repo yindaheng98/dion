@@ -130,7 +130,7 @@ func TestForwardTrackRoutineFactory(t *testing.T) {
 	}
 	iSFU := sxu.sfu
 
-	builder := DefaultToolBoxBuilder{}
+	builder := NewDefaultToolBoxBuilder()
 	toolbox := builder.Build(&sxu.Node, iSFU)
 	trackStupid := &pb.ForwardTrack{
 		Src: &pbion.Node{
