@@ -16,6 +16,6 @@ type DefaultToolBoxBuilder struct {
 
 func (b DefaultToolBoxBuilder) Build(node *ion.Node, sfu *ion_sfu.SFU) syncer.ToolBox {
 	return syncer.ToolBox{
-		TrackForwarder: router.NewForwardRouter(NewForwardTrackRoutineFactory(node, sfu)),
+		TrackForwarder: router.NewForwardRouter(sfu, NewNRPCConnPool(node)),
 	}
 }

@@ -51,7 +51,10 @@ type Signaller struct {
 
 func (s Signaller) BLock(param util.Param) error {
 	track := param.Clone().(ForwardTrackParam).ForwardTrack
-	conn := s.cp.GetConn(track.Src.Service, track.Src.Nid)
+	conn, err := s.cp.GetConn(track.Src.Service, track.Src.Nid)
+	if err != nil {
+		return err
+	}
 	client := pbrtc.NewRTCClient(conn)
 
 	ctx, cancel := context.WithCancel(context.Background())

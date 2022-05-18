@@ -19,7 +19,7 @@ type ForwardRouter struct {
 	forwardings map[string]forwarding // map<NID, map<SID, forwarding>>
 }
 
-func NewForwardRouter(cp signaller.ConnPool, sfu *ion_sfu.SFU) ForwardRouter {
+func NewForwardRouter(sfu *ion_sfu.SFU, cp signaller.ConnPool) ForwardRouter {
 	return ForwardRouter{
 		factory:     signaller.NewSignallerFactory(cp, sfu),
 		forwardings: map[string]forwarding{},
