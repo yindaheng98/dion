@@ -9,7 +9,7 @@ import (
 )
 
 type forwarding struct {
-	*util.WatchDog
+	util.WatchDog
 	util.ForwardTrackItem
 }
 

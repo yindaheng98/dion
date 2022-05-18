@@ -5,6 +5,18 @@ import (
 	"sync"
 )
 
+// WatchDog is your watchdog
+type WatchDog interface {
+
+	// Watch let your dog start to watch your House
+	Watch(init Param)
+
+	// Leave let your dog stop from watching your House
+	Leave()
+
+	Update(param Param)
+}
+
 type Param interface {
 	Clone() Param
 }
@@ -37,8 +49,7 @@ type Door interface {
 	Remove()
 }
 
-// WatchDog is your watchdog
-type WatchDog struct {
+type UnblockedWatchDog struct {
 	house  House
 	ctx    context.Context
 	cancel context.CancelFunc
@@ -49,9 +60,9 @@ type WatchDog struct {
 	updateCh chan Param
 }
 
-func NewWatchDog(house House) *WatchDog {
+func NewUnblockedWatchDog(house House) WatchDog {
 	ctx, cancel := context.WithCancel(context.Background())
-	return &WatchDog{
+	return &UnblockedWatchDog{
 		house:    house,
 		ctx:      ctx,
 		cancel:   cancel,
@@ -59,13 +70,12 @@ func NewWatchDog(house House) *WatchDog {
 	}
 }
 
-// Watch let your dog start to watch your House
-func (w *WatchDog) Watch(init Param) {
+func (w *UnblockedWatchDog) Watch(init Param) {
 	w.param = init.Clone()
 	go w.once.Do(w.watch)
 }
 
-func (w *WatchDog) watch() {
+func (w *UnblockedWatchDog) watch() {
 	brokenCh := make(chan error, 1)
 	OnBroken := func(badGay error) {
 		select {
@@ -124,7 +134,7 @@ func (w *WatchDog) watch() {
 	}
 }
 
-func (w *WatchDog) Update(param Param) {
+func (w *UnblockedWatchDog) Update(param Param) {
 	select {
 	case w.updateCh <- param.Clone():
 	default:
@@ -139,7 +149,6 @@ func (w *WatchDog) Update(param Param) {
 	}
 }
 
-// Leave let your dog stop from watching your House
-func (w *WatchDog) Leave() {
+func (w *UnblockedWatchDog) Leave() {
 	w.cancel()
 }

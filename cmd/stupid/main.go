@@ -77,7 +77,7 @@ func main() {
 
 	iSFU := ion_sfu.NewSFU(conf.Config)
 	pub := NewPublisherFactory(ffmpegOut, iSFU)
-	dog := util.NewWatchDog(pub)
+	dog := util.NewUnblockedWatchDog(pub)
 	dog.Watch(bridge.SID(MyName))
 
 	server := NewSFU(MyName)

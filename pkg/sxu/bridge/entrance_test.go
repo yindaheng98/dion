@@ -163,13 +163,13 @@ func TestEntrance(t *testing.T) {
 		exit: exit,
 		road: TestProcessor{ffmpegPath: ffmpeg},
 	}
-	entdog := util.NewWatchDog(ent)
+	entdog := util.NewUnblockedWatchDog(ent)
 	entdog.Watch(SID(MyName))
 
 	<-time.After(5 * time.Second)
 
 	pub := NewTestPublisherFactory(ffmpegOut, iSFU)
-	pubdog := util.NewWatchDog(pub)
+	pubdog := util.NewUnblockedWatchDog(pub)
 	pubdog.Watch(SID(MyName))
 
 	// Press Ctrl+C to exit the process

@@ -136,7 +136,7 @@ func TestBridge(t *testing.T) {
 	iSFU := ion_sfu.NewSFU(conf.Config)
 
 	br := bridge.NewBridgeFactory(iSFU, TestProcessor{ffmpegPath: ffmpeg})
-	brDog := util.NewWatchDog(br)
+	brDog := util.NewUnblockedWatchDog(br)
 	brDog.Watch(bridge.ProceedTrackParam{ProceedTrack: &pb.ProceedTrack{
 		DstSessionId:     YourName,
 		SrcSessionIdList: []string{MyName},
@@ -145,7 +145,7 @@ func TestBridge(t *testing.T) {
 	<-time.After(5 * time.Second)
 
 	pub := NewPublisherFactory(ffmpegOut, iSFU)
-	dog := util.NewWatchDog(pub)
+	dog := util.NewUnblockedWatchDog(pub)
 	dog.Watch(bridge.SID(MyName))
 
 	node := ion.NewNode(MyName)

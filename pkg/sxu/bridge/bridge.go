@@ -44,7 +44,7 @@ func (b BridgeFactory) NewDoor() (util.Door, error) {
 		},
 		Processor: b.pro,
 		track:     nil,
-		entrances: map[string]*util.WatchDog{},
+		entrances: map[string]util.WatchDog{},
 	}, nil
 }
 
@@ -54,7 +54,7 @@ type Bridge struct {
 	Processor
 
 	track     *pb.ProceedTrack
-	entrances map[string]*util.WatchDog
+	entrances map[string]util.WatchDog
 }
 
 func (b Bridge) Update(param util.Param) error {
@@ -70,7 +70,7 @@ func (b Bridge) Update(param util.Param) error {
 		sidSet[sid] = true // Record the expected sessions
 		if _, ok := b.entrances[sid]; !ok {
 			// make Entrance watchdog
-			b.entrances[sid] = util.NewWatchDog(b.EntranceFactory)
+			b.entrances[sid] = util.NewUnblockedWatchDog(b.EntranceFactory)
 		}
 	}
 	b.Processor.UpdateProcedure(track)
