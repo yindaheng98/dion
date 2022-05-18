@@ -11,6 +11,10 @@ type UpPeerLocal struct {
 	peer *ion_sfu.PeerLocal
 }
 
+func NewUpPeerLocal(peer *ion_sfu.PeerLocal) UpPeerLocal {
+	return UpPeerLocal{peer: peer}
+}
+
 // Join the up track peer join a session, with the option NoPublish = false and NoSubscribe = true
 func (p *UpPeerLocal) Join(sid string) error {
 	return p.peer.Join(sid, "", ion_sfu.JoinConfig{

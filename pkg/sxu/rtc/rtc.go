@@ -1,3 +1,4 @@
+// Package rtc consists of a RTC to fetch tracks from other SFU
 package rtc
 
 import (
@@ -5,7 +6,6 @@ import (
 	"github.com/pion/ion/proto/rtc"
 	"github.com/pion/webrtc/v3"
 	pb "github.com/yindaheng98/dion/proto"
-	"google.golang.org/grpc/metadata"
 	"sync"
 )
 
@@ -39,7 +39,7 @@ func NewRTC(peer UpPeerLocal, signaller rtc.RTC_SignalClient) *RTC {
 }
 
 // Run start a rtc from remote session to local session
-func (r *RTC) Run(remoteSid, localSid string, client rtc.RTCClient, Metadata metadata.MD) error {
+func (r *RTC) Run(remoteSid, localSid string) error {
 
 	r.peer.OnICECandidate(func(c *webrtc.ICECandidateInit) {
 		if c == nil {
