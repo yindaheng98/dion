@@ -60,7 +60,7 @@ type UnblockedWatchDog struct {
 	updateCh chan Param
 }
 
-func NewUnblockedWatchDog(house House) WatchDog {
+func NewWatchDogWithUnblockedDoor(house House) WatchDog {
 	ctx, cancel := context.WithCancel(context.Background())
 	return &UnblockedWatchDog{
 		house:    house,

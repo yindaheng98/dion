@@ -60,13 +60,13 @@ func TestSubscriber(t *testing.T) {
 	iSFU := ion_sfu.NewSFU(conf.Config)
 
 	sub := NewTestSubscriberFactory(iSFU)
-	subdog := util.NewUnblockedWatchDog(sub)
+	subdog := util.NewWatchDogWithUnblockedDoor(sub)
 	subdog.Watch(SID(MyName))
 
 	<-time.After(5 * time.Second)
 
 	pub := NewTestPublisherFactory(ffmpegOut, iSFU)
-	pubdog := util.NewUnblockedWatchDog(pub)
+	pubdog := util.NewWatchDogWithUnblockedDoor(pub)
 	pubdog.Watch(SID(MyName))
 
 	// Press Ctrl+C to exit the process

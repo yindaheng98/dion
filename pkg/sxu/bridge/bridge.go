@@ -70,7 +70,7 @@ func (b Bridge) Update(param util.Param) error {
 		sidSet[sid] = true // Record the expected sessions
 		if _, ok := b.entrances[sid]; !ok {
 			// make Entrance watchdog
-			b.entrances[sid] = util.NewUnblockedWatchDog(b.EntranceFactory)
+			b.entrances[sid] = util.NewWatchDogWithUnblockedDoor(b.EntranceFactory)
 		}
 	}
 	b.Processor.UpdateProcedure(track)
