@@ -9,8 +9,9 @@ type BlockedDoor interface {
 	// 如果出错了会直接再次调用BLock，而不是新建BlockedDoor
 	BLock(init Param) error
 
-	// Update same as Door.Update
-	Update(param Param) error
+	// Update same as Door.Update, but you should not return error
+	// what if Update not success? you should return the error from BLock
+	Update(param Param)
 
 	// Remove same as Door.Remove
 	// !!! when Remove called, BLock should exit !!!
@@ -34,6 +35,7 @@ func newUnBlockedDoor(door BlockedDoor) unBlockedDoor {
 	}
 }
 
+// Lock will never return error
 func (u unBlockedDoor) Lock(param Param, OnBroken func(badGay error)) error {
 	u.param = param.Clone()
 	select {
@@ -59,39 +61,32 @@ func (u unBlockedDoor) routine(OnBroken func(badGay error)) {
 	}
 }
 
+// Repair will never return error
 func (u unBlockedDoor) Repair(param Param) error {
 	return u.Update(param)
 }
 
+// Update will never return error
 func (u unBlockedDoor) Update(param Param) error {
 	u.param = param.Clone()
-	return u.door.Update(param)
+	u.door.Update(param)
+	return nil
 }
 
+// Remove will only called in WatchDog.Leave
 func (u unBlockedDoor) Remove() {
 	u.cancel()
 	u.door.Remove()
 }
 
-// BlockedHouse is your house with BlockedDoor
-type BlockedHouse interface {
-	// NewBlockedDoor buy a new NewBlockedDoor for your House
-	// the market maybe closed, if so, just return an error
-	NewBlockedDoor() (BlockedDoor, error)
-}
-
 type unBlockedHouse struct {
-	house BlockedHouse
+	door BlockedDoor
 }
 
 func (u unBlockedHouse) NewDoor() (Door, error) {
-	b, err := u.house.NewBlockedDoor()
-	if err != nil {
-		return nil, err
-	}
-	return newUnBlockedDoor(b), nil
+	return newUnBlockedDoor(u.door), nil
 }
 
-func NewWatchDogWithBlock(bhouse BlockedHouse) *WatchDog {
-	return NewWatchDog(unBlockedHouse{house: bhouse})
+func NewWatchDogWithBlock(door BlockedDoor) *WatchDog {
+	return NewWatchDog(unBlockedHouse{door: door})
 }
