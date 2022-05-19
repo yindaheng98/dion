@@ -93,6 +93,7 @@ func (t *SimpleFFmpegProcessor) InitOutTrack(OnBroken func(badGay error)) (webrt
 	go func() {
 		ivf, header, ivfErr := ivfreader.NewWith(ffmpegOut)
 		if ivfErr != nil {
+			log.Errorf("ivfreader create error: %+v", ivfErr)
 			OnBroken(ivfErr)
 			return
 		}
@@ -101,17 +102,19 @@ func (t *SimpleFFmpegProcessor) InitOutTrack(OnBroken func(badGay error)) (webrt
 		for ; true; <-ticker.C {
 			frame, _, ivfErr := ivf.ParseNextFrame()
 			if ivfErr == io.EOF {
-				fmt.Printf("All video frames parsed and sent")
+				log.Errorf("All video frames parsed and sent")
 				OnBroken(ivfErr)
 				return
 			}
 
 			if ivfErr != nil {
+				log.Errorf("Video frames parse error: %+v", ivfErr)
 				OnBroken(ivfErr)
 				return
 			}
 
 			if ivfErr = videoTrack.WriteSample(media.Sample{Data: frame, Duration: time.Second}); ivfErr != nil {
+				log.Errorf("Video frames write error: %+v", ivfErr)
 				OnBroken(ivfErr)
 				return
 			}
@@ -141,11 +144,13 @@ func (t *SimpleFFmpegProcessor) AddInTrack(remote *webrtc.TrackRemote, receiver 
 			rtp, _, readErr := remote.ReadRTP()
 			fmt.Println("RTP Packat read from SFU")
 			if readErr != nil {
+				log.Errorf("RTP Packat read error: %+v", readErr)
 				t.onBroken(readErr)
 				return
 			}
 
 			if ivfWriterErr := ivfWriter.WriteRTP(rtp); ivfWriterErr != nil {
+				log.Errorf("RTP Packat write error: %+v", ivfWriterErr)
 				t.onBroken(ivfWriterErr)
 				return
 			}
