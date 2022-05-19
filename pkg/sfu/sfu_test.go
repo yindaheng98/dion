@@ -3,6 +3,7 @@ package sfu
 import (
 	"context"
 	"encoding/json"
+	"github.com/yindaheng98/dion/config"
 	"testing"
 
 	"github.com/cloudwebrtc/nats-grpc/pkg/rpc"
@@ -15,11 +16,13 @@ import (
 
 var (
 	conf = Config{
-		Global: global{
-			Dc: "dc1",
-		},
-		Nats: natsConf{
-			URL: "nats://192.168.94.131:4222",
+		Common: config.Common{
+			Global: config.Global{
+				Dc: "dc1",
+			},
+			Nats: config.NatsConf{
+				URL: "nats://192.168.94.131:4222",
+			},
 		},
 	}
 

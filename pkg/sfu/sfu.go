@@ -2,6 +2,7 @@ package sfu
 
 import (
 	"fmt"
+	"github.com/yindaheng98/dion/config"
 	"os"
 
 	"github.com/cloudwebrtc/nats-discovery/pkg/discovery"
@@ -22,24 +23,9 @@ const (
 	portRangeLimit = 100
 )
 
-type global struct {
-	Dc string `mapstructure:"dc"`
-}
-
-type natsConf struct {
-	URL string `mapstructure:"url"`
-}
-
-// Config defines parameters for the logger
-type logConf struct {
-	Level string `mapstructure:"level"`
-}
-
 // Config for sfu node
 type Config struct {
-	Global global   `mapstructure:"global"`
-	Log    logConf  `mapstructure:"log"`
-	Nats   natsConf `mapstructure:"nats"`
+	config.Common
 	isfu.Config
 }
 
@@ -157,7 +143,7 @@ func (s *SFU) Start(conf Config) error {
 
 	node := discovery.Node{
 		DC:      conf.Global.Dc,
-		Service: proto.ServiceRTC,
+		Service: config.ServiceSXU,
 		NID:     s.Node.NID,
 		RPC: discovery.RPC{
 			Protocol: discovery.NGRPC,
