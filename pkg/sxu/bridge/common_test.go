@@ -187,7 +187,7 @@ func makeVideo(ffmpegPath, param string) io.ReadCloser {
 	videoopt := []string{
 		"-f", "lavfi",
 		"-i", "testsrc=" + param,
-		"-vf", "drawtext=text='%{localtime\\:%Y-%M-%d %H.%m.%S}' :fontsize=120",
+		"-vf", "drawbox=x=w/2:y=h/2:w=50:h=50:c=red",
 		"-vcodec", "libvpx",
 		"-b:v", "3M",
 		"-f", "ivf",

@@ -14,8 +14,8 @@ import (
 const YourName = "stupid2"
 
 func TestEntrance(t *testing.T) {
-	confFile := "/root/Programs/dion/cmd/stupid/sfu.toml"
-	ffmpeg := "/root/Programs/ffmpeg"
+	confFile := "D:\\Documents\\MyPrograms\\dion\\pkg\\sxu\\sfu.toml"
+	ffmpeg := "D:\\Documents\\MyPrograms\\ffmpeg"
 	testvideo := "size=1280x720:rate=30"
 
 	conf := readConf(confFile)
