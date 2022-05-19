@@ -58,28 +58,34 @@ func (p BridgePeer) SetOnConnectionStateChange(OnBroken func(error), OnConnected
 func (e Entrance) Lock(init util.Param, OnBroken func(badGay error)) error {
 	sid := init.(SID)
 
-	e.Subscriber.OnTrack(func(remote *webrtc.TrackRemote, receiver *webrtc.RTPReceiver) {
-		videoTrack := e.road.AddTrack(remote, receiver, OnBroken)
+	videoTrack, err := e.road.InitOutTrack(OnBroken)
+	if err != nil {
+		return err
+	}
+	rtpSender, videoTrackErr := e.exit.AddTrack(videoTrack)
+	if videoTrackErr != nil {
+		return videoTrackErr
+	}
 
-		rtpSender, videoTrackErr := e.exit.AddTrack(videoTrack)
-		if videoTrackErr != nil {
-			OnBroken(videoTrackErr)
-			return
-		}
+	e.sender = rtpSender
 
-		e.sender = rtpSender
-
-		// Read incoming RTCP packets
-		// Before these packets are returned they are processed by interceptors. For things
-		// like NACK this needs to be called.
-		go func() {
-			rtcpBuf := make([]byte, 1500)
-			for {
-				if _, _, rtcpErr := rtpSender.Read(rtcpBuf); rtcpErr != nil {
-					return
-				}
+	// Read incoming RTCP packets
+	// Before these packets are returned they are processed by interceptors. For things
+	// like NACK this needs to be called.
+	go func() {
+		rtcpBuf := make([]byte, 1500)
+		for {
+			if _, _, rtcpErr := rtpSender.Read(rtcpBuf); rtcpErr != nil {
+				return
 			}
-		}()
+		}
+	}()
+
+	e.Subscriber.OnTrack(func(remote *webrtc.TrackRemote, receiver *webrtc.RTPReceiver) {
+		err := e.road.AddInTrack(remote, receiver)
+		if err != nil {
+			OnBroken(err)
+		}
 	})
 
 	return e.Subscriber.Lock(sid, OnBroken)

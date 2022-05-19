@@ -73,7 +73,10 @@ func (b Bridge) Update(param util.Param) error {
 			b.entrances[sid] = util.NewWatchDogWithUnblockedDoor(b.EntranceFactory)
 		}
 	}
-	b.Processor.UpdateProcedure(track)
+	err := b.Processor.UpdateProcedure(track)
+	if err != nil {
+		return err
+	}
 
 	// start Subscribers
 	for sid, entrance := range b.entrances {

@@ -97,6 +97,7 @@ func (p Publisher) onNegotiationNeeded() error {
 func (p Publisher) AddTrack(track webrtc.TrackLocal) (*webrtc.RTPSender, error) {
 	addTrack, err := p.pc.AddTrack(track)
 	if err != nil {
+		log.Errorf("Cannot AddTrack to pc: %+v", err)
 		return nil, err
 	}
 	return addTrack, nil
