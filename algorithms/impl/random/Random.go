@@ -3,6 +3,7 @@ package random
 import (
 	"fmt"
 	"google.golang.org/protobuf/types/known/anypb"
+	"google.golang.org/protobuf/types/known/timestamppb"
 	"math/rand"
 
 	"github.com/golang/protobuf/ptypes/timestamp"
@@ -122,4 +123,28 @@ func (r *RandComputationReport) RandReport() *pb.ComputationReport {
 		report.Report, _ = anypb.New(&timestamp.Timestamp{Seconds: rand.Int63()})
 	}
 	return report
+}
+
+type RandReports struct {
+	RandTransmissionReport
+	RandComputationReport
+}
+
+func (r *RandReports) RandReports() []*pb.QualityReport {
+	n := rand.Intn(16)
+	rs := make([]*pb.QualityReport, n)
+	for i := 0; i < n; i++ {
+		if RandBool() {
+			rs[i] = &pb.QualityReport{
+				Timestamp: timestamppb.Now(),
+				Report:    &pb.QualityReport_Transmission{Transmission: r.RandTransmissionReport.RandReport()},
+			}
+		} else {
+			rs[i] = &pb.QualityReport{
+				Timestamp: timestamppb.Now(),
+				Report:    &pb.QualityReport_Computation{Computation: r.RandComputationReport.RandReport()},
+			}
+		}
+	}
+	return rs
 }
