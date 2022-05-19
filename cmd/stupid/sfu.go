@@ -3,7 +3,7 @@ package main
 // ↓↓↓↓↓ Copy from https://github.com/pion/ion/blob/65dbd12eaad0f0e0a019b4d8ee80742930bcdc28/pkg/node/sfu/sfu.go ↓↓↓↓↓
 import (
 	"fmt"
-	"github.com/pion/ion/pkg/node/sfu"
+	"github.com/yindaheng98/dion/pkg/sfu"
 	"os"
 
 	"github.com/cloudwebrtc/nats-discovery/pkg/discovery"
