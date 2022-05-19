@@ -809,10 +809,12 @@ github.com/stretchr/testify v1.5.1/go.mod h1:5W2xD1RspED5o8YsWQXVCued0rvSQ+mT+I5
 github.com/stretchr/testify v1.6.1/go.mod h1:6Fq8oRcR53rry900zMqJjRRixrwX3KX962/h/Wwjteg=
 github.com/stretchr/testify v1.7.0 h1:nwc3DEeHmmLAfoZucVR881uASk0Mfjw8xYJ99tb5CcY=
 github.com/stretchr/testify v1.7.0/go.mod h1:6Fq8oRcR53rry900zMqJjRRixrwX3KX962/h/Wwjteg=
+github.com/stretchr/testify v1.7.1 h1:5TQK59W5E3v0r2duFAb7P95B6hEeOyEnHRa8MjYSMTY=
 github.com/stretchr/testify v1.7.1/go.mod h1:6Fq8oRcR53rry900zMqJjRRixrwX3KX962/h/Wwjteg=
 github.com/subosito/gotenv v1.2.0 h1:Slr1R9HxAlEKefgq5jn9U+DnETlIUa6HfgEzj0g5d7s=
 github.com/subosito/gotenv v1.2.0/go.mod h1:N0PQaV/YGNqwC0u51sEeR/aUtSLEXKX9iv69rRypqCw=
 github.com/tj/assert v0.0.0-20171129193455-018094318fb0/go.mod h1:mZ9/Rh9oLWpLLDRpvE+3b7gP/C2YyLFYxNmcLnPTMe0=
+github.com/tj/assert v0.0.3 h1:Df/BlaZ20mq6kuai7f5z2TvPFiwC3xaWJSDQNiIS3Rk=
 github.com/tj/assert v0.0.3/go.mod h1:Ne6X72Q+TB1AteidzQncjw9PabbMp4PBMZ1k+vd1Pvk=
 github.com/tj/go-elastic v0.0.0-20171221160941-36157cbbebc2/go.mod h1:WjeM0Oo1eNAjXGDx2yma7uG2XoyRZTq1uv3M/o7imD0=
 github.com/tj/go-kinesis v0.0.0-20171128231115-08b17f58cb1b/go.mod h1:/yhzCV0xPfx6jb1bBgRFjl5lytqVqZXEaeqWP8lTEao=
@@ -850,6 +852,8 @@ github.com/yindaheng98/ion-sfu v1.11.1-0.20220511091152-290734eee66c h1:QaTlpoxR
 github.com/yindaheng98/ion-sfu v1.11.1-0.20220511091152-290734eee66c/go.mod h1:FJ41uuR5Cxwh3CMVw85geBr1OgX1vPHHRr8UsC6CwaE=
 github.com/yindaheng98/ion-sfu v1.11.1-0.20220511114506-edb96d67ed96 h1:ZMzoUcz4HS+biQksDe3z//EewZdR8MIoX0aHDTJLor8=
 github.com/yindaheng98/ion-sfu v1.11.1-0.20220511114506-edb96d67ed96/go.mod h1:FJ41uuR5Cxwh3CMVw85geBr1OgX1vPHHRr8UsC6CwaE=
+github.com/yindaheng98/ion-sfu v1.11.1-0.20220519024005-363575147485 h1:2X+T1Tw6hErcNQyGBUMswgGPeknkFgw4KtJ+cN+NYv8=
+github.com/yindaheng98/ion-sfu v1.11.1-0.20220519024005-363575147485/go.mod h1:FJ41uuR5Cxwh3CMVw85geBr1OgX1vPHHRr8UsC6CwaE=
 github.com/yuin/goldmark v1.1.25/go.mod h1:3hX8gzYuyVAZsxl0MRgGTJEmQBFcNTphYh9decYSb74=
 github.com/yuin/goldmark v1.1.27/go.mod h1:3hX8gzYuyVAZsxl0MRgGTJEmQBFcNTphYh9decYSb74=
 github.com/yuin/goldmark v1.1.32/go.mod h1:3hX8gzYuyVAZsxl0MRgGTJEmQBFcNTphYh9decYSb74=
