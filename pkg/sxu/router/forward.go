@@ -20,7 +20,7 @@ type ForwardRouter struct {
 
 func NewForwardRouterWithInterceptor(sfu *ion_sfu.SFU, cp signaller.ConnPool, irFact signaller.PubInterceptorFactory) ForwardRouter {
 	return ForwardRouter{
-		factory:     signaller.NewSignallerFactoryWithInterceptor(cp, sfu, irFact),
+		factory:     signaller.NewSignallerFactory(cp, sfu, signaller.WithPubInterceptorFactory(irFact)),
 		forwardings: map[string]forwarding{},
 	}
 }

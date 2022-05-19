@@ -37,19 +37,15 @@ func (f SignallerFactory) NewDoor() (util.BlockedDoor, error) {
 	}, nil
 }
 
-func NewSignallerFactoryWithInterceptor(cp ConnPool, sfu *ion_sfu.SFU, irFact PubInterceptorFactory) SignallerFactory {
-	if irFact == nil {
-		irFact = StupidPubInterceptorFactory{}
+func NewSignallerFactory(cp ConnPool, sfu *ion_sfu.SFU, with ...func(SignallerFactory)) SignallerFactory {
+	sf := SignallerFactory{
+		cp:  cp,
+		sfu: sfu,
 	}
-	return SignallerFactory{
-		cp:     cp,
-		sfu:    sfu,
-		irFact: irFact,
+	for _, w := range with {
+		w(sf)
 	}
-}
-
-func NewSignallerFactory(cp ConnPool, sfu *ion_sfu.SFU) SignallerFactory {
-	return NewSignallerFactoryWithInterceptor(cp, sfu, nil)
+	return sf
 }
 
 type Signaller struct {
