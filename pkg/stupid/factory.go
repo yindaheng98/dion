@@ -1,4 +1,4 @@
-package main
+package stupid
 
 import (
 	"fmt"
