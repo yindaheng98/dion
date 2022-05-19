@@ -18,14 +18,11 @@ type ForwardRouter struct {
 	forwardings map[string]forwarding // map<NID, map<SID, forwarding>>
 }
 
-func NewForwardRouterWithInterceptor(sfu *ion_sfu.SFU, cp signaller.ConnPool, irFact signaller.PubInterceptorFactory) ForwardRouter {
+func NewForwardRouter(sfu *ion_sfu.SFU, cp signaller.ConnPool, with ...func(signaller.SignallerFactory)) ForwardRouter {
 	return ForwardRouter{
-		factory:     signaller.NewSignallerFactory(cp, sfu, signaller.WithPubInterceptorFactory(irFact)),
+		factory:     signaller.NewSignallerFactory(cp, sfu, with...),
 		forwardings: map[string]forwarding{},
 	}
-}
-func NewForwardRouter(sfu *ion_sfu.SFU, cp signaller.ConnPool) ForwardRouter {
-	return NewForwardRouterWithInterceptor(sfu, cp, nil)
 }
 
 func (f ForwardRouter) StartForwardTrack(trackInfo *pb.ForwardTrack) {
