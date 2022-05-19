@@ -1,6 +1,7 @@
 package rtc
 
 import (
+	"github.com/pion/interceptor"
 	ion_sfu "github.com/pion/ion-sfu/pkg/sfu"
 	"github.com/pion/ion/proto/rtc"
 	"github.com/pion/webrtc/v3"
@@ -8,7 +9,8 @@ import (
 
 // UpPeerLocal is a local peer that only have up tracks (tracks from other nodes)
 type UpPeerLocal struct {
-	peer *ion_sfu.PeerLocal
+	peer  *ion_sfu.PeerLocal
+	PubIr *interceptor.Registry
 }
 
 func NewUpPeerLocal(peer *ion_sfu.PeerLocal) UpPeerLocal {
@@ -17,7 +19,7 @@ func NewUpPeerLocal(peer *ion_sfu.PeerLocal) UpPeerLocal {
 
 // Join the up track peer join a session, with the option NoPublish = false and NoSubscribe = true
 func (p *UpPeerLocal) Join(sid string) error {
-	return p.peer.Join(sid, "", ion_sfu.JoinConfig{
+	return p.peer.JoinWithInterceptorRegistry(sid, "", nil, p.PubIr, ion_sfu.JoinConfig{
 		NoPublish:   false,
 		NoSubscribe: true,
 	})
