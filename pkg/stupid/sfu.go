@@ -9,13 +9,14 @@ import (
 	"github.com/pion/ion/pkg/ion"
 	"github.com/pion/ion/pkg/proto"
 	"github.com/pion/ion/pkg/runner"
-	"github.com/pion/ion/pkg/util"
 	pb "github.com/pion/ion/proto/rtc"
+	"github.com/yindaheng98/dion/config"
 	"github.com/yindaheng98/dion/pkg/sfu"
+	"github.com/yindaheng98/dion/pkg/sxu/bridge"
+	"github.com/yindaheng98/dion/util"
 	"google.golang.org/grpc"
+	"io"
 )
-
-type Config sfu.Config
 
 // ↓↓↓↓↓ Copy from https://github.com/pion/ion/blob/65dbd12eaad0f0e0a019b4d8ee80742930bcdc28/pkg/node/sfu/sfu.go ↓↓↓↓↓
 
@@ -24,25 +25,30 @@ type SFU struct {
 	ion.Node
 	s *sfu.SFUService
 	runner.Service
-	conf Config
-}
-
-// New create a sfu node instance
-func New() *SFU {
-	s := &SFU{
-		Node: ion.NewNode("sfu-" + util.RandomString(6)),
-	}
-	return s
+	// ↑↑↑↑↑ Copy from https://github.com/pion/ion/blob/65dbd12eaad0f0e0a019b4d8ee80742930bcdc28/pkg/node/sfu/sfu.go ↑↑↑↑↑
+	conf sfu.Config
+	in   io.ReadCloser
+	// ↓↓↓↓↓ Copy from https://github.com/pion/ion/blob/65dbd12eaad0f0e0a019b4d8ee80742930bcdc28/pkg/node/sfu/sfu.go ↓↓↓↓↓
 }
 
 func (s *SFU) ConfigBase() runner.ConfigBase {
 	return &s.conf
 }
 
-// NewSFU create a sfu node instance
-func NewSFU(name string) *SFU {
+// New create a sfu node instance
+func New(in io.ReadCloser) *SFU {
 	s := &SFU{
-		Node: ion.NewNode(name),
+		Node: ion.NewNode(config.ServiceNameStupid),
+		in:   in,
+	}
+	return s
+}
+
+// NewWithID create a sfu node instance with specific node id
+func NewWithID(nid string, in io.ReadCloser) *SFU {
+	s := &SFU{
+		Node: ion.NewNode(nid),
+		in:   in,
 	}
 	return s
 }
@@ -59,7 +65,14 @@ func (s *SFU) Load(confFile string) error {
 
 // StartGRPC start with grpc.ServiceRegistrar
 func (s *SFU) StartGRPC(registrar grpc.ServiceRegistrar) error {
-	s.s = sfu.NewSFUService(s.conf.Config)
+	// ↑↑↑↑↑ Copy from https://github.com/pion/ion/blob/65dbd12eaad0f0e0a019b4d8ee80742930bcdc28/pkg/node/sfu/sfu.go ↑↑↑↑↑
+	isfu := ion_sfu.NewSFU(s.conf.Config)
+	pub := NewPublisherFactory(s.in, isfu)
+	dog := util.NewWatchDogWithUnblockedDoor(pub)
+	dog.Watch(bridge.SID(config.ServiceSessionStupid))
+	s.s = sfu.NewSFUServiceWithSFU(isfu)
+	// ↓↓↓↓↓ Copy from https://github.com/pion/ion/blob/65dbd12eaad0f0e0a019b4d8ee80742930bcdc28/pkg/node/sfu/sfu.go ↓↓↓↓↓
+
 	pb.RegisterRTCServer(registrar, s.s)
 	log.Infof("sfu pb.RegisterRTCServer(registrar, s.s)")
 	return nil
@@ -68,7 +81,7 @@ func (s *SFU) StartGRPC(registrar grpc.ServiceRegistrar) error {
 // ↑↑↑↑↑ Copy from https://github.com/pion/ion/blob/65dbd12eaad0f0e0a019b4d8ee80742930bcdc28/pkg/node/sfu/sfu.go ↑↑↑↑↑
 
 // Start sfu node
-func (s *SFU) Start(conf Config, isfu *ion_sfu.SFU) error {
+func (s *SFU) Start(conf sfu.Config) error {
 	// ↓↓↓↓↓ Copy from https://github.com/pion/ion/blob/65dbd12eaad0f0e0a019b4d8ee80742930bcdc28/pkg/node/sfu/sfu.go ↓↓↓↓↓
 
 	err := s.Node.Start(conf.Nats.URL)
@@ -78,6 +91,10 @@ func (s *SFU) Start(conf Config, isfu *ion_sfu.SFU) error {
 	}
 
 	// ↑↑↑↑↑ Copy from https://github.com/pion/ion/blob/65dbd12eaad0f0e0a019b4d8ee80742930bcdc28/pkg/node/sfu/sfu.go ↑↑↑↑↑
+	isfu := ion_sfu.NewSFU(conf.Config)
+	pub := NewPublisherFactory(s.in, isfu)
+	dog := util.NewWatchDogWithUnblockedDoor(pub)
+	dog.Watch(bridge.SID(config.ServiceSessionStupid))
 	s.s = sfu.NewSFUServiceWithSFU(isfu)
 	// ↓↓↓↓↓ Copy from https://github.com/pion/ion/blob/65dbd12eaad0f0e0a019b4d8ee80742930bcdc28/pkg/node/sfu/sfu.go ↓↓↓↓↓
 
@@ -89,7 +106,7 @@ func (s *SFU) Start(conf Config, isfu *ion_sfu.SFU) error {
 
 	node := discovery.Node{
 		DC:      conf.Global.Dc,
-		Service: proto.ServiceRTC,
+		Service: config.ServiceStupid,
 		NID:     s.Node.NID,
 		RPC: discovery.RPC{
 			Protocol: discovery.NGRPC,

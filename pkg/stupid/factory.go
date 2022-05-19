@@ -16,11 +16,11 @@ import (
 
 type PublisherFactory struct {
 	bridge.PublisherFactory
-	ffmpegOut io.ReadCloser
+	in io.ReadCloser
 }
 
-func NewPublisherFactory(ffmpegOut io.ReadCloser, sfu *ion_sfu.SFU) PublisherFactory {
-	return PublisherFactory{ffmpegOut: ffmpegOut, PublisherFactory: bridge.NewPublisherFactory(sfu)}
+func NewPublisherFactory(in io.ReadCloser, sfu *ion_sfu.SFU) PublisherFactory {
+	return PublisherFactory{in: in, PublisherFactory: bridge.NewPublisherFactory(sfu)}
 }
 
 func (p PublisherFactory) NewDoor() (util.UnblockedDoor, error) {
@@ -29,7 +29,7 @@ func (p PublisherFactory) NewDoor() (util.UnblockedDoor, error) {
 		log.Errorf("Cannot PublisherFactory.NewDoor: %+v", err)
 		return nil, err
 	}
-	err = makeTrack(p.ffmpegOut, pub.(bridge.Publisher))
+	err = makeTrack(p.in, pub.(bridge.Publisher))
 	if err != nil {
 		log.Errorf("Cannot makeTrack: %+v", err)
 		return nil, err
@@ -37,9 +37,9 @@ func (p PublisherFactory) NewDoor() (util.UnblockedDoor, error) {
 	return pub, nil
 }
 
-func makeTrack(ffmpegOut io.ReadCloser, pub bridge.Publisher) error {
+func makeTrack(in io.ReadCloser, pub bridge.Publisher) error {
 	// Create a video track
-	videoTrack, videoTrackErr := webrtc.NewTrackLocalStaticSample(webrtc.RTPCodecCapability{MimeType: webrtc.MimeTypeVP8}, "video", "pion")
+	videoTrack, videoTrackErr := webrtc.NewTrackLocalStaticSample(webrtc.RTPCodecCapability{MimeType: webrtc.MimeTypeVP8}, "video", "stupid")
 	if videoTrackErr != nil {
 		return videoTrackErr
 	}
@@ -62,7 +62,7 @@ func makeTrack(ffmpegOut io.ReadCloser, pub bridge.Publisher) error {
 	}()
 
 	go func() {
-		ivf, header, ivfErr := ivfreader.NewWith(ffmpegOut)
+		ivf, header, ivfErr := ivfreader.NewWith(in)
 		if ivfErr != nil {
 			panic(ivfErr)
 		}

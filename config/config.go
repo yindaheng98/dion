@@ -2,7 +2,6 @@ package config
 
 import (
 	log "github.com/pion/ion-log"
-	"github.com/pion/ion/pkg/runner"
 	"github.com/spf13/viper"
 	"os"
 )
@@ -20,7 +19,6 @@ type LogConf struct {
 }
 
 type Common struct {
-	runner.ConfigBase
 	Global Global   `mapstructure:"global"`
 	Log    LogConf  `mapstructure:"log"`
 	Nats   NatsConf `mapstructure:"nats"`
