@@ -85,7 +85,7 @@ func (t *SimpleFFmpegProcessor) InitOutTrack(OnBroken func(badGay error)) (webrt
 		}
 	}(ffmpegErr)
 
-	videoTrack, videoTrackErr := webrtc.NewTrackLocalStaticSample(webrtc.RTPCodecCapability{MimeType: webrtc.MimeTypeVP8}, "video2", "pion2")
+	videoTrack, videoTrackErr := webrtc.NewTrackLocalStaticSample(webrtc.RTPCodecCapability{MimeType: webrtc.MimeTypeVP8}, "SimpleFFmpegProcessor", "SimpleFFmpegProcessor")
 	if videoTrackErr != nil {
 		return nil, videoTrackErr
 	}
