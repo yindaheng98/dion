@@ -22,5 +22,5 @@ require (
 replace (
 	github.com/pion/ion v1.10.0 => github.com/yindaheng98/ion v1.10.1-0.20220518115802-da154fb3ee21
 	github.com/pion/ion-sdk-go v0.7.0 => github.com/yindaheng98/ion-sdk-go v0.7.1-0.20220426113245-a9894b608a13
-	github.com/pion/ion-sfu v1.11.0 => github.com/yindaheng98/ion-sfu v1.11.1-0.20220511114506-edb96d67ed96
+	github.com/pion/ion-sfu v1.11.0 => github.com/yindaheng98/ion-sfu v1.11.1-0.20220519024005-363575147485
 )
