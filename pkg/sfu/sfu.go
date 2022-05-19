@@ -115,9 +115,9 @@ func (s *SFU) ConfigBase() runner.ConfigBase {
 }
 
 // NewSFU create a sfu node instance
-func NewSFU() *SFU {
+func NewSFU(id string) *SFU {
 	s := &SFU{
-		Node: ion.NewNode("sfu-" + util.RandomString(6)),
+		Node: ion.NewNode(id),
 	}
 	return s
 }

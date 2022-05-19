@@ -8,7 +8,7 @@ import (
 	"github.com/cloudwebrtc/nats-grpc/pkg/rpc"
 	"github.com/nats-io/nats.go"
 	log "github.com/pion/ion-log"
-	pb "github.com/pion/ion-sfu/cmd/signal/grpc/proto"
+	pb "github.com/pion/ion/proto/rtc"
 	"github.com/pion/webrtc/v3"
 	"github.com/tj/assert"
 )
@@ -19,7 +19,7 @@ var (
 			Dc: "dc1",
 		},
 		Nats: natsConf{
-			URL: "nats://127.0.0.1:4222",
+			URL: "nats://192.168.94.131:4222",
 		},
 	}
 
@@ -32,7 +32,7 @@ func init() {
 }
 
 func TestStart(t *testing.T) {
-	s := NewSFU()
+	s := NewSFU(nid)
 
 	err := s.Start(conf)
 	if err != nil {
@@ -48,7 +48,7 @@ func TestStart(t *testing.T) {
 	defer nc.Close()
 
 	ncli := rpc.NewClient(nc, nid, "unkown")
-	cli := pb.NewSFUClient(ncli)
+	cli := pb.NewRTCClient(ncli)
 
 	stream, err := cli.Signal(context.Background())
 	if err != nil {
@@ -74,10 +74,10 @@ func TestStart(t *testing.T) {
 		if err != nil {
 			log.Errorf("OnIceCandidate error %s", err)
 		}
-		err = stream.Send(&pb.SignalRequest{
-			Payload: &pb.SignalRequest_Trickle{
+		err = stream.Send(&pb.Request{
+			Payload: &pb.Request_Trickle{
 				Trickle: &pb.Trickle{
-					Target: pb.Trickle_PUBLISHER,
+					Target: pb.Target_PUBLISHER,
 					Init:   string(bytes),
 				},
 			},
@@ -97,16 +97,15 @@ func TestStart(t *testing.T) {
 	}
 	log.Infof("offer => %v", offer)
 
-	marshalled, err := json.Marshal(offer)
-	if err != nil {
-		t.Error(err)
-	}
-
-	err = stream.Send(&pb.SignalRequest{
-		Payload: &pb.SignalRequest_Join{
+	err = stream.Send(&pb.Request{
+		Payload: &pb.Request_Join{
 			Join: &pb.JoinRequest{
-				Sid:         "room1",
-				Description: marshalled,
+				Sid: "room1",
+				Description: &pb.SessionDescription{
+					Target: pb.Target_PUBLISHER,
+					Type:   offer.Type.String(),
+					Sdp:    offer.SDP,
+				},
 			},
 		},
 	})
@@ -130,17 +129,22 @@ func TestStart(t *testing.T) {
 		log.Debugf("\nReply: reply %v\n", reply)
 
 		switch payload := reply.Payload.(type) {
-		case *pb.SignalReply_Description:
-			var sdp webrtc.SessionDescription
-			err := json.Unmarshal(payload.Description, &offer)
-			if err != nil {
-				t.Error(err)
+		case *pb.Reply_Description:
+			var sdpType webrtc.SDPType
+			if payload.Description.Type == "offer" {
+				sdpType = webrtc.SDPTypeOffer
+			} else {
+				sdpType = webrtc.SDPTypeAnswer
+			}
+			sdp := webrtc.SessionDescription{
+				SDP:  payload.Description.Sdp,
+				Type: sdpType,
 			}
 			err = pub.SetRemoteDescription(sdp)
 			if err != nil {
 				t.Error(err)
 			}
-		case *pb.SignalReply_Trickle:
+		case *pb.Reply_Trickle:
 			var candidate webrtc.ICECandidateInit
 			err := json.Unmarshal([]byte(payload.Trickle.Init), &candidate)
 			if err != nil {
