@@ -3,6 +3,7 @@ package isglb
 import (
 	"context"
 	"fmt"
+	"github.com/yindaheng98/dion/config"
 	"io"
 
 	log "github.com/pion/ion-log"
@@ -31,7 +32,7 @@ type ISGLBClient struct {
 }
 
 func NewISGLBClient(node *ion.Node, peerNID string, parameters map[string]interface{}) *ISGLBClient {
-	ncli, err := node.NewNatsRPCClient(ServiceISGLB, peerNID, parameters)
+	ncli, err := node.NewNatsRPCClient(config.ServiceISGLB, peerNID, parameters)
 	if err != nil {
 		log.Errorf("error: %v", err)
 		return nil

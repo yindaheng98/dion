@@ -12,13 +12,12 @@ import (
 	"github.com/pion/ion/pkg/runner"
 	pbion "github.com/pion/ion/proto/ion"
 	pb "github.com/pion/ion/proto/rtc"
+	"github.com/yindaheng98/dion/config"
 	"github.com/yindaheng98/dion/pkg/sfu"
 	"github.com/yindaheng98/dion/pkg/sxu/syncer"
 	"github.com/yindaheng98/dion/util"
 	"google.golang.org/grpc"
 )
-
-const ServiceSXU = "sxu"
 
 var logrLogger = ion_sfu_log.New().WithName("dion-sxu-node")
 
@@ -79,7 +78,7 @@ func (s *SXU) StartGRPC(registrar grpc.ServiceRegistrar) error {
 	s.syncer = syncer.NewSFUStatusSyncer(&s.Node, "*", &pbion.Node{
 		Dc:      s.conf.Global.Dc,
 		Nid:     s.Node.NID,
-		Service: ServiceSXU,
+		Service: config.ServiceSXU,
 		Rpc:     nil,
 	}, s.toolbox.Build(&s.Node, s.sfu))
 	s.syncer.Start()
@@ -112,7 +111,7 @@ func (s *SXU) Start(conf Config) error {
 
 	node := discovery.Node{
 		DC:      conf.Global.Dc,
-		Service: ServiceSXU, //proto.ServiceRTC,
+		Service: config.ServiceSXU, //proto.ServiceRTC,
 		NID:     s.Node.NID,
 		RPC: discovery.RPC{
 			Protocol: discovery.NGRPC,
@@ -141,7 +140,7 @@ func (s *SXU) Start(conf Config) error {
 	s.syncer = syncer.NewSFUStatusSyncer(&s.Node, "*", &pbion.Node{
 		Dc:      conf.Global.Dc,
 		Nid:     s.Node.NID,
-		Service: ServiceSXU,
+		Service: config.ServiceSXU,
 		Rpc:     nil,
 	}, s.toolbox.Build(&s.Node, s.sfu))
 	s.syncer.Start()

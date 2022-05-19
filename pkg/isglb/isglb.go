@@ -15,8 +15,6 @@ import (
 	"google.golang.org/grpc"
 )
 
-const ServiceISGLB = "isglb"
-
 type Config config.Common
 
 func (c *Config) Load(file string) error {
@@ -80,7 +78,7 @@ func (s *ISGLB) Start(conf Config) error {
 
 	node := discovery.Node{
 		DC:      conf.Global.Dc,
-		Service: ServiceISGLB,
+		Service: config.ServiceISGLB,
 		NID:     s.Node.NID,
 		RPC: discovery.RPC{
 			Protocol: discovery.NGRPC,
