@@ -17,7 +17,7 @@ func NewBridgePeer(peer *ion_sfu.PeerLocal, pc *webrtc.PeerConnection) BridgePee
 	return BridgePeer{peer: peer, pc: pc}
 }
 
-func (p BridgePeer) setOnIceCandidate(OnBroken func(error), Target rtc.Target) (addCandidate func()) {
+func (p BridgePeer) setOnICECandidateForPeer(OnBroken func(error), Target rtc.Target) (addCandidate func()) {
 	var pcCand []webrtc.ICECandidateInit // Store unsended ICECandidate
 	addCandidate = func() {
 		tpcCand := pcCand
@@ -53,6 +53,10 @@ func (p BridgePeer) setOnIceCandidate(OnBroken func(error), Target rtc.Target) (
 			}
 		}
 	}
+	return addCandidate
+}
+
+func (p BridgePeer) setOnICECandidateForPC(OnBroken func(error), Target rtc.Target) {
 	p.pc.OnICECandidate(func(candidate *webrtc.ICECandidate) {
 		// Just do it, BridgePeer can dealing with Stable state
 		if candidate == nil {
@@ -65,9 +69,13 @@ func (p BridgePeer) setOnIceCandidate(OnBroken func(error), Target rtc.Target) (
 			return
 		}
 	})
-	return
 }
 
+func (p BridgePeer) setOnIceCandidate(OnBroken func(error), Target rtc.Target) (addCandidate func()) {
+	addCandidate = p.setOnICECandidateForPeer(OnBroken, Target)
+	p.setOnICECandidateForPC(OnBroken, Target)
+	return
+}
 func (p BridgePeer) Remove() {
 	err := p.peer.Close()
 	if err != nil {
