@@ -6,6 +6,8 @@ import (
 	"github.com/yindaheng98/dion/util"
 )
 
+// EntranceFactory create Entrance for a bridge
+// All the Entrance(or in other words, Subscriber) should put their track into same Processor
 type EntranceFactory struct {
 	SubscriberFactory
 	road Processor
