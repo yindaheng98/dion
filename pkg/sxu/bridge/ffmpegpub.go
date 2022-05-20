@@ -128,6 +128,7 @@ func (p SimpleFFmpegTestsrcPublisher) makeTrack(pub Publisher) error {
 			if ivfErr = videoTrack.WriteSample(media.Sample{Data: frame, Duration: time.Second}); ivfErr != nil {
 				log.Errorf("Cannot WriteSample: %+v", ivfErr)
 			}
+			fmt.Println("SimpleFFmpegTestsrcPublisher publish a RTP Packet")
 		}
 	}()
 

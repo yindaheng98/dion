@@ -34,7 +34,7 @@ func (p TestSubscriberFactory) NewDoor() (util.UnblockedDoor, error) {
 		for {
 			// Read RTP packets being sent to Pion
 			_, _, readErr := remote.ReadRTP()
-			fmt.Println("RTP Packat read from SFU")
+			fmt.Println("TestSubscriberFactory get a RTP Packat")
 			if readErr != nil {
 				panic(readErr)
 			}
@@ -47,7 +47,7 @@ const MyName = "stupid"
 
 func TestSubscriber(t *testing.T) {
 	confFile := "D:\\Documents\\MyPrograms\\dion\\pkg\\sxu\\sfu.toml"
-	ffmpeg := "D:\\Documents\\MyPrograms\\ffmpeg"
+	ffmpeg := "D:\\Documents\\MyPrograms\\ffmpeg.exe"
 
 	conf := readConf(confFile)
 
