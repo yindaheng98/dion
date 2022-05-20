@@ -48,11 +48,8 @@ const MyName = "stupid"
 func TestSubscriber(t *testing.T) {
 	confFile := "D:\\Documents\\MyPrograms\\dion\\pkg\\sxu\\sfu.toml"
 	ffmpeg := "D:\\Documents\\MyPrograms\\ffmpeg"
-	testvideo := "size=1280x720:rate=30"
 
 	conf := readConf(confFile)
-
-	ffmpegOut := makeVideo(ffmpeg, testvideo)
 
 	log.Init(conf.Log.Level)
 	log.Infof("--- starting sfu node ---")
@@ -65,7 +62,7 @@ func TestSubscriber(t *testing.T) {
 
 	<-time.After(5 * time.Second)
 
-	pub := NewTestPublisherFactory(ffmpegOut, iSFU)
+	pub := NewSimpleFFmpegTestsrcPublisher(ffmpeg, iSFU)
 	pubdog := util.NewWatchDogWithUnblockedDoor(pub)
 	pubdog.Watch(SID(MyName))
 
