@@ -47,6 +47,37 @@ func (p SimpleFFmpegTestsrcPublisher) NewDoor() (util.UnblockedDoor, error) {
 	return pub, nil
 }
 
+func makeSampleIVFIO(ffmpeg *exec.Cmd) (io.WriteCloser, io.ReadCloser, error) {
+	ffmpegIn, err := ffmpeg.StdinPipe()
+	if err != nil {
+		log.Errorf("Cannot get ffmpeg.StdinPipe(): %+v", err)
+		return nil, nil, err
+	}
+	ffmpegOut, err := ffmpeg.StdoutPipe()
+	if err != nil {
+		log.Errorf("Cannot get ffmpeg.StdoutPipe(): %+v", err)
+		return nil, nil, err
+	}
+	ffmpegErr, err := ffmpeg.StderrPipe()
+	if err != nil {
+		log.Errorf("Cannot get ffmpeg.StderrPipe(): %+v", err)
+		return nil, nil, err
+	}
+
+	if err := ffmpeg.Start(); err != nil {
+		log.Errorf("Cannot Start ffmpeg: %+v", err)
+		return nil, nil, err
+	}
+
+	go func(ffmpegErr io.ReadCloser) {
+		scanner := bufio.NewScanner(ffmpegErr)
+		for scanner.Scan() {
+			fmt.Println(scanner.Text())
+		}
+	}(ffmpegErr)
+	return ffmpegIn, ffmpegOut, nil
+}
+
 func MakeSampleIVFIO(ffmpegPath, Testsrc, Filter, Bandwidth string) (io.ReadCloser, error) {
 	// Create a video track
 	videoopt := []string{
@@ -59,36 +90,14 @@ func MakeSampleIVFIO(ffmpegPath, Testsrc, Filter, Bandwidth string) (io.ReadClos
 		"pipe:1",
 	}
 	ffmpeg := exec.Command(ffmpegPath, videoopt...) //nolint
-	ffmpegOut, err := ffmpeg.StdoutPipe()
+	_, ffmpegOut, err := makeSampleIVFIO(ffmpeg)
 	if err != nil {
-		log.Errorf("Cannot get ffmpeg.StdoutPipe(): %+v", err)
 		return nil, err
 	}
-	ffmpegErr, err := ffmpeg.StderrPipe()
-	if err != nil {
-		log.Errorf("Cannot get ffmpeg.StderrPipe(): %+v", err)
-		return nil, err
-	}
-
-	if err := ffmpeg.Start(); err != nil {
-		log.Errorf("Cannot Start ffmpeg: %+v", err)
-		return nil, err
-	}
-
-	go func(ffmpegErr io.ReadCloser) {
-		scanner := bufio.NewScanner(ffmpegErr)
-		for scanner.Scan() {
-			fmt.Println(scanner.Text())
-		}
-	}(ffmpegErr)
-	return ffmpegOut, nil
+	return ffmpegOut, err
 }
 
-func MakeSampleIVFTrack(ffmpegPath, Testsrc, Filter, Bandwidth string) (webrtc.TrackLocal, error) {
-	ffmpegOut, err := MakeSampleIVFIO(ffmpegPath, Testsrc, Filter, Bandwidth)
-	if err != nil {
-		return nil, err
-	}
+func makeSampleIVFTrack(ffmpegOut io.ReadCloser) (webrtc.TrackLocal, error) {
 	ivf, header, err := ivfreader.NewWith(ffmpegOut)
 	if err != nil {
 		log.Errorf("ivfreader create error: %+v", err)
@@ -124,6 +133,14 @@ func MakeSampleIVFTrack(ffmpegPath, Testsrc, Filter, Bandwidth string) (webrtc.T
 		}
 	}()
 	return videoTrack, nil
+}
+
+func MakeSampleIVFTrack(ffmpegPath, Testsrc, Filter, Bandwidth string) (webrtc.TrackLocal, error) {
+	ffmpegOut, err := MakeSampleIVFIO(ffmpegPath, Testsrc, Filter, Bandwidth)
+	if err != nil {
+		return nil, err
+	}
+	return makeSampleIVFTrack(ffmpegOut)
 }
 
 func (p SimpleFFmpegTestsrcPublisher) makeTrack(pub Publisher) error {
