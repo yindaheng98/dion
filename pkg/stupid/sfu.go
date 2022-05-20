@@ -15,7 +15,6 @@ import (
 	"github.com/yindaheng98/dion/pkg/sxu/bridge"
 	"github.com/yindaheng98/dion/util"
 	"google.golang.org/grpc"
-	"io"
 )
 
 // ↓↓↓↓↓ Copy from https://github.com/pion/ion/blob/65dbd12eaad0f0e0a019b4d8ee80742930bcdc28/pkg/node/sfu/sfu.go ↓↓↓↓↓
@@ -26,9 +25,11 @@ type SFU struct {
 	s *sfu.SFUService
 	runner.Service
 	// ↑↑↑↑↑ Copy from https://github.com/pion/ion/blob/65dbd12eaad0f0e0a019b4d8ee80742930bcdc28/pkg/node/sfu/sfu.go ↑↑↑↑↑
-	conf sfu.Config
-	in   io.ReadCloser
-	// ↓↓↓↓↓ Copy from https://github.com/pion/ion/blob/65dbd12eaad0f0e0a019b4d8ee80742930bcdc28/pkg/node/sfu/sfu.go ↓↓↓↓↓
+	conf       sfu.Config
+	ffmpegPath string
+	Filter     string
+	Bandwidth  string
+	Testsrc    string
 }
 
 func (s *SFU) ConfigBase() runner.ConfigBase {
@@ -36,22 +37,30 @@ func (s *SFU) ConfigBase() runner.ConfigBase {
 }
 
 // New create a sfu node instance
-func New(in io.ReadCloser) *SFU {
+func New(ffmpegPath string) *SFU {
 	s := &SFU{
-		Node: ion.NewNode(config.ServiceNameStupid),
-		in:   in,
+		Node:       ion.NewNode(config.ServiceNameStupid),
+		ffmpegPath: ffmpegPath,
+		Filter:     "drawbox=x=0:y=0:w=50:h=50:c=blue",
+		Bandwidth:  "3M",
+		Testsrc:    "size=1280x720:rate=30",
 	}
 	return s
 }
 
 // NewWithID create a sfu node instance with specific node id
-func NewWithID(nid string, in io.ReadCloser) *SFU {
+func NewWithID(nid, ffmpegPath string) *SFU {
 	s := &SFU{
-		Node: ion.NewNode(nid),
-		in:   in,
+		Node:       ion.NewNode(nid),
+		ffmpegPath: ffmpegPath,
+		Filter:     "drawbox=x=0:y=0:w=50:h=50:c=blue",
+		Bandwidth:  "3M",
+		Testsrc:    "size=1280x720:rate=30",
 	}
 	return s
 }
+
+// ↓↓↓↓↓ Copy from https://github.com/pion/ion/blob/65dbd12eaad0f0e0a019b4d8ee80742930bcdc28/pkg/node/sfu/sfu.go ↓↓↓↓↓
 
 // Load load config file
 func (s *SFU) Load(confFile string) error {
@@ -67,7 +76,8 @@ func (s *SFU) Load(confFile string) error {
 func (s *SFU) StartGRPC(registrar grpc.ServiceRegistrar) error {
 	// ↑↑↑↑↑ Copy from https://github.com/pion/ion/blob/65dbd12eaad0f0e0a019b4d8ee80742930bcdc28/pkg/node/sfu/sfu.go ↑↑↑↑↑
 	isfu := ion_sfu.NewSFU(s.conf.Config)
-	pub := NewPublisherFactory(s.in, isfu)
+	pub := bridge.NewSimpleFFmpegTestsrcPublisher(s.ffmpegPath, isfu)
+	pub.Testsrc, pub.Filter, pub.Bandwidth = s.Testsrc, s.Filter, s.Bandwidth
 	dog := util.NewWatchDogWithUnblockedDoor(pub)
 	dog.Watch(bridge.SID(config.ServiceSessionStupid))
 	s.s = sfu.NewSFUServiceWithSFU(isfu)
@@ -92,7 +102,8 @@ func (s *SFU) Start(conf sfu.Config) error {
 
 	// ↑↑↑↑↑ Copy from https://github.com/pion/ion/blob/65dbd12eaad0f0e0a019b4d8ee80742930bcdc28/pkg/node/sfu/sfu.go ↑↑↑↑↑
 	isfu := ion_sfu.NewSFU(conf.Config)
-	pub := NewPublisherFactory(s.in, isfu)
+	pub := bridge.NewSimpleFFmpegTestsrcPublisher(s.ffmpegPath, isfu)
+	pub.Testsrc, pub.Filter, pub.Bandwidth = s.Testsrc, s.Filter, s.Bandwidth
 	dog := util.NewWatchDogWithUnblockedDoor(pub)
 	dog.Watch(bridge.SID(config.ServiceSessionStupid))
 	s.s = sfu.NewSFUServiceWithSFU(isfu)

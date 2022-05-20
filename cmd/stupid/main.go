@@ -1,15 +1,12 @@
 package main
 
 import (
-	"bufio"
 	"flag"
 	"fmt"
 	log "github.com/pion/ion-log"
 	"github.com/yindaheng98/dion/pkg/sfu"
 	"github.com/yindaheng98/dion/pkg/stupid"
-	"io"
 	"os"
-	"os/exec"
 	"os/signal"
 	"syscall"
 )
@@ -18,34 +15,6 @@ var (
 	conf = sfu.Config{}
 	file string
 )
-
-// makeVideo Make a video
-func makeVideo(ffmpegPath, param, filter string) io.ReadCloser {
-	videoopt := []string{
-		"-f", "lavfi",
-		"-i", "testsrc=" + param,
-		"-vf", filter,
-		"-vcodec", "libvpx",
-		"-b:v", "3M",
-		"-f", "ivf",
-		"pipe:1",
-	}
-	ffmpeg := exec.Command(ffmpegPath, videoopt...) //nolint
-	ffmpegOut, _ := ffmpeg.StdoutPipe()
-	ffmpegErr, _ := ffmpeg.StderrPipe()
-
-	if err := ffmpeg.Start(); err != nil {
-		panic(err)
-	}
-
-	go func() {
-		scanner := bufio.NewScanner(ffmpegErr)
-		for scanner.Scan() {
-			fmt.Println(scanner.Text())
-		}
-	}()
-	return ffmpegOut
-}
 
 func main() {
 	var ffmpeg, testvideo, filter string
@@ -72,13 +41,10 @@ func main() {
 
 	log.Init(conf.Log.Level)
 
-	log.Infof("--- making video ---")
-
-	ffmpegOut := makeVideo(ffmpeg, testvideo, filter)
-
 	log.Infof("--- starting sfu node ---")
 
-	server := stupid.New(ffmpegOut)
+	server := stupid.New(ffmpeg)
+	server.Testsrc, server.Filter = testvideo, filter
 	if err := server.Start(conf); err != nil {
 		panic(err)
 	}
