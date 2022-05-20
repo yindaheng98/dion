@@ -21,7 +21,8 @@ func (t ProceedTrackParam) Clone() util.Param {
 type BridgeFactory struct {
 	PublisherFactory
 	ProcessorFactory
-	sub SubscriberFactory
+
+	sub SubscriberFactory // to create entrance
 }
 
 func NewBridgeFactory(sfu *ion_sfu.SFU, fact ProcessorFactory) BridgeFactory {
@@ -67,6 +68,7 @@ type Bridge struct {
 func (b Bridge) Update(param util.Param) error {
 	track := param.Clone().(ProceedTrackParam).ProceedTrack           // Clone it
 	if b.track != nil && b.track.DstSessionId != track.DstSessionId { // check if it is mine
+		log.Errorf("DstSessionId not match! ")
 		return fmt.Errorf("DstSessionId not match! ")
 	}
 	b.track = param.Clone().(ProceedTrackParam).ProceedTrack // Store it
