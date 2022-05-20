@@ -28,28 +28,30 @@ type Processor interface {
 	// read video from `remote` process it and write the result to the output track
 	// r/w should stop when error occurred
 	// Should be NON-BLOCK!
-	AddInTrack(remote *webrtc.TrackRemote, receiver *webrtc.RTPReceiver) error
+	AddInTrack(SID string, remote *webrtc.TrackRemote, receiver *webrtc.RTPReceiver) error
 
 	// UpdateProcedure update the procedure in the Processor
 	UpdateProcedure(procedure *pb.ProceedTrack) error
 }
 
-type SimpleFFmpegProcessor struct {
+type SimpleFFmpegIVFProcessor struct {
 	sync.Mutex
 	ffmpegPath string
 	Filter     string
+	Bandwidth  string
 	ffmpegIn   io.WriteCloser
 	onBroken   func(badGay error)
 }
 
-func NewSimpleFFmpegProcessor(ffmpegPath string) *SimpleFFmpegProcessor {
-	return &SimpleFFmpegProcessor{
+func NewSimpleFFmpegIVFProcessor(ffmpegPath string) *SimpleFFmpegIVFProcessor {
+	return &SimpleFFmpegIVFProcessor{
 		ffmpegPath: ffmpegPath,
 		Filter:     "drawbox=x=0:y=0:w=50:h=50:c=blue",
+		Bandwidth:  "3M",
 	}
 }
 
-func (t *SimpleFFmpegProcessor) InitOutTrack(OnBroken func(badGay error)) (webrtc.TrackLocal, error) {
+func (t *SimpleFFmpegIVFProcessor) InitOutTrack(OnBroken func(badGay error)) (webrtc.TrackLocal, error) {
 	t.Lock()
 	defer t.Unlock()
 	t.onBroken = OnBroken
@@ -58,7 +60,7 @@ func (t *SimpleFFmpegProcessor) InitOutTrack(OnBroken func(badGay error)) (webrt
 		"-i", "pipe:0",
 		"-vf", t.Filter,
 		"-vcodec", "libvpx",
-		"-b:v", "3M",
+		"-b:v", t.Bandwidth,
 		"-f", "ivf",
 		"pipe:1",
 	}
@@ -84,6 +86,11 @@ func (t *SimpleFFmpegProcessor) InitOutTrack(OnBroken func(badGay error)) (webrt
 			fmt.Println(scanner.Text())
 		}
 	}(ffmpegErr)
+
+	if err := ffmpeg.Start(); err != nil {
+		log.Errorf("Cannot Start ffmpeg: %+v", err)
+		return nil, err
+	}
 
 	videoTrack, videoTrackErr := webrtc.NewTrackLocalStaticSample(webrtc.RTPCodecCapability{MimeType: webrtc.MimeTypeVP8}, "SimpleFFmpegProcessor", "SimpleFFmpegProcessor")
 	if videoTrackErr != nil {
@@ -123,11 +130,11 @@ func (t *SimpleFFmpegProcessor) InitOutTrack(OnBroken func(badGay error)) (webrt
 	return videoTrack, nil
 }
 
-func (t *SimpleFFmpegProcessor) AddInTrack(remote *webrtc.TrackRemote, receiver *webrtc.RTPReceiver) error {
+func (t *SimpleFFmpegIVFProcessor) AddInTrack(_ string, remote *webrtc.TrackRemote, _ *webrtc.RTPReceiver) error {
 	t.Lock()
 	defer t.Unlock()
 	if t.ffmpegIn == nil {
-		log.Warnf("SimpleProcessor.AddInTrack should not be called twice!!!")
+		log.Warnf("SimpleFFmpegIVFProcessor.AddInTrack should not be called twice!!!")
 		return nil
 	}
 	ffmpegIn := t.ffmpegIn
@@ -160,7 +167,7 @@ func (t *SimpleFFmpegProcessor) AddInTrack(remote *webrtc.TrackRemote, receiver 
 	return nil
 }
 
-func (t *SimpleFFmpegProcessor) UpdateProcedure(procedure *pb.ProceedTrack) error {
+func (t *SimpleFFmpegIVFProcessor) UpdateProcedure(procedure *pb.ProceedTrack) error {
 	fmt.Printf("SimpleProcessor Updating: %+v\n", procedure)
 	return nil
 }
