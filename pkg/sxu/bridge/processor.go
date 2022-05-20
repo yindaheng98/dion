@@ -19,9 +19,16 @@ import (
 // MULTI-THREAD access!!! Should implemented in THREAD-SAFE!!!
 type Processor interface {
 
-	// InitOutTrack set the OnBroken func and init the output track from Processor
+	// Init set the AddTrack, RemoveTrack and OnBroken func and init the output track from Processor
 	// Should be NON-BLOCK!
-	InitOutTrack(OnBroken func(badGay error)) (webrtc.TrackLocal, error)
+	// after you created a new track, please call AddTrack
+	// before you close a track, please call RemoveTrack
+	// when occurred error, please call OnBroken
+	Init(
+		AddTrack func(webrtc.TrackLocal) (*webrtc.RTPSender, error),
+		RemoveTrack func(*webrtc.RTPSender) error,
+		OnBroken func(badGay error),
+	) error
 
 	// AddInTrack add a input track to Processor
 	// Will be called AFTER InitOutTrack!
@@ -32,6 +39,10 @@ type Processor interface {
 
 	// UpdateProcedure update the procedure in the Processor
 	UpdateProcedure(procedure *pb.ProceedTrack) error
+}
+
+type ProcessorFactory interface {
+	NewProcessor() (Processor, error)
 }
 
 type SimpleFFmpegIVFProcessor struct {
