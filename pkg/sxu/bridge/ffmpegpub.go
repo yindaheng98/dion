@@ -47,32 +47,32 @@ func (p SimpleFFmpegTestsrcPublisher) NewDoor() (util.UnblockedDoor, error) {
 	return pub, nil
 }
 
-func (p SimpleFFmpegTestsrcPublisher) makeTrack(pub Publisher) error {
+func MakeSampleIVFIO(ffmpegPath, Testsrc, Filter, Bandwidth string) (io.ReadCloser, error) {
 	// Create a video track
 	videoopt := []string{
 		"-f", "lavfi",
-		"-i", "testsrc=" + p.Testsrc,
-		"-vf", p.Filter,
+		"-i", "testsrc=" + Testsrc,
+		"-vf", Filter,
 		"-vcodec", "libvpx",
-		"-b:v", p.Bandwidth,
+		"-b:v", Bandwidth,
 		"-f", "ivf",
 		"pipe:1",
 	}
-	ffmpeg := exec.Command(p.ffmpegPath, videoopt...) //nolint
+	ffmpeg := exec.Command(ffmpegPath, videoopt...) //nolint
 	ffmpegOut, err := ffmpeg.StdoutPipe()
 	if err != nil {
 		log.Errorf("Cannot get ffmpeg.StdoutPipe(): %+v", err)
-		return err
+		return nil, err
 	}
 	ffmpegErr, err := ffmpeg.StderrPipe()
 	if err != nil {
 		log.Errorf("Cannot get ffmpeg.StderrPipe(): %+v", err)
-		return err
+		return nil, err
 	}
 
 	if err := ffmpeg.Start(); err != nil {
 		log.Errorf("Cannot Start ffmpeg: %+v", err)
-		return err
+		return nil, err
 	}
 
 	go func(ffmpegErr io.ReadCloser) {
@@ -81,33 +81,25 @@ func (p SimpleFFmpegTestsrcPublisher) makeTrack(pub Publisher) error {
 			fmt.Println(scanner.Text())
 		}
 	}(ffmpegErr)
-	ivf, header, ivfErr := ivfreader.NewWith(ffmpegOut)
-	if ivfErr != nil {
-		log.Errorf("ivfreader create error: %+v", ivfErr)
-		return ivfErr
+	return ffmpegOut, nil
+}
+
+func MakeSampleIVFTrack(ffmpegPath, Testsrc, Filter, Bandwidth string) (webrtc.TrackLocal, error) {
+	ffmpegOut, err := MakeSampleIVFIO(ffmpegPath, Testsrc, Filter, Bandwidth)
+	if err != nil {
+		return nil, err
+	}
+	ivf, header, err := ivfreader.NewWith(ffmpegOut)
+	if err != nil {
+		log.Errorf("ivfreader create error: %+v", err)
+		return nil, err
 	}
 
-	videoTrack, videoTrackErr := webrtc.NewTrackLocalStaticSample(webrtc.RTPCodecCapability{MimeType: webrtc.MimeTypeVP8}, "video", "pion")
-	if videoTrackErr != nil {
+	videoTrack, err := webrtc.NewTrackLocalStaticSample(webrtc.RTPCodecCapability{MimeType: webrtc.MimeTypeVP8}, "video", "pion")
+	if err != nil {
 		log.Errorf("Cannot webrtc.NewTrackLocalStaticSample: %+v", err)
-		return videoTrackErr
+		return nil, err
 	}
-
-	rtpSender, videoTrackErr := pub.AddTrack(videoTrack)
-	if videoTrackErr != nil {
-		return videoTrackErr
-	}
-	// Read incoming RTCP packets
-	// Before these packets are returned they are processed by interceptors. For things
-	// like NACK this needs to be called.
-	go func() {
-		rtcpBuf := make([]byte, 1500)
-		for {
-			if _, _, rtcpErr := rtpSender.Read(rtcpBuf); rtcpErr != nil {
-				return
-			}
-		}
-	}()
 
 	go func() {
 		// Send our video file frame at a time. Pace our sending so we send it at the same speed it should be played back as.
@@ -129,6 +121,30 @@ func (p SimpleFFmpegTestsrcPublisher) makeTrack(pub Publisher) error {
 				log.Errorf("Cannot WriteSample: %+v", ivfErr)
 			}
 			fmt.Println("SimpleFFmpegTestsrcPublisher publish a RTP Packet")
+		}
+	}()
+	return videoTrack, nil
+}
+
+func (p SimpleFFmpegTestsrcPublisher) makeTrack(pub Publisher) error {
+	videoTrack, err := MakeSampleIVFTrack(p.ffmpegPath, p.Testsrc, p.Filter, p.Bandwidth)
+	if err != nil {
+		return err
+	}
+
+	rtpSender, videoTrackErr := pub.AddTrack(videoTrack)
+	if videoTrackErr != nil {
+		return videoTrackErr
+	}
+	// Read incoming RTCP packets
+	// Before these packets are returned they are processed by interceptors. For things
+	// like NACK this needs to be called.
+	go func() {
+		rtcpBuf := make([]byte, 1500)
+		for {
+			if _, _, rtcpErr := rtpSender.Read(rtcpBuf); rtcpErr != nil {
+				return
+			}
 		}
 	}()
 
