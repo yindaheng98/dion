@@ -54,7 +54,10 @@ func (s Subscriber) subscribe(sid string, OnBroken func(error)) error {
 	s.peer.OnOffer = func(offer *webrtc.SessionDescription) {
 		log.Infof("Bridge get a new offer to subscribe a track from SFU session %s", sid)
 		err := s.pc.SetRemoteDescription(*offer)
-		// TODO: 当没有Track的时候会报“SetRemoteDescription called with no ice-ufrag”，导致没有Track的时候无限制重启
+		// TODO: 会报错“SetRemoteDescription called with no ice-ufrag”，导致没有Track的时候无限制重启
+		// TODO: NoSubscribe=true时ion-sdk-go也会报错“SetRemoteDescription called with no ice-ufrag”
+		// TODO: 问题的原因可能在这：https://github.com/pion/ion-sfu/blob/68545cc25230220435ee028d5a0af6e768a0a79a/pkg/sfu/peer.go#L156
+		// TODO: 但这里直接改NoSubscribe=false没用
 		if err != nil {
 			log.Errorf("Cannot SetRemoteDescription to pc: %+v", err)
 			OnBroken(err)
