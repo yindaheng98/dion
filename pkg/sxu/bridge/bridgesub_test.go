@@ -34,7 +34,7 @@ func (p TestSubscriberFactory) NewDoor() (util.UnblockedDoor, error) {
 		for {
 			// Read RTP packets being sent to Pion
 			_, _, readErr := remote.ReadRTP()
-			fmt.Println("TestSubscriberFactory get a RTP Packat")
+			fmt.Println("TestSubscriberFactory get a RTP Packet")
 			if readErr != nil {
 				panic(readErr)
 			}

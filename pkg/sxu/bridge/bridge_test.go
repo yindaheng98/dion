@@ -5,16 +5,13 @@ import (
 	ion_sfu "github.com/pion/ion-sfu/pkg/sfu"
 	pb "github.com/yindaheng98/dion/proto"
 	"github.com/yindaheng98/dion/util"
-	"os"
-	"os/signal"
-	"syscall"
 	"testing"
 	"time"
 )
 
 const YourName = "stupid2"
 
-func TestEntrance(t *testing.T) {
+func TestBridge(t *testing.T) {
 	confFile := "D:\\Documents\\MyPrograms\\dion\\pkg\\sxu\\sfu.toml"
 	ffmpeg := "D:\\Documents\\MyPrograms\\ffmpeg.exe"
 
@@ -38,8 +35,26 @@ func TestEntrance(t *testing.T) {
 	pubdog := util.NewWatchDogWithUnblockedDoor(pub)
 	pubdog.Watch(SID(MyName))
 
-	// Press Ctrl+C to exit the process
-	ch := make(chan os.Signal, 1)
-	signal.Notify(ch, os.Interrupt, syscall.SIGTERM)
-	<-ch
+	<-time.After(3 * time.Second)
+
+	pub2 := NewSimpleFFmpegTestsrcPublisher(ffmpeg, iSFU)
+	pubdog2 := util.NewWatchDogWithUnblockedDoor(pub2)
+	pubdog2.Watch(SID(MyName))
+
+	<-time.After(1 * time.Second)
+
+	pub3 := NewSimpleFFmpegTestsrcPublisher(ffmpeg, iSFU)
+	pubdog3 := util.NewWatchDogWithUnblockedDoor(pub3)
+	pubdog3.Watch(SID(MyName))
+
+	<-time.After(1 * time.Second)
+
+	pubdog.Leave()
+	pubdog2.Leave()
+
+	<-time.After(5 * time.Second)
+
+	brdog.Leave()
+
+	<-time.After(2 * time.Second)
 }

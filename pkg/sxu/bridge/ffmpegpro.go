@@ -49,7 +49,7 @@ func (t *SimpleFFmpegIVFProcessor) Init(AddTrack func(webrtc.TrackLocal) (*webrt
 	return nil
 }
 
-func WriteIVFRemoteToStdin(remote *webrtc.TrackRemote, stdin io.WriteCloser, OnBroken func(error)) error {
+func WriteIVFRemoteToStdin(remote *webrtc.TrackRemote, stdin io.WriteCloser, ffmpeg *exec.Cmd, OnBroken func(error)) error {
 	ivfWriter, err := ivfwriter.NewWith(stdin)
 	if err != nil {
 		log.Errorf("Cannot create ivfwriter: %+v", err)
@@ -59,15 +59,20 @@ func WriteIVFRemoteToStdin(remote *webrtc.TrackRemote, stdin io.WriteCloser, OnB
 		for {
 			// Read RTP packets being sent to Pion
 			rtp, _, readErr := remote.ReadRTP()
-			fmt.Println("RTP Packat read from SFU")
+			fmt.Println(remote.ID(), remote.StreamID(), "Read RTP Packet from SFU TrackRemote")
 			if readErr != nil {
-				log.Errorf("RTP Packat read error: %+v", readErr)
+				if err := ffmpeg.Process.Kill(); err != nil {
+					log.Errorf("Cannot kill: %+v", err)
+				}
 				OnBroken(readErr)
 				return
 			}
 
 			if ivfWriterErr := ivfWriter.WriteRTP(rtp); ivfWriterErr != nil {
-				log.Errorf("RTP Packat write error: %+v", ivfWriterErr)
+				log.Errorf("RTP Packet write error: %+v", ivfWriterErr)
+				if err := ffmpeg.Process.Kill(); err != nil {
+					log.Errorf("Cannot kill: %+v", err)
+				}
 				OnBroken(ivfWriterErr)
 				return
 			}
@@ -92,16 +97,30 @@ func (t *SimpleFFmpegIVFProcessor) AddInTrack(_ string, remote *webrtc.TrackRemo
 	if err != nil {
 		return err
 	}
-	err = WriteIVFRemoteToStdin(remote, ffmpegIn, t.onBroken)
-	if err != nil {
-		return err
-	}
-	track, err := makeSampleIVFTrack(ffmpegOut)
-	if err != nil {
-		return err
-	}
-	_, err = t.addTrack(track)
-	return err
+	senderCh := make(chan *webrtc.RTPSender, 1)
+	go func(senderCh chan<- *webrtc.RTPSender) {
+		track, err := makeSampleIVFTrack(ffmpegOut)
+		if err != nil {
+			close(senderCh)
+			return
+		}
+		sender, err := t.addTrack(track)
+		if err != nil {
+			close(senderCh)
+			return
+		}
+		senderCh <- sender
+	}(senderCh)
+	return WriteIVFRemoteToStdin(remote, ffmpegIn, ffmpeg, func(err error) {
+		log.Errorf("Should remove track: %+v", err)
+		sender, ok := <-senderCh
+		if !ok {
+			return
+		}
+		if err := t.removeTrack(sender); err != nil {
+			log.Errorf("Cannot remove track: %+v", err)
+		}
+	})
 }
 
 func (t *SimpleFFmpegIVFProcessor) UpdateProcedure(procedure *pb.ProceedTrack) error {

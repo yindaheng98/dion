@@ -14,6 +14,8 @@ import (
 	"time"
 )
 
+// SimpleFFmpegTestsrcPublisher a Publisher get video from ffmpeg -f lavfi -i testsrc=XXX
+// WARNING: 根本停不下来
 type SimpleFFmpegTestsrcPublisher struct {
 	PublisherFactory
 	ffmpegPath string
@@ -47,6 +49,39 @@ func (p SimpleFFmpegTestsrcPublisher) NewDoor() (util.UnblockedDoor, error) {
 	return pub, nil
 }
 
+func (p SimpleFFmpegTestsrcPublisher) makeTrack(pub Publisher) error {
+	videoTrack, err := MakeSampleIVFTrack(p.ffmpegPath, p.Testsrc, p.Filter, p.Bandwidth)
+	if err != nil {
+		return err
+	}
+
+	rtpSender, videoTrackErr := pub.AddTrack(videoTrack)
+	if videoTrackErr != nil {
+		return videoTrackErr
+	}
+	// Read incoming RTCP packets
+	// Before these packets are returned they are processed by interceptors. For things
+	// like NACK this needs to be called.
+	go func() {
+		rtcpBuf := make([]byte, 1500)
+		for {
+			if _, _, rtcpErr := rtpSender.Read(rtcpBuf); rtcpErr != nil {
+				return
+			}
+		}
+	}()
+
+	return nil
+}
+
+func MakeSampleIVFTrack(ffmpegPath, Testsrc, Filter, Bandwidth string) (webrtc.TrackLocal, error) {
+	ffmpegOut, err := MakeSampleIVFIO(ffmpegPath, Testsrc, Filter, Bandwidth)
+	if err != nil {
+		return nil, err
+	}
+	return makeSampleIVFTrack(ffmpegOut)
+}
+
 func makeSampleIVFIO(ffmpeg *exec.Cmd) (io.WriteCloser, io.ReadCloser, error) {
 	ffmpegIn, err := ffmpeg.StdinPipe()
 	if err != nil {
@@ -78,6 +113,51 @@ func makeSampleIVFIO(ffmpeg *exec.Cmd) (io.WriteCloser, io.ReadCloser, error) {
 	return ffmpegIn, ffmpegOut, nil
 }
 
+func makeSampleIVFTrack(ffmpegOut io.ReadCloser) (webrtc.TrackLocal, error) {
+	ivf, header, err := ivfreader.NewWith(ffmpegOut)
+	if err != nil {
+		log.Errorf("ivfreader create error: %+v", err)
+		return nil, err
+	}
+
+	videoTrack, err := webrtc.NewTrackLocalStaticSample(
+		webrtc.RTPCodecCapability{MimeType: webrtc.MimeTypeVP8},
+		"makeSampleIVFTrack-"+util.RandomString(8),
+		"makeSampleIVFTrack-"+util.RandomString(8),
+	)
+	if err != nil {
+		log.Errorf("Cannot webrtc.NewTrackLocalStaticSample: %+v", err)
+		return nil, err
+	}
+
+	go func() {
+		// Send our video file frame at a time. Pace our sending so we send it at the same speed it should be played back as.
+		// This isn't required since the video is timestamped, but we will such much higher loss if we send all at once.
+		//
+		// It is important to use a time.Ticker instead of time.Sleep because
+		// * avoids accumulating skew, just calling time.Sleep didn't compensate for the time spent parsing the data
+		// * works around latency issues with Sleep (see https://github.com/golang/go/issues/44343)
+		ticker := time.NewTicker(time.Millisecond * time.Duration((float32(header.TimebaseNumerator)/float32(header.TimebaseDenominator))*1000))
+		for ; true; <-ticker.C {
+			frame, _, ivfErr := ivf.ParseNextFrame()
+			if ivfErr == io.EOF {
+				log.Errorf("All video frames parsed and sent")
+				return
+			}
+			if ivfErr != nil {
+				log.Errorf("Cannot ParseNextFrame: %+v", ivfErr)
+				return
+			}
+			if ivfErr = videoTrack.WriteSample(media.Sample{Data: frame, Duration: time.Second}); ivfErr != nil { // 这个track被remove了也不会报错，这就是停不下来的原因
+				log.Errorf("Cannot WriteSample: %+v", ivfErr)
+				return
+			}
+			fmt.Println(videoTrack.ID(), videoTrack.StreamID(), "Publish a RTP Packet to SFU TrackLocal")
+		}
+	}()
+	return videoTrack, nil
+}
+
 func MakeSampleIVFIO(ffmpegPath, Testsrc, Filter, Bandwidth string) (io.ReadCloser, error) {
 	// Create a video track
 	videoopt := []string{
@@ -95,75 +175,4 @@ func MakeSampleIVFIO(ffmpegPath, Testsrc, Filter, Bandwidth string) (io.ReadClos
 		return nil, err
 	}
 	return ffmpegOut, err
-}
-
-func makeSampleIVFTrack(ffmpegOut io.ReadCloser) (webrtc.TrackLocal, error) {
-	ivf, header, err := ivfreader.NewWith(ffmpegOut)
-	if err != nil {
-		log.Errorf("ivfreader create error: %+v", err)
-		return nil, err
-	}
-
-	videoTrack, err := webrtc.NewTrackLocalStaticSample(webrtc.RTPCodecCapability{MimeType: webrtc.MimeTypeVP8}, "video", "pion")
-	if err != nil {
-		log.Errorf("Cannot webrtc.NewTrackLocalStaticSample: %+v", err)
-		return nil, err
-	}
-
-	go func() {
-		// Send our video file frame at a time. Pace our sending so we send it at the same speed it should be played back as.
-		// This isn't required since the video is timestamped, but we will such much higher loss if we send all at once.
-		//
-		// It is important to use a time.Ticker instead of time.Sleep because
-		// * avoids accumulating skew, just calling time.Sleep didn't compensate for the time spent parsing the data
-		// * works around latency issues with Sleep (see https://github.com/golang/go/issues/44343)
-		ticker := time.NewTicker(time.Millisecond * time.Duration((float32(header.TimebaseNumerator)/float32(header.TimebaseDenominator))*1000))
-		for ; true; <-ticker.C {
-			frame, _, ivfErr := ivf.ParseNextFrame()
-			if ivfErr == io.EOF {
-				fmt.Printf("All video frames parsed and sent")
-			}
-			if ivfErr != nil {
-				panic(ivfErr)
-			}
-			if ivfErr = videoTrack.WriteSample(media.Sample{Data: frame, Duration: time.Second}); ivfErr != nil {
-				log.Errorf("Cannot WriteSample: %+v", ivfErr)
-			}
-			fmt.Println("SimpleFFmpegTestsrcPublisher publish a RTP Packet")
-		}
-	}()
-	return videoTrack, nil
-}
-
-func MakeSampleIVFTrack(ffmpegPath, Testsrc, Filter, Bandwidth string) (webrtc.TrackLocal, error) {
-	ffmpegOut, err := MakeSampleIVFIO(ffmpegPath, Testsrc, Filter, Bandwidth)
-	if err != nil {
-		return nil, err
-	}
-	return makeSampleIVFTrack(ffmpegOut)
-}
-
-func (p SimpleFFmpegTestsrcPublisher) makeTrack(pub Publisher) error {
-	videoTrack, err := MakeSampleIVFTrack(p.ffmpegPath, p.Testsrc, p.Filter, p.Bandwidth)
-	if err != nil {
-		return err
-	}
-
-	rtpSender, videoTrackErr := pub.AddTrack(videoTrack)
-	if videoTrackErr != nil {
-		return videoTrackErr
-	}
-	// Read incoming RTCP packets
-	// Before these packets are returned they are processed by interceptors. For things
-	// like NACK this needs to be called.
-	go func() {
-		rtcpBuf := make([]byte, 1500)
-		for {
-			if _, _, rtcpErr := rtpSender.Read(rtcpBuf); rtcpErr != nil {
-				return
-			}
-		}
-	}()
-
-	return nil
 }
