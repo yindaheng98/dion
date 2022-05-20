@@ -54,6 +54,7 @@ func (s Subscriber) subscribe(sid string, OnBroken func(error)) error {
 	s.peer.OnOffer = func(offer *webrtc.SessionDescription) {
 		log.Infof("Bridge get a new offer to subscribe a track from SFU session %s", sid)
 		err := s.pc.SetRemoteDescription(*offer)
+		// TODO: 当没有Track的时候会报“SetRemoteDescription called with no ice-ufrag”，导致没有Track的时候无限制重启
 		if err != nil {
 			log.Errorf("Cannot SetRemoteDescription to pc: %+v", err)
 			OnBroken(err)
