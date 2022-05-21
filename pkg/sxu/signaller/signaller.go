@@ -86,7 +86,9 @@ func (s *Signaller) BLock(param util.Param) error {
 	peer := rtc.NewUpPeerLocal(ion_sfu.NewPeer(s.sfu))
 	defer peer.Close()
 
-	peer.PubIr = s.irFact.NewRegistry(track.Src)
+	if s.irFact != nil {
+		peer.PubIr = s.irFact.NewRegistry(track.Src)
+	}
 
 	s.r = rtc.NewRTC(peer, signaller)
 	return s.r.Run(track.RemoteSessionId, track.LocalSessionId)
