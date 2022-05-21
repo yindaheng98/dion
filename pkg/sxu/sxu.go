@@ -30,7 +30,7 @@ type SXU struct {
 	ion.Node
 	s *sfu.SFUService
 	runner.Service
-	conf Config
+	conf sfu.Config
 
 	sfu *ion_sfu.SFU
 
@@ -88,7 +88,7 @@ func (s *SXU) StartGRPC(registrar grpc.ServiceRegistrar) error {
 }
 
 // Start sfu server
-func (s *SXU) Start(conf Config) error {
+func (s *SXU) Start(conf sfu.Config) error {
 	// ↑↑↑↑↑ COPY FROM https://github.com/pion/ion/blob/65dbd12eaad0f0e0a019b4d8ee80742930bcdc28/pkg/node/sfu/sfu.go ↑↑↑↑↑
 
 	// Start internal SFU
