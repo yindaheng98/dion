@@ -58,6 +58,7 @@ func (s Subscriber) subscribe(sid string, OnBroken func(error)) error {
 		// TODO: NoSubscribe=true时ion-sdk-go也会报错“SetRemoteDescription called with no ice-ufrag”
 		// TODO: 问题的原因可能在这：https://github.com/pion/ion-sfu/blob/68545cc25230220435ee028d5a0af6e768a0a79a/pkg/sfu/peer.go#L156
 		// TODO: 但这里直接改NoSubscribe=false没用
+		// TODO: 发现没有Track的时候p.peer.Subscriber().PeerConnection().CreateOffer(nil)一直都没有ice-ufrag
 		if err != nil {
 			log.Errorf("Cannot SetRemoteDescription to pc: %+v", err)
 			OnBroken(err)
