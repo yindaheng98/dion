@@ -1,40 +1,17 @@
 package reporter
 
 import (
-	"github.com/pion/interceptor"
-	"github.com/yindaheng98/dion/pkg/sxu/syncer"
+	"github.com/pion/ion/proto/ion"
+	pb "github.com/yindaheng98/dion/proto"
 )
 
-type AtomReport interface{}
-
-type ReporterInterceptorFactory interface {
-	NewInterceptor(id string) (ReporterInterceptor, error)
-}
-
-// ReporterInterceptor is an interceptor that can report its status
-type ReporterInterceptor interface {
-	interceptor.Interceptor
-
-	// BindReportChannel : when have something to report, put it into this chan
-	BindReportChannel(chan<- AtomReport)
-}
-
-type reporterInterceptorFactory struct {
-	r ReporterInterceptorFactory
-}
-
-func (r reporterInterceptorFactory) NewInterceptor(id string) (interceptor.Interceptor, error) {
-	ri, err := r.r.NewInterceptor(id)
-	if err != nil {
-		return nil, err
-	}
-	return ri, nil
-}
-
 // ReportGatherer is to gather report
-type ReportGatherer interface {
-	syncer.TransmissionReporter
+type ReportGathererBuilder interface {
+	// BindIO : this chan will give you the report
+	NewGatherer(src, dst *ion.Node, i <-chan SessionReport, o chan<- *pb.TransmissionReport)
+}
 
-	// BindInputChannel : this chan will give you the report
-	BindInputChannel(<-chan AtomReport)
+type SessionReport struct {
+	sid, uid string
+	report   AtomReport
 }
