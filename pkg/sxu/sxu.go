@@ -69,7 +69,7 @@ func (s *SXU) StartGRPC(registrar grpc.ServiceRegistrar) error {
 	s.sfu = ion_sfu.NewSFU(s.conf.Config)
 
 	// ↓↓↓↓↓ COPY FROM https://github.com/pion/ion/blob/65dbd12eaad0f0e0a019b4d8ee80742930bcdc28/pkg/node/sfu/sfu.go ↓↓↓↓↓
-	s.s = sfu.NewSFUServiceWithSFU(s.sfu)
+	s.s = sfu.NewSFUService(s.sfu)
 	pb.RegisterRTCServer(registrar, s.s)
 	log.Infof("sfu pb.RegisterRTCServer(registrar, s.s)")
 	// ↑↑↑↑↑ COPY FROM https://github.com/pion/ion/blob/65dbd12eaad0f0e0a019b4d8ee80742930bcdc28/pkg/node/sfu/sfu.go ↑↑↑↑↑
@@ -102,7 +102,7 @@ func (s *SXU) Start(conf sfu.Config) error {
 	}
 
 	//s.s = sfu.NewSFUService(conf.Config)
-	s.s = sfu.NewSFUServiceWithSFU(s.sfu)
+	s.s = sfu.NewSFUService(s.sfu)
 	//grpc service
 	pb.RegisterRTCServer(s.Node.ServiceRegistrar(), s.s)
 

@@ -9,9 +9,7 @@ import (
 
 	"github.com/bep/debounce"
 	"github.com/pion/ion-log"
-	ion_sfu_log "github.com/pion/ion-sfu/pkg/logger"
 	"github.com/pion/ion-sfu/pkg/middlewares/datachannel"
-	"github.com/pion/ion-sfu/pkg/sfu"
 	ion_sfu "github.com/pion/ion-sfu/pkg/sfu"
 	error_code "github.com/pion/ion/pkg/error"
 	"github.com/pion/ion/proto/rtc"
@@ -21,13 +19,6 @@ import (
 	"google.golang.org/grpc/status"
 )
 
-var logrLogger = ion_sfu_log.New().WithName("ion-sfu-node")
-
-func init() {
-	ion_sfu_log.SetGlobalOptions(ion_sfu_log.GlobalConfig{V: 1})
-	sfu.Logger = logrLogger.WithName("sfu")
-}
-
 type SFUService struct {
 	rtc.UnimplementedRTCServer
 	sfu   *ion_sfu.SFU
@@ -35,18 +26,7 @@ type SFUService struct {
 	sigs  map[string]rtc.RTC_SignalServer
 }
 
-func NewSFUService(conf ion_sfu.Config) *SFUService {
-	s := &SFUService{
-		sigs: make(map[string]rtc.RTC_SignalServer),
-	}
-	sfu := ion_sfu.NewSFU(conf)
-	dc := sfu.NewDatachannel(ion_sfu.APIChannelLabel)
-	dc.Use(datachannel.SubscriberAPI)
-	s.sfu = sfu
-	return s
-}
-
-func NewSFUServiceWithSFU(sfu *ion_sfu.SFU) *SFUService {
+func NewSFUService(sfu *ion_sfu.SFU) *SFUService {
 	s := &SFUService{
 		sigs: make(map[string]rtc.RTC_SignalServer),
 	}
@@ -89,7 +69,7 @@ func (s *SFUService) BroadcastTrackEvent(uid string, tracks []*rtc.TrackInfo, st
 func (s *SFUService) Signal(sig rtc.RTC_SignalServer) error {
 	//val := sigStream.Context().Value("claims")
 	//log.Infof("context val %v", val)
-	peer := ion_sfu.NewPeer(s.sfu)
+	peer := ion_sfu.NewPeer(s.sfu, ion_sfu.WithPubInterceptorRegistryFactoryBuilder(PubIRFBuilder))
 	var tracksMutex sync.RWMutex
 	var tracksInfo []*rtc.TrackInfo
 

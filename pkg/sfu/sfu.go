@@ -7,31 +7,14 @@ import (
 	log "github.com/pion/ion-log"
 	"github.com/pion/ion/pkg/ion"
 	"github.com/pion/ion/pkg/proto"
-	"github.com/pion/ion/pkg/runner"
-	"github.com/pion/ion/pkg/util"
 	pb "github.com/pion/ion/proto/rtc"
 	"github.com/yindaheng98/dion/config"
-	"google.golang.org/grpc"
 )
 
 // SFU represents a sfu node
 type SFU struct {
 	ion.Node
 	s *SFUService
-	runner.Service
-	conf Config
-}
-
-// New create a sfu node instance
-func New() *SFU {
-	s := &SFU{
-		Node: ion.NewNode("sfu-" + util.RandomString(6)),
-	}
-	return s
-}
-
-func (s *SFU) ConfigBase() runner.ConfigBase {
-	return &s.conf
 }
 
 // NewSFU create a sfu node instance
@@ -42,33 +25,16 @@ func NewSFU(id string) *SFU {
 	return s
 }
 
-// Load load config file
-func (s *SFU) Load(confFile string) error {
-	err := s.conf.Load(confFile)
-	if err != nil {
-		log.Errorf("config load error: %v", err)
-		return err
-	}
-	return nil
-}
-
-// StartGRPC start with grpc.ServiceRegistrar
-func (s *SFU) StartGRPC(registrar grpc.ServiceRegistrar) error {
-	s.s = NewSFUService(s.conf.Config)
-	pb.RegisterRTCServer(registrar, s.s)
-	log.Infof("sfu pb.RegisterRTCServer(registrar, s.s)")
-	return nil
-}
-
 // Start sfu node
-func (s *SFU) Start(conf Config) error {
+func (s *SFU) Start(conf config.Common, ss *SFUService) error {
 	err := s.Node.Start(conf.Nats.URL)
 	if err != nil {
 		s.Close()
 		return err
 	}
 
-	s.s = NewSFUService(conf.Config)
+	s.s = ss
+	// ↓↓↓↓↓ COPY FROM https://github.com/pion/ion/blob/65dbd12eaad0f0e0a019b4d8ee80742930bcdc28/pkg/node/sfu/sfu.go ↓↓↓↓↓
 	//grpc service
 	pb.RegisterRTCServer(s.Node.ServiceRegistrar(), s.s)
 
@@ -108,3 +74,5 @@ func (s *SFU) Start(conf Config) error {
 func (s *SFU) Close() {
 	s.Node.Close()
 }
+
+// ↑↑↑↑↑ COPY FROM https://github.com/pion/ion/blob/65dbd12eaad0f0e0a019b4d8ee80742930bcdc28/pkg/node/sfu/sfu.go ↑↑↑↑↑
