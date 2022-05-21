@@ -1,7 +1,6 @@
 package rtc
 
 import (
-	"github.com/pion/interceptor"
 	ion_sfu "github.com/pion/ion-sfu/pkg/sfu"
 	"github.com/pion/ion/proto/rtc"
 	"github.com/pion/webrtc/v3"
@@ -10,7 +9,7 @@ import (
 // UpPeerLocal is a local peer that only have up tracks (tracks from other nodes)
 type UpPeerLocal struct {
 	peer  *ion_sfu.PeerLocal
-	PubIr *interceptor.Registry
+	PubIr ion_sfu.PeerInterceptorFactory
 }
 
 func NewUpPeerLocal(peer *ion_sfu.PeerLocal) UpPeerLocal {

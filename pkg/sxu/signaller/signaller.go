@@ -87,7 +87,7 @@ func (s *Signaller) BLock(param util.Param) error {
 	defer peer.Close()
 
 	if s.irFact != nil {
-		peer.PubIr = s.irFact.NewRegistry(track.Src)
+		peer.PubIr = s.irFact.NewFactory(track.Src)
 	}
 
 	s.r = rtc.NewRTC(peer, signaller)
