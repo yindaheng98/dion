@@ -8,7 +8,9 @@ import (
 )
 
 // PubIRFBuilder is a factory to create ion_sfu.InterceptorRegistryFactoryBuilder
-func PubIRFBuilder(sid string, uid string) ion_sfu.InterceptorRegistryFactory {
+type PubIRFBuilder struct{}
+
+func (PubIRFBuilder) Build(sid string, uid string) ion_sfu.InterceptorRegistryFactory {
 	return func(mediaEngine *webrtc.MediaEngine, config ion_sfu.WebRTCTransportConfig) *interceptor.Registry {
 		interceptorRegistry := &interceptor.Registry{}
 		if err := webrtc.ConfigureNack(mediaEngine, interceptorRegistry); err != nil {

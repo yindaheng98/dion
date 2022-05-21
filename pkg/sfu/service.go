@@ -69,7 +69,7 @@ func (s *SFUService) BroadcastTrackEvent(uid string, tracks []*rtc.TrackInfo, st
 func (s *SFUService) Signal(sig rtc.RTC_SignalServer) error {
 	//val := sigStream.Context().Value("claims")
 	//log.Infof("context val %v", val)
-	peer := ion_sfu.NewPeer(s.sfu, ion_sfu.WithPubInterceptorRegistryFactoryBuilder(PubIRFBuilder))
+	peer := ion_sfu.NewPeer(s.sfu, ion_sfu.WithPubInterceptorRegistryFactoryBuilder(PubIRFBuilder{}))
 	var tracksMutex sync.RWMutex
 	var tracksInfo []*rtc.TrackInfo
 
