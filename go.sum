@@ -858,6 +858,8 @@ github.com/yindaheng98/ion-sfu v1.11.1-0.20220521090140-f9d5744df8a3 h1:w9D9T2rL
 github.com/yindaheng98/ion-sfu v1.11.1-0.20220521090140-f9d5744df8a3/go.mod h1:FJ41uuR5Cxwh3CMVw85geBr1OgX1vPHHRr8UsC6CwaE=
 github.com/yindaheng98/ion-sfu v1.11.1-0.20220521094959-b551e0110087 h1:i9+bBz/5NzObq+ZtwyQn/d2JVIjBUqcqdPn170u7a8I=
 github.com/yindaheng98/ion-sfu v1.11.1-0.20220521094959-b551e0110087/go.mod h1:FJ41uuR5Cxwh3CMVw85geBr1OgX1vPHHRr8UsC6CwaE=
+github.com/yindaheng98/ion-sfu v1.11.1-0.20220521114509-a0c5751a7e62 h1:HxrLAeDOVtGUAc02dPvIB2yxqY0zi2hpX/GxRcTl4Ow=
+github.com/yindaheng98/ion-sfu v1.11.1-0.20220521114509-a0c5751a7e62/go.mod h1:FJ41uuR5Cxwh3CMVw85geBr1OgX1vPHHRr8UsC6CwaE=
 github.com/yuin/goldmark v1.1.25/go.mod h1:3hX8gzYuyVAZsxl0MRgGTJEmQBFcNTphYh9decYSb74=
 github.com/yuin/goldmark v1.1.27/go.mod h1:3hX8gzYuyVAZsxl0MRgGTJEmQBFcNTphYh9decYSb74=
 github.com/yuin/goldmark v1.1.32/go.mod h1:3hX8gzYuyVAZsxl0MRgGTJEmQBFcNTphYh9decYSb74=

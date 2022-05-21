@@ -24,7 +24,6 @@ func (t ForwardTrackParam) Clone() util.Param {
 
 type SignallerFactory struct {
 	cp       ConnPool
-	irFact   PubInterceptorFactory
 	sfu      *ion_sfu.SFU
 	Metadata metadata.MD
 }
@@ -49,8 +48,8 @@ func NewSignallerFactory(cp ConnPool, sfu *ion_sfu.SFU, with ...func(SignallerFa
 }
 
 type Signaller struct {
-	cp     ConnPool
-	irFact PubInterceptorFactory
+	cp    ConnPool
+	irfbf PubIRFBuilderFactory
 
 	sfu      *ion_sfu.SFU
 	Metadata metadata.MD
@@ -83,12 +82,13 @@ func (s *Signaller) BLock(param util.Param) error {
 	}
 	defer signaller.CloseSend()
 
-	peer := rtc.NewUpPeerLocal(ion_sfu.NewPeer(s.sfu))
-	defer peer.Close()
-
-	if s.irFact != nil {
-		peer.PubIr = s.irFact.NewFactory(track.Src)
+	var irfb ion_sfu.InterceptorRegistryFactoryBuilder
+	if s.irfbf != nil {
+		irfb = s.irfbf.NewBuilder(track.Src)
 	}
+
+	peer := rtc.NewUpPeerLocal(ion_sfu.NewPeer(s.sfu, ion_sfu.WithPubInterceptorRegistryFactoryBuilder(irfb)))
+	defer peer.Close()
 
 	s.r = rtc.NewRTC(peer, signaller)
 	return s.r.Run(track.RemoteSessionId, track.LocalSessionId)

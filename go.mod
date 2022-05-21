@@ -24,5 +24,5 @@ require (
 
 replace (
 	github.com/pion/ion v1.10.0 => github.com/yindaheng98/ion v1.10.1-0.20220518115802-da154fb3ee21
-	github.com/pion/ion-sfu v1.11.0 => github.com/yindaheng98/ion-sfu v1.11.1-0.20220521094959-b551e0110087
+	github.com/pion/ion-sfu v1.11.0 => github.com/yindaheng98/ion-sfu v1.11.1-0.20220521114509-a0c5751a7e62
 )
