@@ -16,11 +16,11 @@ type proceeding struct {
 // ProceedRouter controls the track proceed in SFU
 type ProceedRouter struct {
 	sfu         *ion_sfu.SFU
-	factory     ProcessorFactory
+	factory     bridge.ProcessorFactory
 	proceedings map[string]proceeding
 }
 
-func NewProceedRouter(sfu *ion_sfu.SFU, factory ProcessorFactory) ProceedRouter {
+func NewProceedRouter(sfu *ion_sfu.SFU, factory bridge.ProcessorFactory) ProceedRouter {
 	return ProceedRouter{
 		sfu:         sfu,
 		factory:     factory,
@@ -35,9 +35,8 @@ func (p ProceedRouter) StartProceedTrack(trackInfo *pb.ProceedTrack) {
 		p.ReplaceProceedTrack(proc.Track, trackInfo) // if exist, just update
 		return
 	}
-	pro := p.factory.NewProcessor(item.Clone().(util.ProceedTrackItem).Track)
 	proc = proceeding{
-		WatchDog:         util.NewWatchDogWithUnblockedDoor(bridge.NewBridgeFactory(p.sfu, pro)),
+		WatchDog:         util.NewWatchDogWithUnblockedDoor(bridge.NewBridgeFactory(p.sfu, p.factory)),
 		ProceedTrackItem: item.Clone().(util.ProceedTrackItem),
 	}
 	proc.Watch(bridge.ProceedTrackParam{ProceedTrack: item.Clone().(util.ProceedTrackItem).Track})
