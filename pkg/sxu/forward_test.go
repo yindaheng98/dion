@@ -1,6 +1,7 @@
 package sxu
 
 import (
+	"fmt"
 	"github.com/cloudwebrtc/nats-discovery/pkg/discovery"
 	nrpc "github.com/cloudwebrtc/nats-grpc/pkg/rpc"
 	"github.com/cloudwebrtc/nats-grpc/pkg/rpc/reflection"
@@ -11,10 +12,13 @@ import (
 	"github.com/pion/ion/pkg/runner"
 	pbion "github.com/pion/ion/proto/ion"
 	"github.com/pion/ion/proto/rtc"
+	"github.com/pion/webrtc/v3"
+	"github.com/yindaheng98/dion/config"
 	"github.com/yindaheng98/dion/pkg/sfu"
+	"github.com/yindaheng98/dion/pkg/sxu/bridge"
 	"github.com/yindaheng98/dion/pkg/sxu/syncer"
 	pb "github.com/yindaheng98/dion/proto"
-	"google.golang.org/grpc"
+	"github.com/yindaheng98/dion/util"
 	"testing"
 	"time"
 )
@@ -23,7 +27,7 @@ type SFU struct {
 	ion.Node
 	s *sfu.SFUService
 	runner.Service
-	conf Config
+	conf sfu.Config
 
 	sfu *ion_sfu.SFU
 
@@ -31,35 +35,10 @@ type SFU struct {
 	syncer  *syncer.ISGLBSyncer
 }
 
-func NewSFU() *SFU {
-	return &SFU{
-		Node: ion.NewNode("sxu-test"),
-	}
-}
-
 // ↓↓↓↓↓ COPY FROM https://github.com/pion/ion/blob/65dbd12eaad0f0e0a019b4d8ee80742930bcdc28/pkg/node/sfu/sfu.go ↓↓↓↓↓
 
-// Load load config file
-func (s *SFU) Load(confFile string) error {
-	err := s.conf.Load(confFile)
-	if err != nil {
-		log.Errorf("config load error: %v", err)
-		return err
-	}
-	return nil
-}
-
-// StartGRPC start with grpc.ServiceRegistrar
-func (s *SFU) StartGRPC(registrar grpc.ServiceRegistrar) error {
-	s.sfu = ion_sfu.NewSFU(s.conf.Config)
-	s.s = sfu.NewSFUServiceWithSFU(s.sfu)
-	rtc.RegisterRTCServer(registrar, s.s)
-	log.Infof("sfu pb.RegisterRTCServer(registrar, s.s)")
-	return nil
-}
-
 // Start sfu server
-func (s *SFU) Start(conf Config) error {
+func (s *SFU) Start(conf sfu.Config) error {
 	// ↑↑↑↑↑ COPY FROM https://github.com/pion/ion/blob/65dbd12eaad0f0e0a019b4d8ee80742930bcdc28/pkg/node/sfu/sfu.go ↑↑↑↑↑
 
 	// Start internal SFU
@@ -115,14 +94,50 @@ func (s *SFU) Close() {
 
 // ↑↑↑↑↑ COPY FROM https://github.com/pion/ion/blob/65dbd12eaad0f0e0a019b4d8ee80742930bcdc28/pkg/node/sfu/sfu.go ↑↑↑↑↑
 
+type TestSubscriberFactory struct {
+	bridge.SubscriberFactory
+}
+
+func NewTestSubscriberFactory(sfu *ion_sfu.SFU) TestSubscriberFactory {
+	return TestSubscriberFactory{SubscriberFactory: bridge.NewSubscriberFactory(sfu)}
+}
+
+func (p TestSubscriberFactory) NewDoor() (util.UnblockedDoor, error) {
+	subDoor, err := p.SubscriberFactory.NewDoor()
+	if err != nil {
+		log.Errorf("Cannot SubscriberFactory.NewDoor: %+v", err)
+		return nil, err
+	}
+	sub := subDoor.(bridge.Subscriber)
+	sub.OnTrack(func(remote *webrtc.TrackRemote, receiver *webrtc.RTPReceiver) {
+		log.Warnf("onTrack started: %+v", remote)
+
+		for {
+			// Read RTP packets being sent to Pion
+			_, _, readErr := remote.ReadRTP()
+			fmt.Println("TestSubscriberFactory get a RTP Packet")
+			if readErr != nil {
+				fmt.Printf("TestSubscriberFactory RTP Packet read error %+v\n", readErr)
+				return
+			}
+		}
+	})
+	return sub, nil
+}
+
+const MyName = "sxu-test"
+const MySessionName = "stupid2"
+
 func TestForwardTrackRoutineFactory(t *testing.T) {
-	conf := Config{}
-	err := conf.Load("D:\\Documents\\MyPrograms\\dion\\pkg\\sxu\\sfu.toml") // TODO: 怎么读完还是没正常初始化？what fuck
+	conf := sfu.Config{}
+	err := conf.Load("D:\\Documents\\MyPrograms\\dion\\pkg\\sxu\\sfu.toml")
 	if err != nil {
 		panic(err)
 	}
 
-	sxu := NewSFU()
+	sxu := &SFU{
+		Node: ion.NewNode(MyName),
+	}
 	err = sxu.Start(conf)
 	if err != nil {
 		t.Error(err)
@@ -130,20 +145,23 @@ func TestForwardTrackRoutineFactory(t *testing.T) {
 	}
 	iSFU := sxu.sfu
 
-	builder := NewDefaultToolBoxBuilder()
+	sub := NewTestSubscriberFactory(iSFU)
+	subdog := util.NewWatchDogWithUnblockedDoor(sub)
+	subdog.Watch(bridge.SID(MySessionName))
+
+	builder := NewDefaultToolBoxBuilder(WithSignallerFactory())
 	toolbox := builder.Build(&sxu.Node, iSFU)
+
 	trackStupid := &pb.ForwardTrack{
 		Src: &pbion.Node{
 			Dc:      "dc1",
-			Nid:     "stupid",
-			Service: "rtc",
+			Nid:     config.ServiceNameStupid,
+			Service: config.ServiceStupid,
 			Rpc:     nil,
 		},
-		RemoteSessionId: "stupid",
-		LocalSessionId:  "stupid",
+		RemoteSessionId: config.ServiceSessionStupid,
+		LocalSessionId:  MyName,
 	}
-	toolbox.TrackForwarder.StartForwardTrack(trackStupid)
-	<-time.After(5 * time.Second)
 	trackStupid2 := &pb.ForwardTrack{
 		Src: &pbion.Node{
 			Dc:      "dc1",
@@ -154,10 +172,13 @@ func TestForwardTrackRoutineFactory(t *testing.T) {
 		RemoteSessionId: "stupid",
 		LocalSessionId:  "stupid2",
 	}
+
+	<-time.After(5 * time.Second)
+	toolbox.TrackForwarder.StartForwardTrack(trackStupid)
 	for {
+		<-time.After(10 * time.Second)
 		toolbox.TrackForwarder.ReplaceForwardTrack(trackStupid, trackStupid2)
-		<-time.After(5 * time.Second)
+		<-time.After(10 * time.Second)
 		toolbox.TrackForwarder.ReplaceForwardTrack(trackStupid2, trackStupid)
-		<-time.After(5 * time.Second)
 	}
 }

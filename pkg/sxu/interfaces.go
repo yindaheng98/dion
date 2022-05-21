@@ -3,7 +3,9 @@ package sxu
 import (
 	ion_sfu "github.com/pion/ion-sfu/pkg/sfu"
 	"github.com/pion/ion/pkg/ion"
+	"github.com/yindaheng98/dion/pkg/sxu/bridge"
 	"github.com/yindaheng98/dion/pkg/sxu/router"
+	"github.com/yindaheng98/dion/pkg/sxu/signaller"
 	"github.com/yindaheng98/dion/pkg/sxu/syncer"
 )
 
@@ -11,30 +13,73 @@ type ToolBoxBuilder interface {
 	Build(node *ion.Node, sfu *ion_sfu.SFU) syncer.ToolBox
 }
 
+type WithOption func(*syncer.ToolBox, *ion.Node, *ion_sfu.SFU)
+
 type DefaultToolBoxBuilder struct {
+	with []WithOption
 }
 
-func NewDefaultToolBoxBuilder() DefaultToolBoxBuilder {
-	return DefaultToolBoxBuilder{}
+func NewDefaultToolBoxBuilder(with ...WithOption) DefaultToolBoxBuilder {
+	return DefaultToolBoxBuilder{with: with}
 }
 
 func (b DefaultToolBoxBuilder) Build(node *ion.Node, sfu *ion_sfu.SFU) syncer.ToolBox {
-	return syncer.ToolBox{
-		TrackForwarder: router.NewForwardRouter(sfu, NewNRPCConnPool(node)),
+	t := syncer.ToolBox{}
+	for _, w := range b.with {
+		w(&t, node, sfu)
+	}
+	if t.TrackForwarder == nil {
+		t.TrackForwarder = syncer.StupidTrackForwarder{}
+	}
+	if t.TrackProcessor == nil {
+		t.TrackProcessor = syncer.StupidTrackProcesser{}
+	}
+	if t.SessionTracker == nil {
+		t.SessionTracker = syncer.StupidSessionTracker{}
+	}
+	if t.TransmissionReporter == nil {
+		t.TransmissionReporter = &syncer.StupidTransmissionReporter{}
+	}
+	if t.ComputationReporter == nil {
+		t.ComputationReporter = &syncer.StupidComputationReporter{}
+	}
+	return t
+}
+
+func WithProcessorFactory(pro bridge.ProcessorFactory) WithOption {
+	return func(box *syncer.ToolBox, node *ion.Node, sfu *ion_sfu.SFU) {
+		if pro != nil {
+			box.TrackProcessor = router.NewProceedRouter(sfu, pro)
+		}
 	}
 }
 
-type ToolBoxBuilderWithProcessor struct {
-	pro router.ProcessorFactory
+func WithSignallerFactory(with ...func(signaller.SignallerFactory)) WithOption {
+	return func(box *syncer.ToolBox, node *ion.Node, sfu *ion_sfu.SFU) {
+		box.TrackForwarder = router.NewForwardRouter(sfu, NewNRPCConnPool(node), with...)
+	}
 }
 
-func NewToolBoxBuilderWithProcessor(pro router.ProcessorFactory) ToolBoxBuilderWithProcessor {
-	return ToolBoxBuilderWithProcessor{pro: pro}
+func WithTransmissionReporter(reporter syncer.TransmissionReporter) WithOption {
+	return func(box *syncer.ToolBox, node *ion.Node, sfu *ion_sfu.SFU) {
+		if reporter != nil {
+			box.TransmissionReporter = reporter
+		}
+	}
 }
 
-func (b ToolBoxBuilderWithProcessor) Build(node *ion.Node, sfu *ion_sfu.SFU) syncer.ToolBox {
-	return syncer.ToolBox{
-		TrackForwarder: router.NewForwardRouter(sfu, NewNRPCConnPool(node)),
-		TrackProcessor: router.NewProceedRouter(sfu, b.pro),
+func WithComputationReporter(reporter syncer.ComputationReporter) WithOption {
+	return func(box *syncer.ToolBox, node *ion.Node, sfu *ion_sfu.SFU) {
+		if reporter != nil {
+			box.ComputationReporter = reporter
+		}
+	}
+}
+
+func WithSessionTracker(tracker syncer.SessionTracker) WithOption {
+	return func(box *syncer.ToolBox, node *ion.Node, sfu *ion_sfu.SFU) {
+		if tracker != nil {
+			box.SessionTracker = tracker
+		}
 	}
 }
