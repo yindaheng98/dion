@@ -26,6 +26,7 @@ type SignallerFactory struct {
 	cp       ConnPool
 	sfu      *ion_sfu.SFU
 	Metadata metadata.MD
+	IRFBF    PubIRFBuilderFactory
 }
 
 func (f SignallerFactory) NewDoor() (util.BlockedDoor, error) {
@@ -33,16 +34,14 @@ func (f SignallerFactory) NewDoor() (util.BlockedDoor, error) {
 		cp:       f.cp,
 		sfu:      f.sfu,
 		Metadata: f.Metadata,
+		irfbf:    f.IRFBF,
 	}, nil
 }
 
-func NewSignallerFactory(cp ConnPool, sfu *ion_sfu.SFU, with ...func(SignallerFactory)) SignallerFactory {
+func NewSignallerFactory(cp ConnPool, sfu *ion_sfu.SFU) SignallerFactory {
 	sf := SignallerFactory{
 		cp:  cp,
 		sfu: sfu,
-	}
-	for _, w := range with {
-		w(sf)
 	}
 	return sf
 }
