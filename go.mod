@@ -9,6 +9,7 @@ require (
 	github.com/golang/protobuf v1.5.2
 	github.com/google/uuid v1.3.0
 	github.com/nats-io/nats.go v1.12.0
+	github.com/pion/interceptor v0.1.10
 	github.com/pion/ion v1.10.0
 	github.com/pion/ion-log v1.2.2
 	github.com/pion/ion-sdk-go v0.7.0
