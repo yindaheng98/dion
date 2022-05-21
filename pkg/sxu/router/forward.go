@@ -18,11 +18,15 @@ type ForwardRouter struct {
 	forwardings map[string]forwarding // map<NID, map<SID, forwarding>>
 }
 
-func NewForwardRouter(sfu *ion_sfu.SFU, cp signaller.ConnPool, with ...func(signaller.SignallerFactory)) ForwardRouter {
-	return ForwardRouter{
-		factory:     signaller.NewSignallerFactory(cp, sfu, with...),
+func NewForwardRouter(sfu *ion_sfu.SFU, cp signaller.ConnPool, with ...func(ForwardRouter)) ForwardRouter {
+	r := ForwardRouter{
+		factory:     signaller.NewSignallerFactory(cp, sfu),
 		forwardings: map[string]forwarding{},
 	}
+	for _, w := range with {
+		w(r)
+	}
+	return r
 }
 
 func (f ForwardRouter) StartForwardTrack(trackInfo *pb.ForwardTrack) {
