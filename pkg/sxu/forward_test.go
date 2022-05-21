@@ -74,7 +74,7 @@ func TestForwardTrackRoutineFactory(t *testing.T) {
 	subdog2 := util.NewWatchDogWithUnblockedDoor(sub2)
 	subdog2.Watch(bridge.SID(MySessionName2))
 
-	builder := NewDefaultToolBoxBuilder(WithSignallerFactory())
+	builder := NewDefaultToolBoxBuilder(WithTrackForwarder())
 	toolbox := builder.Build(&sxu.Node, iSFU)
 
 	trackStupid := &pb.ForwardTrack{

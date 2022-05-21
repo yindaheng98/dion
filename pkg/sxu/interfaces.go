@@ -5,7 +5,6 @@ import (
 	"github.com/pion/ion/pkg/ion"
 	"github.com/yindaheng98/dion/pkg/sxu/bridge"
 	"github.com/yindaheng98/dion/pkg/sxu/router"
-	"github.com/yindaheng98/dion/pkg/sxu/signaller"
 	"github.com/yindaheng98/dion/pkg/sxu/syncer"
 )
 
@@ -54,9 +53,13 @@ func WithProcessorFactory(pro bridge.ProcessorFactory) WithOption {
 	}
 }
 
-func WithSignallerFactory(with ...func(signaller.SignallerFactory)) WithOption {
+func WithTrackForwarder(with ...func(router.ForwardRouter)) WithOption {
 	return func(box *syncer.ToolBox, node *ion.Node, sfu *ion_sfu.SFU) {
-		box.TrackForwarder = router.NewForwardRouter(sfu, NewNRPCConnPool(node), with...)
+		TrackForwarder := router.NewForwardRouter(sfu, NewNRPCConnPool(node))
+		for _, w := range with {
+			w(TrackForwarder)
+		}
+		box.TrackForwarder = TrackForwarder
 	}
 }
 
