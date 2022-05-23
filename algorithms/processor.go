@@ -1,4 +1,4 @@
-package bridge
+package algorithms
 
 import (
 	"github.com/pion/webrtc/v3"

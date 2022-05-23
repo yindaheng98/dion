@@ -1,11 +1,13 @@
-package bridge
+package ffmpeg
 
 import (
 	"fmt"
 	log "github.com/pion/ion-log"
 	"github.com/pion/webrtc/v3"
 	"github.com/pion/webrtc/v3/pkg/media/ivfwriter"
+	"github.com/yindaheng98/dion/algorithms"
 	pb "github.com/yindaheng98/dion/proto"
+	"github.com/yindaheng98/dion/util"
 	"io"
 	"os/exec"
 )
@@ -24,7 +26,7 @@ func NewSimpleFFmpegIVFProcessorFactory(ffmpegPath string) *SimpleFFmpegIVFProce
 	}
 }
 
-func (s SimpleFFmpegIVFProcessorFactory) NewProcessor() (Processor, error) {
+func (s SimpleFFmpegIVFProcessorFactory) NewProcessor() (algorithms.Processor, error) {
 	return &SimpleFFmpegIVFProcessor{
 		ffmpegPath: s.ffmpegPath,
 		Filter:     "drawbox=x=0:y=0:w=50:h=50:c=blue",
@@ -93,13 +95,13 @@ func (t *SimpleFFmpegIVFProcessor) AddInTrack(_ string, remote *webrtc.TrackRemo
 		"pipe:1",
 	}
 	ffmpeg := exec.Command(t.ffmpegPath, videoopt...) //nolint
-	ffmpegIn, ffmpegOut, err := makeSampleIVFIO(ffmpeg)
+	ffmpegIn, ffmpegOut, err := util.GetStdPipes(ffmpeg)
 	if err != nil {
 		return err
 	}
 	senderCh := make(chan *webrtc.RTPSender, 1)
 	go func(senderCh chan<- *webrtc.RTPSender) {
-		track, err := makeSampleIVFTrack(ffmpegOut)
+		track, err := util.MakeIVFTrackFromStdout(ffmpegOut, webrtc.RTPCodecCapability{MimeType: webrtc.MimeTypeVP8})
 		if err != nil {
 			close(senderCh)
 			return
