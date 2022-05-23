@@ -3,6 +3,7 @@ package router
 import (
 	log "github.com/pion/ion-log"
 	ion_sfu "github.com/pion/ion-sfu/pkg/sfu"
+	"github.com/yindaheng98/dion/algorithms"
 	"github.com/yindaheng98/dion/pkg/sxu/bridge"
 	pb "github.com/yindaheng98/dion/proto"
 	"github.com/yindaheng98/dion/util"
@@ -16,11 +17,11 @@ type proceeding struct {
 // ProceedRouter controls the track proceed in SFU
 type ProceedRouter struct {
 	sfu         *ion_sfu.SFU
-	factory     bridge.ProcessorFactory
+	factory     algorithms.ProcessorFactory
 	proceedings map[string]proceeding
 }
 
-func NewProceedRouter(sfu *ion_sfu.SFU, factory bridge.ProcessorFactory) ProceedRouter {
+func NewProceedRouter(sfu *ion_sfu.SFU, factory algorithms.ProcessorFactory) ProceedRouter {
 	return ProceedRouter{
 		sfu:         sfu,
 		factory:     factory,

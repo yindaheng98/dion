@@ -3,6 +3,7 @@ package bridge
 import (
 	"fmt"
 	"github.com/pion/webrtc/v3"
+	"github.com/yindaheng98/dion/algorithms"
 	"github.com/yindaheng98/dion/util"
 )
 
@@ -10,7 +11,7 @@ import (
 // All the Entrance(or in other words, Subscriber) should put their track into same Processor
 type EntranceFactory struct {
 	SubscriberFactory
-	road Processor
+	road algorithms.Processor
 }
 
 func (e EntranceFactory) NewDoor() (util.UnblockedDoor, error) {
@@ -27,7 +28,7 @@ func (e EntranceFactory) NewDoor() (util.UnblockedDoor, error) {
 // Entrance of a Bridge
 type Entrance struct {
 	Subscriber // Subscriber is its entrance, Entrance is also a Subscriber
-	road       Processor
+	road       algorithms.Processor
 }
 
 func (e Entrance) Lock(init util.Param, OnBroken func(badGay error)) error {

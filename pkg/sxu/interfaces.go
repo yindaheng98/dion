@@ -3,7 +3,7 @@ package sxu
 import (
 	ion_sfu "github.com/pion/ion-sfu/pkg/sfu"
 	"github.com/pion/ion/pkg/ion"
-	"github.com/yindaheng98/dion/pkg/sxu/bridge"
+	"github.com/yindaheng98/dion/algorithms"
 	"github.com/yindaheng98/dion/pkg/sxu/router"
 	"github.com/yindaheng98/dion/pkg/sxu/syncer"
 )
@@ -45,7 +45,7 @@ func (b DefaultToolBoxBuilder) Build(node *ion.Node, sfu *ion_sfu.SFU) syncer.To
 	return t
 }
 
-func WithProcessorFactory(pro bridge.ProcessorFactory) WithOption {
+func WithProcessorFactory(pro algorithms.ProcessorFactory) WithOption {
 	return func(box *syncer.ToolBox, node *ion.Node, sfu *ion_sfu.SFU) {
 		if pro != nil {
 			box.TrackProcessor = router.NewProceedRouter(sfu, pro)

@@ -3,6 +3,7 @@ package bridge
 import (
 	log "github.com/pion/ion-log"
 	ion_sfu "github.com/pion/ion-sfu/pkg/sfu"
+	"github.com/yindaheng98/dion/algorithms/impl/ffmpeg"
 	pb "github.com/yindaheng98/dion/proto"
 	"github.com/yindaheng98/dion/util"
 	"testing"
@@ -13,7 +14,7 @@ const YourName = "stupid2"
 
 func TestBridge(t *testing.T) {
 	confFile := "D:\\Documents\\MyPrograms\\dion\\pkg\\sxu\\sfu.toml"
-	ffmpeg := "D:\\Documents\\MyPrograms\\ffmpeg.exe"
+	ffmpegPath := "D:\\Documents\\MyPrograms\\ffmpeg.exe"
 
 	conf := readConf(confFile)
 
@@ -22,7 +23,7 @@ func TestBridge(t *testing.T) {
 
 	iSFU := ion_sfu.NewSFU(conf.Config)
 
-	br := NewBridgeFactory(iSFU, NewSimpleFFmpegIVFProcessorFactory(ffmpeg))
+	br := NewBridgeFactory(iSFU, ffmpeg.NewSimpleFFmpegIVFProcessorFactory(ffmpegPath))
 	brdog := util.NewWatchDogWithUnblockedDoor(br)
 	brdog.Watch(ProceedTrackParam{ProceedTrack: &pb.ProceedTrack{
 		DstSessionId:     YourName,
@@ -31,19 +32,19 @@ func TestBridge(t *testing.T) {
 
 	<-time.After(5 * time.Second)
 
-	pub := NewSimpleFFmpegTestsrcPublisher(ffmpeg, iSFU)
+	pub := NewSimpleFFmpegTestsrcPublisher(ffmpegPath, iSFU)
 	pubdog := util.NewWatchDogWithUnblockedDoor(pub)
 	pubdog.Watch(SID(MyName))
 
 	<-time.After(3 * time.Second)
 
-	pub2 := NewSimpleFFmpegTestsrcPublisher(ffmpeg, iSFU)
+	pub2 := NewSimpleFFmpegTestsrcPublisher(ffmpegPath, iSFU)
 	pubdog2 := util.NewWatchDogWithUnblockedDoor(pub2)
 	pubdog2.Watch(SID(MyName))
 
 	<-time.After(1 * time.Second)
 
-	pub3 := NewSimpleFFmpegTestsrcPublisher(ffmpeg, iSFU)
+	pub3 := NewSimpleFFmpegTestsrcPublisher(ffmpegPath, iSFU)
 	pubdog3 := util.NewWatchDogWithUnblockedDoor(pub3)
 	pubdog3.Watch(SID(MyName))
 

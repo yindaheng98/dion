@@ -5,6 +5,7 @@ import (
 	log "github.com/pion/ion-log"
 	ion_sfu "github.com/pion/ion-sfu/pkg/sfu"
 	"github.com/pion/webrtc/v3"
+	"github.com/yindaheng98/dion/algorithms"
 	pb "github.com/yindaheng98/dion/proto"
 	"github.com/yindaheng98/dion/util"
 	"google.golang.org/protobuf/proto"
@@ -20,12 +21,12 @@ func (t ProceedTrackParam) Clone() util.Param {
 
 type BridgeFactory struct {
 	PublisherFactory
-	ProcessorFactory
+	algorithms.ProcessorFactory
 
 	sub SubscriberFactory // to create entrance
 }
 
-func NewBridgeFactory(sfu *ion_sfu.SFU, fact ProcessorFactory) BridgeFactory {
+func NewBridgeFactory(sfu *ion_sfu.SFU, fact algorithms.ProcessorFactory) BridgeFactory {
 	return BridgeFactory{
 		PublisherFactory: NewPublisherFactory(sfu),
 		ProcessorFactory: fact,
@@ -58,7 +59,7 @@ func (b BridgeFactory) NewDoor() (util.UnblockedDoor, error) {
 type Bridge struct {
 	EntranceFactory // Bridge should have the ability to generate Entrance
 	// But Bridge only have 1 Publisher in EntranceFactory, if this Publisher broken, the the bridge broken
-	Processor
+	algorithms.Processor
 	exit Publisher
 
 	track     *pb.ProceedTrack
