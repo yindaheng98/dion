@@ -2,6 +2,7 @@ package bridge
 
 import (
 	log "github.com/pion/ion-log"
+	"github.com/pion/ion-sfu/pkg/middlewares/datachannel"
 	ion_sfu "github.com/pion/ion-sfu/pkg/sfu"
 	"github.com/yindaheng98/dion/algorithms/impl/ffmpeg"
 	pb "github.com/yindaheng98/dion/proto"
@@ -22,6 +23,8 @@ func TestBridge(t *testing.T) {
 	log.Infof("--- starting sfu node ---")
 
 	iSFU := ion_sfu.NewSFU(conf.Config)
+	dc := iSFU.NewDatachannel(ion_sfu.APIChannelLabel)
+	dc.Use(datachannel.SubscriberAPI) // 没有初始化Datachannel会报错“SetRemoteDescription called with no ice-ufrag”，导致没有Track的时候无限制重启
 
 	br := NewBridgeFactory(iSFU, ffmpeg.NewSimpleFFmpegIVFProcessorFactory(ffmpegPath))
 	brdog := util.NewWatchDogWithUnblockedDoor(br)

@@ -3,6 +3,7 @@ package bridge
 import (
 	"fmt"
 	log "github.com/pion/ion-log"
+	"github.com/pion/ion-sfu/pkg/middlewares/datachannel"
 	ion_sfu "github.com/pion/ion-sfu/pkg/sfu"
 	"github.com/pion/webrtc/v3"
 	"github.com/yindaheng98/dion/util"
@@ -55,6 +56,8 @@ func TestSubscriber(t *testing.T) {
 	log.Infof("--- starting sfu node ---")
 
 	iSFU := ion_sfu.NewSFU(conf.Config)
+	dc := iSFU.NewDatachannel(ion_sfu.APIChannelLabel)
+	dc.Use(datachannel.SubscriberAPI) // 没有初始化Datachannel会报错“SetRemoteDescription called with no ice-ufrag”，导致没有Track的时候无限制重启
 
 	sub := NewTestSubscriberFactory(iSFU)
 	subdog := util.NewWatchDogWithUnblockedDoor(sub)
