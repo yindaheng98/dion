@@ -104,6 +104,12 @@ func TestPub(t *testing.T) {
 	}
 	t.Logf("offer => %v", offer)
 
+	sub := init_pc(stream, t)
+	_, err = sub.CreateDataChannel("ion-sfu", nil)
+	if err != nil {
+		panic(err)
+	}
+
 	err = stream.Send(&pb.Request{
 		Payload: &pb.Request_Join{
 			Join: &pb.JoinRequest{
@@ -112,6 +118,9 @@ func TestPub(t *testing.T) {
 					Target: pb.Target_PUBLISHER,
 					Type:   offer.Type.String(),
 					Sdp:    offer.SDP,
+				},
+				Config: map[string]string{
+					"NoAutoSubscribe": "true",
 				},
 			},
 		},
@@ -156,6 +165,34 @@ func TestPub(t *testing.T) {
 			var sdpType webrtc.SDPType
 			if payload.Description.Type == "offer" {
 				sdpType = webrtc.SDPTypeOffer
+				sdp := webrtc.SessionDescription{
+					SDP:  payload.Description.Sdp,
+					Type: sdpType,
+				}
+				err = sub.SetRemoteDescription(sdp)
+				if err != nil {
+					panic(err)
+				}
+				answer, err := sub.CreateAnswer(nil)
+				if err != nil {
+					panic(err)
+				}
+				err = sub.SetLocalDescription(answer)
+				if err != nil {
+					panic(err)
+				}
+				err = stream.Send(&pb.Request{
+					Payload: &pb.Request_Description{
+						Description: &pb.SessionDescription{
+							Target: pb.Target_SUBSCRIBER,
+							Type:   "answer",
+							Sdp:    answer.SDP,
+						},
+					},
+				})
+				if err != nil {
+					panic(err)
+				}
 			} else {
 				sdpType = webrtc.SDPTypeAnswer
 				sdp := webrtc.SessionDescription{
@@ -194,8 +231,19 @@ func TestPub(t *testing.T) {
 func TestSub(t *testing.T) {
 	s := load_sfu()
 	stream := connect_sfu()
+	pub := init_pc(stream, t)
+	_, err := pub.CreateDataChannel("ion-sfu", nil)
+	if err != nil {
+		panic(err)
+	}
+	offer, err := pub.CreateOffer(nil)
+	if err != nil {
+		panic(err)
+	}
+	t.Logf("offer => %v", offer)
+
 	sub := init_pc(stream, t)
-	_, err := sub.CreateDataChannel("ion-sfu", nil)
+	_, err = sub.CreateDataChannel("ion-sfu", nil)
 	if err != nil {
 		panic(err)
 	}
@@ -204,8 +252,13 @@ func TestSub(t *testing.T) {
 		Payload: &pb.Request_Join{
 			Join: &pb.JoinRequest{
 				Sid: "room1",
+				Description: &pb.SessionDescription{
+					Target: pb.Target_PUBLISHER,
+					Type:   offer.Type.String(),
+					Sdp:    offer.SDP,
+				},
 				Config: map[string]string{
-					"NoPublish": "true",
+					// "NoPublish": "true", // TODO: 这段代码里只要加上这个就会SetRemoteDescription called with no ice-ufrag
 				},
 			},
 		},
@@ -225,41 +278,6 @@ func TestSub(t *testing.T) {
 		t.Logf("\nReply: reply %v\n", reply)
 
 		switch payload := reply.Payload.(type) {
-		case *pb.Reply_Join:
-			var sdpType webrtc.SDPType
-			if payload.Join.Description.Type == "offer" {
-				sdpType = webrtc.SDPTypeOffer
-				sdp := webrtc.SessionDescription{
-					SDP:  payload.Join.Description.Sdp,
-					Type: sdpType,
-				}
-				err = sub.SetRemoteDescription(sdp)
-				if err != nil {
-					panic(err)
-				}
-				answer, err := sub.CreateAnswer(nil)
-				if err != nil {
-					panic(err)
-				}
-				err = sub.SetLocalDescription(answer)
-				if err != nil {
-					panic(err)
-				}
-				err = stream.Send(&pb.Request{
-					Payload: &pb.Request_Description{
-						Description: &pb.SessionDescription{
-							Target: pb.Target_SUBSCRIBER,
-							Type:   "answer",
-							Sdp:    answer.SDP,
-						},
-					},
-				})
-				if err != nil {
-					panic(err)
-				}
-			} else {
-				sdpType = webrtc.SDPTypeAnswer
-			}
 		case *pb.Reply_Description:
 			var sdpType webrtc.SDPType
 			if payload.Description.Type == "offer" {
