@@ -90,7 +90,7 @@ func init_pc(stream rtc.RTC_SignalClient, t *testing.T) *webrtc.PeerConnection {
 	return pc
 }
 
-func TestStart(t *testing.T) {
+func TestPub(t *testing.T) {
 	s := load_sfu()
 	stream := connect_sfu()
 	pub := init_pc(stream, t)
@@ -179,6 +179,134 @@ func TestStart(t *testing.T) {
 			if pub.CurrentLocalDescription() != nil {
 				for _, c := range cs {
 					err = pub.AddICECandidate(c)
+					if err != nil {
+						panic(err)
+					}
+				}
+			}
+			//return
+		}
+	}
+
+	s.Close()
+}
+
+func TestSub(t *testing.T) {
+	s := load_sfu()
+	stream := connect_sfu()
+	sub := init_pc(stream, t)
+	_, err := sub.CreateDataChannel("ion-sfu", nil)
+	if err != nil {
+		panic(err)
+	}
+
+	err = stream.Send(&pb.Request{
+		Payload: &pb.Request_Join{
+			Join: &pb.JoinRequest{
+				Sid: "room1",
+				Config: map[string]string{
+					"NoPublish": "true",
+				},
+			},
+		},
+	})
+
+	if err != nil {
+		panic(err)
+	}
+
+	var candidates []webrtc.ICECandidateInit
+	for {
+		reply, err := stream.Recv()
+		if err != nil {
+			t.Errorf("Signal: err %s", err)
+			break
+		}
+		t.Logf("\nReply: reply %v\n", reply)
+
+		switch payload := reply.Payload.(type) {
+		case *pb.Reply_Join:
+			var sdpType webrtc.SDPType
+			if payload.Join.Description.Type == "offer" {
+				sdpType = webrtc.SDPTypeOffer
+				sdp := webrtc.SessionDescription{
+					SDP:  payload.Join.Description.Sdp,
+					Type: sdpType,
+				}
+				err = sub.SetRemoteDescription(sdp)
+				if err != nil {
+					panic(err)
+				}
+				answer, err := sub.CreateAnswer(nil)
+				if err != nil {
+					panic(err)
+				}
+				err = sub.SetLocalDescription(answer)
+				if err != nil {
+					panic(err)
+				}
+				err = stream.Send(&pb.Request{
+					Payload: &pb.Request_Description{
+						Description: &pb.SessionDescription{
+							Target: pb.Target_SUBSCRIBER,
+							Type:   "answer",
+							Sdp:    answer.SDP,
+						},
+					},
+				})
+				if err != nil {
+					panic(err)
+				}
+			} else {
+				sdpType = webrtc.SDPTypeAnswer
+			}
+		case *pb.Reply_Description:
+			var sdpType webrtc.SDPType
+			if payload.Description.Type == "offer" {
+				sdpType = webrtc.SDPTypeOffer
+				sdp := webrtc.SessionDescription{
+					SDP:  payload.Description.Sdp,
+					Type: sdpType,
+				}
+				err = sub.SetRemoteDescription(sdp)
+				if err != nil {
+					panic(err)
+				}
+				answer, err := sub.CreateAnswer(nil)
+				if err != nil {
+					panic(err)
+				}
+				err = sub.SetLocalDescription(answer)
+				if err != nil {
+					panic(err)
+				}
+				err = stream.Send(&pb.Request{
+					Payload: &pb.Request_Description{
+						Description: &pb.SessionDescription{
+							Target: pb.Target_SUBSCRIBER,
+							Type:   "answer",
+							Sdp:    answer.SDP,
+						},
+					},
+				})
+				if err != nil {
+					panic(err)
+				}
+			} else {
+				sdpType = webrtc.SDPTypeAnswer
+			}
+		case *pb.Reply_Trickle:
+			var candidate webrtc.ICECandidateInit
+			err := json.Unmarshal([]byte(payload.Trickle.Init), &candidate)
+			if err != nil {
+				panic(err)
+			}
+			candidates = append(candidates, candidate)
+			cs := candidates
+			candidates = []webrtc.ICECandidateInit{}
+			if sub.CurrentLocalDescription() != nil {
+				for _, c := range cs {
+					err = sub.AddICECandidate(c)
 					if err != nil {
 						panic(err)
 					}
