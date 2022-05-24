@@ -24,14 +24,14 @@ type Common struct {
 	Nats   NatsConf `mapstructure:"nats"`
 }
 
-func Load(file string, rawVal interface{}) error {
+func LoadFromFile(file, ftype string, rawVal interface{}) error {
 	_, err := os.Stat(file)
 	if err != nil {
 		return err
 	}
 
 	viper.SetConfigFile(file)
-	viper.SetConfigType("toml")
+	viper.SetConfigType(ftype)
 
 	err = viper.ReadInConfig()
 	if err != nil {
@@ -48,6 +48,10 @@ func Load(file string, rawVal interface{}) error {
 	return nil
 }
 
+func LoadFromToml(file string, rawVal interface{}) error {
+	return LoadFromFile(file, "toml", rawVal)
+}
+
 func (c *Common) Load(file string) error {
-	return Load(file, c)
+	return LoadFromToml(file, c)
 }
