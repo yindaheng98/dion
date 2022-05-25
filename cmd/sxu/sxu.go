@@ -3,6 +3,7 @@ package main
 import (
 	"flag"
 	"fmt"
+	"github.com/yindaheng98/dion/pkg/sfu"
 	"github.com/yindaheng98/dion/pkg/sxu"
 
 	"os"
@@ -13,7 +14,7 @@ import (
 )
 
 var (
-	conf = sxu.Config{}
+	conf = sfu.Config{}
 	file string
 )
 
