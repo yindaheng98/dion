@@ -32,7 +32,13 @@ func RandNode(nid string) *ion.Node {
 }
 
 func RandChange(s *pb.SFUStatus) *pb.SFUStatus {
-	s.SFU.Service = util.RandomString(4)
+	if RandBool() {
+		s.SFU.Service = util.RandomString(4)
+	} else {
+		s.SFU.Rpc = &ion.RPC{
+			Addr: util.RandomString(4),
+		}
+	}
 	return s
 }
 
