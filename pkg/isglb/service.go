@@ -2,6 +2,7 @@ package isglb
 
 import (
 	"fmt"
+	"github.com/cloudwebrtc/nats-discovery/pkg/discovery"
 	"github.com/yindaheng98/dion/util"
 	"io"
 	"sync"
@@ -50,6 +51,7 @@ func (isglb *ISGLBService) RegisterService(registrar grpc.ServiceRegistrar) {
 type isglbRecvMessage struct {
 	request *pb.SyncRequest
 	sigkey  *pb.ISGLB_SyncSFUServer
+	deleted *discovery.Node
 }
 
 // SyncSFU receive current SFUStatus, call the algorithm, and reply expected SFUStatus
@@ -124,6 +126,20 @@ func (isglb *ISGLBService) routineSFUStatusRecv() {
 				default: //if there is no more message
 					break L //just exit
 				}
+			}
+
+			if deletedNode := msg.deleted; deletedNode != nil {
+				nid := (util.DiscoveryNodeItem{Node: deletedNode}).Key()
+				if lastStatus, ok := latestStatus[nid]; ok {
+					delete(latestStatus, nid)
+					delete(signids, nid)
+					log.Debugf("Deleted a SFU status: %s", lastStatus.SFUStatus.String())
+					recvCount++ // count the message
+				}
+			}
+
+			if msg.request == nil || msg.sigkey == nil {
+				continue
 			}
 			//category and save messages
 			switch request := msg.request.Request.(type) {

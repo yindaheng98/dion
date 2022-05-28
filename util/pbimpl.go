@@ -1,16 +1,46 @@
 package util
 
 import (
+	"fmt"
+	"github.com/cloudwebrtc/nats-discovery/pkg/discovery"
 	pb "github.com/yindaheng98/dion/proto"
 	"google.golang.org/protobuf/proto"
 )
+
+type DiscoveryNodeItem struct {
+	Node *discovery.Node
+}
+
+func (i DiscoveryNodeItem) Key() string {
+	return fmt.Sprintf("{ DC: %s, Service: %s, NID: %s }", i.Node.DC, i.Node.Service, i.Node.NID)
+}
+func (i DiscoveryNodeItem) Compare(data DisorderSetItem) bool {
+	return i.Key() == data.Key() &&
+		i.Node.RPC.Protocol == data.(DiscoveryNodeItem).Node.RPC.Protocol &&
+		i.Node.RPC.Addr == data.(DiscoveryNodeItem).Node.RPC.Addr
+}
+func (i DiscoveryNodeItem) Clone() DisorderSetItem {
+	return DiscoveryNodeItem{
+		Node: &discovery.Node{
+			DC:      i.Node.DC,
+			Service: i.Node.Service,
+			NID:     i.Node.NID,
+			RPC: discovery.RPC{
+				Protocol: i.Node.RPC.Protocol,
+				Addr:     i.Node.RPC.Addr,
+				Params:   i.Node.RPC.Params,
+			},
+			ExtraInfo: i.Node.ExtraInfo,
+		},
+	}
+}
 
 type SFUStatusItem struct {
 	SFUStatus *pb.SFUStatus
 }
 
 func (i SFUStatusItem) Key() string {
-	return i.SFUStatus.SFU.Dc + i.SFUStatus.SFU.Service + i.SFUStatus.SFU.Dc
+	return fmt.Sprintf("{ DC: %s, Service: %s, NID: %s }", i.SFUStatus.SFU.Dc, i.SFUStatus.SFU.Service, i.SFUStatus.SFU.Nid)
 }
 func (i SFUStatusItem) Compare(data DisorderSetItem) bool {
 	// TODO: ForwardTracks, ProceedTracks and ClientNeededSession maybe disorder
@@ -27,7 +57,7 @@ type ClientNeededSessionItem struct {
 }
 
 func (i ClientNeededSessionItem) Key() string {
-	return i.Client.User + i.Client.Session
+	return fmt.Sprintf("{ User: %s, Session: %s }", i.Client.User, i.Client.Session)
 }
 func (i ClientNeededSessionItem) Compare(data DisorderSetItem) bool {
 	return i.Client.String() == data.(ClientNeededSessionItem).Client.String()
@@ -53,7 +83,8 @@ type ForwardTrackItem struct {
 }
 
 func (i ForwardTrackItem) Key() string {
-	return i.Track.Src.Nid + i.Track.RemoteSessionId // !!!重要!!!不允许多次转发同一个节点的同一个Session
+	return fmt.Sprintf("{ NID: %s, RemoteSessionId: %s }", i.Track.Src.Nid, i.Track.RemoteSessionId)
+	// !!!重要!!!不允许多次转发同一个节点的同一个Session
 }
 
 func (i ForwardTrackItem) Compare(data DisorderSetItem) bool {
@@ -81,7 +112,8 @@ type ProceedTrackItem struct {
 }
 
 func (i ProceedTrackItem) Key() string {
-	return i.Track.DstSessionId // !!!重要!!!不允许多个处理结果放进一个Session里
+	return i.Track.DstSessionId
+	// !!!重要!!!不允许多个处理结果放进一个Session里
 }
 func (i ProceedTrackItem) Compare(data DisorderSetItem) bool {
 	srcTrackList1 := Strings(data.(ProceedTrackItem).Track.SrcSessionIdList).ToDisorderSetItemList()

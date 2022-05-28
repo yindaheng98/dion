@@ -2,6 +2,7 @@ package isglb
 
 import (
 	"fmt"
+	"github.com/cloudwebrtc/nats-discovery/pkg/discovery"
 	"testing"
 	"time"
 
@@ -35,7 +36,7 @@ func TestISGLB(t *testing.T) {
 	cli := NewISGLBClient(&node, node.NID, map[string]interface{}{})
 
 	cli.OnSFUStatusRecv = func(ss *pb.SFUStatus) {
-		t.Log(fmt.Printf("Received SFU status: %s", ss.String()))
+		t.Log(fmt.Printf("Received SFU status: %s\n", ss.String()))
 	}
 	cli.Connect()
 	// ↑↑↑↑↑ Connect ↑↑↑↑↑
@@ -44,12 +45,26 @@ func TestISGLB(t *testing.T) {
 	s := &pb.SFUStatus{
 		SFU: random.RandNode(node.NID),
 	}
+	del := make([]discovery.Node, N)
 	rr := &random.RandReports{}
 	for i := 0; i < N; i++ {
 		if random.RandBool() {
 			err := cli.SendSyncRequest(&pb.SyncRequest{Request: &pb.SyncRequest_Status{Status: s}})
 			if err != nil {
 				t.Error(err)
+			}
+			rpc := discovery.RPC{}
+			if s.SFU.Rpc != nil {
+				rpc = discovery.RPC{
+					Protocol: discovery.Protocol(s.SFU.Rpc.Protocol),
+					Addr:     s.SFU.Rpc.Addr,
+				}
+			}
+			del[i] = discovery.Node{
+				DC:      s.SFU.Dc,
+				Service: s.SFU.Service,
+				NID:     s.SFU.Nid,
+				RPC:     rpc,
 			}
 			time.Sleep(sleep * time.Millisecond)
 		}
@@ -67,22 +82,10 @@ func TestISGLB(t *testing.T) {
 			}
 			time.Sleep(sleep * time.Millisecond)
 		}
-
-		if i == N/4 {
-			isglb.Close()
-			time.Sleep(10 * time.Second)
-		}
-		if i == N/2 {
-			isglb := NewWithID("isglb-test", func() algorithms.Algorithm { return &random.Random{} })
-			err := isglb.Start(Config{
-				Global: config.Global{Dc: "dc1"},
-				Log:    config.LogConf{Level: "DEBUG"},
-				Nats:   config.NatsConf{URL: "nats://192.168.94.131:4222"},
-			})
-			if err != nil {
-				t.Error(err)
-			}
-		}
+	}
+	time.Sleep(1 * time.Second)
+	for _, n := range del {
+		isglb.s.handleNodeAction(discovery.Delete, n)
 	}
 	time.Sleep(1 * time.Second)
 	cli.Close()
