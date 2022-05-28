@@ -5,6 +5,23 @@ import (
 	"google.golang.org/protobuf/proto"
 )
 
+type SFUStatusItem struct {
+	SFUStatus *pb.SFUStatus
+}
+
+func (i SFUStatusItem) Key() string {
+	return i.SFUStatus.SFU.Dc + i.SFUStatus.SFU.Service + i.SFUStatus.SFU.Dc
+}
+func (i SFUStatusItem) Compare(data DisorderSetItem) bool {
+	// TODO: ForwardTracks, ProceedTracks and ClientNeededSession maybe disorder
+	return i.SFUStatus.String() == data.(SFUStatusItem).SFUStatus.String()
+}
+func (i SFUStatusItem) Clone() DisorderSetItem {
+	return SFUStatusItem{
+		SFUStatus: proto.Clone(i.SFUStatus).(*pb.SFUStatus),
+	}
+}
+
 type ClientNeededSessionItem struct {
 	Client *pb.ClientNeededSession
 }

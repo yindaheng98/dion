@@ -2,6 +2,7 @@ package isglb
 
 import (
 	"fmt"
+	"github.com/yindaheng98/dion/util"
 	"io"
 	"sync"
 
@@ -101,16 +102,15 @@ func (isglb *ISGLBService) routineSFUStatusRecv() {
 		return // Do not start again
 	}
 	signids := make(map[string]*pb.ISGLB_SyncSFUServer)
-	latestStatus := make(map[string]*pb.SFUStatus)     // Just for filter out those unchanged SFUStatus
-	savedReports := make(map[string]*pb.QualityReport) // Just for filter out those deprecated reports
+	latestStatus := make(map[string]util.SFUStatusItem) // Just for filter out those unchanged SFUStatus
 	for {
-		var reports []*pb.QualityReport
-		var statuss []*pb.SFUStatus
+		var recvCount = 0
+		savedReports := make(map[string]*pb.QualityReport) // Just for filter out those deprecated reports
 	L:
 		for {
 			var msg isglbRecvMessage
 			var ok bool
-			if len(statuss) <= 0 && len(reports) <= 0 { //if there is no message
+			if recvCount <= 0 { //if there is no message
 				msg, ok = <-isglb.recvCh //wait for the first message
 				if !ok {                 //if closed
 					return //exit
@@ -128,49 +128,68 @@ func (isglb *ISGLBService) routineSFUStatusRecv() {
 			//category and save messages
 			switch request := msg.request.Request.(type) {
 			case *pb.SyncRequest_Report:
+				log.Debugf("Received a QualityReport: %s", request.Report.String())
 				if _, ok = savedReports[request.Report.String()]; !ok { //filter out deprecated report
-					reports = append(reports, proto.Clone(request.Report).(*pb.QualityReport)) // Save the copy
+					savedReports[request.Report.String()] = proto.Clone(request.Report).(*pb.QualityReport) // Save the copy
+					recvCount++                                                                             // count the message
 				}
 			case *pb.SyncRequest_Status:
-				reportedStatus := request.Status
-				nid := reportedStatus.GetSFU().GetNid()
+				log.Debugf("Received a SFUStatus: %s", request.Status.String())
+				reportedStatus := util.SFUStatusItem{SFUStatus: request.Status}
+				nid := reportedStatus.Key()
 
-				if lastSigkey, ok := signids[nid]; ok && lastSigkey != msg.sigkey {
-					log.Warnf("Dropped deprecated SFU status sync client for nid: %s", nid)
+				if lastSigkey, ok := signids[reportedStatus.Key()]; ok && lastSigkey != msg.sigkey {
+					log.Warnf("Dropped deprecated SFU status sync client for node key: %s", reportedStatus.Key())
 					continue
 				}
 				signids[nid] = msg.sigkey // Save sig and nid
 
-				if lastStatus, ok := latestStatus[nid]; ok && SFUStatusIsSame(lastStatus, reportedStatus) {
-					log.Debugf("Dropped deprecated SFU status from request: %s", lastStatus.String())
+				if lastStatus, ok := latestStatus[nid]; ok && lastStatus.Compare(reportedStatus) {
+					log.Debugf("Dropped deprecated SFU status from request: %s", lastStatus.SFUStatus.String())
 					continue //filter out unchanged status
 				}
 				// If the request has changed
-				latestStatus[nid] = reportedStatus // Save SFUStatus
-
-				statuss = append(statuss, proto.Clone(reportedStatus).(*pb.SFUStatus)) // Save the copy
+				latestStatus[nid] = reportedStatus.Clone().(util.SFUStatusItem) // Save SFUStatus copy
+				recvCount++                                                     // count the message
 			}
 		}
 
 		// proceed all those received messages above
-		if len(statuss) <= 0 && len(reports) <= 0 { //if there is no valid message
+		if recvCount <= 0 { //if there is no valid message
 			continue //do nothing
 		}
+
+		var i int
+		statuss := make([]*pb.SFUStatus, len(latestStatus))
+		i = 0
+		for _, s := range latestStatus {
+			statuss[i] = s.Clone().(util.SFUStatusItem).SFUStatus
+			i++
+		}
+		i = 0
+		reports := make([]*pb.QualityReport, len(savedReports))
+		for _, r := range savedReports {
+			reports[i] = r
+			i++
+		}
 		expectedStatusList := isglb.Alg.UpdateSFUStatus(statuss, reports) // update algorithm
+		expectedStatusDict := make(map[string]util.SFUStatusItem, len(expectedStatusList))
 		for _, expectedStatus := range expectedStatusList {
-			expectedStatus = proto.Clone(expectedStatus).(*pb.SFUStatus) // Copy the message
-			nid := expectedStatus.GetSFU().GetNid()
-			if lastStatus, ok := latestStatus[nid]; ok && SFUStatusIsSame(lastStatus, expectedStatus) {
-				log.Debugf("Dropped deprecated SFU status from algorithm: %s", lastStatus.String())
+			item := util.SFUStatusItem{SFUStatus: expectedStatus}
+			expectedStatusDict[item.Key()] = item.Clone().(util.SFUStatusItem) // Copy the message
+		}
+		for nid, expectedStatus := range expectedStatusDict {
+			if lastStatus, ok := latestStatus[nid]; ok && lastStatus.Compare(expectedStatus) {
+				log.Debugf("Dropped deprecated SFU status from algorithm: %s", lastStatus.SFUStatus.String())
 				continue //filter out unchanged request
 			}
 			// If the request should be change
-			latestStatus[nid] = expectedStatus // Save it
 			isglb.sendChsMu.RLock()
 			if sendCh, ok := isglb.sendChs[signids[nid]]; ok {
-				sendCh <- expectedStatus // Send it
+				sendCh <- expectedStatus.SFUStatus // Send it
+				latestStatus[nid] = expectedStatus // And Save it
 			} else {
-				log.Warnf("No SFU status sender found for nid %s: %s", nid, expectedStatus.String())
+				log.Warnf("No SFU status sender found for nid %s: %s", nid, expectedStatus.SFUStatus.String())
 			}
 			isglb.sendChsMu.RUnlock()
 		}
