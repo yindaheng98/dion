@@ -135,6 +135,8 @@ func (isglb *ISGLBService) routineSFUStatusRecv() {
 					delete(signids, nid)
 					log.Debugf("Deleted a SFU status: %s", lastStatus.SFUStatus.String())
 					recvCount++ // count the message
+				} else {
+					log.Debugf("SFU status to be deleted not exists: %s", nid)
 				}
 			}
 

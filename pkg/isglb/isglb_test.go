@@ -46,7 +46,7 @@ func TestISGLB(t *testing.T) {
 	s := &pb.SFUStatus{
 		SFU: random.RandNode(node.NID),
 	}
-	del := make([]discovery.Node, N)
+	del := make([]*pb.SFUStatus, N)
 	rr := &random.RandReports{}
 	for i := 0; i < N; i++ {
 		if random.RandBool() {
@@ -54,20 +54,12 @@ func TestISGLB(t *testing.T) {
 			if err != nil {
 				t.Error(err)
 			}
-			rpc := discovery.RPC{}
-			if s.SFU.Rpc != nil {
-				rpc = discovery.RPC{
-					Protocol: discovery.Protocol(s.SFU.Rpc.Protocol),
-					Addr:     s.SFU.Rpc.Addr,
-				}
-			}
-			del[i] = discovery.Node{
-				DC:      s.SFU.Dc,
-				Service: s.SFU.Service,
-				NID:     s.SFU.Nid,
-				RPC:     rpc,
-			}
+			del[i] = s
 			time.Sleep(sleep * time.Millisecond)
+		} else {
+			del[i] = &pb.SFUStatus{
+				SFU: random.RandNode(node.NID),
+			}
 		}
 		if random.RandBool() {
 			random.RandChange(s)
@@ -84,12 +76,39 @@ func TestISGLB(t *testing.T) {
 			time.Sleep(sleep * time.Millisecond)
 		}
 		if random.RandBool() {
-			isglb.s.handleNodeAction(discovery.Delete, del[rand.Intn(i+1)])
+			s := del[rand.Intn(i+1)]
+			rpc := discovery.RPC{}
+			if s.SFU.Rpc != nil {
+				rpc = discovery.RPC{
+					Protocol: discovery.Protocol(s.SFU.Rpc.Protocol),
+					Addr:     s.SFU.Rpc.Addr,
+				}
+			}
+			d := discovery.Node{
+				DC:      s.SFU.Dc,
+				Service: s.SFU.Service,
+				NID:     s.SFU.Nid,
+				RPC:     rpc,
+			}
+			isglb.s.handleNodeAction(discovery.Delete, d)
 		}
 	}
 	time.Sleep(1 * time.Second)
-	for _, n := range del {
-		isglb.s.handleNodeAction(discovery.Delete, n)
+	for _, s := range del {
+		rpc := discovery.RPC{}
+		if s.SFU.Rpc != nil {
+			rpc = discovery.RPC{
+				Protocol: discovery.Protocol(s.SFU.Rpc.Protocol),
+				Addr:     s.SFU.Rpc.Addr,
+			}
+		}
+		d := discovery.Node{
+			DC:      s.SFU.Dc,
+			Service: s.SFU.Service,
+			NID:     s.SFU.Nid,
+			RPC:     rpc,
+		}
+		isglb.s.handleNodeAction(discovery.Delete, d)
 	}
 	time.Sleep(5 * time.Second)
 	cli.Close()

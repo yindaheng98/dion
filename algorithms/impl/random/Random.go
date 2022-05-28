@@ -2,6 +2,7 @@ package random
 
 import (
 	"fmt"
+	"github.com/yindaheng98/dion/config"
 	"google.golang.org/protobuf/types/known/anypb"
 	"google.golang.org/protobuf/types/known/timestamppb"
 	"math/rand"
@@ -27,17 +28,14 @@ func RandBool() bool {
 func RandNode(nid string) *ion.Node {
 	return &ion.Node{
 		Nid:     nid,
-		Service: util.RandomString(4),
+		Service: config.ServiceSXU,
+		Dc:      util.RandomString(4),
 	}
 }
 
 func RandChange(s *pb.SFUStatus) *pb.SFUStatus {
-	if RandBool() {
-		s.SFU.Service = util.RandomString(4)
-	} else {
-		s.SFU.Rpc = &ion.RPC{
-			Addr: util.RandomString(4),
-		}
+	s.SFU.Rpc = &ion.RPC{
+		Addr: util.RandomString(4),
 	}
 	return s
 }
