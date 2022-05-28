@@ -3,6 +3,7 @@ package isglb
 import (
 	"fmt"
 	"github.com/cloudwebrtc/nats-discovery/pkg/discovery"
+	"math/rand"
 	"testing"
 	"time"
 
@@ -14,7 +15,7 @@ import (
 	pb "github.com/yindaheng98/dion/proto"
 )
 
-const sleep = 1000
+const sleep = 1
 const N = 100
 
 func TestISGLB(t *testing.T) {
@@ -82,12 +83,15 @@ func TestISGLB(t *testing.T) {
 			}
 			time.Sleep(sleep * time.Millisecond)
 		}
+		if random.RandBool() {
+			isglb.s.handleNodeAction(discovery.Delete, del[rand.Intn(i+1)])
+		}
 	}
 	time.Sleep(1 * time.Second)
 	for _, n := range del {
 		isglb.s.handleNodeAction(discovery.Delete, n)
 	}
-	time.Sleep(1 * time.Second)
+	time.Sleep(5 * time.Second)
 	cli.Close()
 	time.Sleep(1 * time.Second)
 }
