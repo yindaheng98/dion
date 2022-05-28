@@ -32,8 +32,14 @@ type ISGLB struct {
 // New create a new ISGLB
 // algConstructor should return a algorithms.Algorithm
 func New(algConstructor func() algorithms.Algorithm) *ISGLB {
+	return NewWithID("isglb-"+util.RandomString(6), algConstructor)
+}
+
+// NewWithID create a new ISGLB with specific ID
+// algConstructor should return a algorithms.Algorithm
+func NewWithID(id string, algConstructor func() algorithms.Algorithm) *ISGLB {
 	return &ISGLB{
-		Node: ion.NewNode("isglb-" + util.RandomString(6)),
+		Node: ion.NewNode(id),
 		algC: algConstructor,
 	}
 }

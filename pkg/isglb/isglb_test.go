@@ -14,9 +14,10 @@ import (
 )
 
 const sleep = 1000
+const N = 100
 
 func TestISGLB(t *testing.T) {
-	isglb := New(func() algorithms.Algorithm { return &random.Random{} })
+	isglb := NewWithID("isglb-test", func() algorithms.Algorithm { return &random.Random{} })
 	err := isglb.Start(Config{
 		Global: config.Global{Dc: "dc1"},
 		Log:    config.LogConf{Level: "DEBUG"},
@@ -44,7 +45,7 @@ func TestISGLB(t *testing.T) {
 		SFU: random.RandNode(node.NID),
 	}
 	rr := &random.RandReports{}
-	for i := 0; i < 100; i++ {
+	for i := 0; i < N; i++ {
 		if random.RandBool() {
 			err := cli.SendSyncRequest(&pb.SyncRequest{Request: &pb.SyncRequest_Status{Status: s}})
 			if err != nil {
@@ -65,6 +66,22 @@ func TestISGLB(t *testing.T) {
 				t.Error(err)
 			}
 			time.Sleep(sleep * time.Millisecond)
+		}
+
+		if i == N/4 {
+			isglb.Close()
+			time.Sleep(10 * time.Second)
+		}
+		if i == N/2 {
+			isglb := NewWithID("isglb-test", func() algorithms.Algorithm { return &random.Random{} })
+			err := isglb.Start(Config{
+				Global: config.Global{Dc: "dc1"},
+				Log:    config.LogConf{Level: "DEBUG"},
+				Nats:   config.NatsConf{URL: "nats://192.168.94.131:4222"},
+			})
+			if err != nil {
+				t.Error(err)
+			}
 		}
 	}
 	time.Sleep(1 * time.Second)
