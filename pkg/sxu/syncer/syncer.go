@@ -84,7 +84,10 @@ func NewSFUStatusSyncer(node *ion.Node, peerID string, descSFU *pbion.Node, tool
 			}
 		default:
 		}
-		s.statusRecvCh <- st
+		select {
+		case s.statusRecvCh <- st:
+		default:
+		}
 	}
 	return s
 }
@@ -98,17 +101,6 @@ func (s *ISGLBSyncer) NotifySFUStatus() {
 }
 
 // ↓↓↓↓↓ should access Index, so keep single thread ↓↓↓↓↓
-
-// getSelfStatus get the current SFUStatus
-// MUST be single threaded
-func (s *ISGLBSyncer) getSelfStatus() *pb.SFUStatus {
-	return &pb.SFUStatus{
-		SFU:           proto.Clone(s.descSFU).(*pbion.Node),
-		ForwardTracks: util.ItemList(s.forwardTrackSet.Sort()).ToForwardTracks(),
-		ProceedTracks: util.ItemList(s.proceedTrackSet.Sort()).ToProceedTracks(),
-		Clients:       util.ItemList(s.clientSet.Sort()).ToClientSessions(),
-	}
-}
 
 // syncStatus sync the current SFUStatus with the expected SFUStatus
 // MUST be single threaded
@@ -195,7 +187,12 @@ func (s *ISGLBSyncer) main() {
 			if !ok {
 				return
 			}
-			st := s.getSelfStatus() // should access Index, so keep single thread
+			st := &pb.SFUStatus{
+				SFU:           proto.Clone(s.descSFU).(*pbion.Node),
+				ForwardTracks: util.ItemList(s.forwardTrackSet.Sort()).ToForwardTracks(),
+				ProceedTracks: util.ItemList(s.proceedTrackSet.Sort()).ToProceedTracks(),
+				Clients:       util.ItemList(s.clientSet.Sort()).ToClientSessions(),
+			} // should access Index, so keep single thread
 			go s.send(&pb.SyncRequest{Request: &pb.SyncRequest_Status{Status: st}})
 		}
 	}
