@@ -1,16 +1,12 @@
 package syncer
 
 import (
-	"io"
-
 	log "github.com/pion/ion-log"
 	"github.com/pion/ion/pkg/ion"
 	pbion "github.com/pion/ion/proto/ion"
 	"github.com/yindaheng98/dion/pkg/isglb"
 	pb "github.com/yindaheng98/dion/proto"
 	"github.com/yindaheng98/dion/util"
-	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/proto"
 )
 
@@ -193,7 +189,7 @@ func (s *ISGLBSyncer) main() {
 				ProceedTracks: util.ItemList(s.proceedTrackSet.Sort()).ToProceedTracks(),
 				Clients:       util.ItemList(s.clientSet.Sort()).ToClientSessions(),
 			} // should access Index, so keep single thread
-			go s.send(&pb.SyncRequest{Request: &pb.SyncRequest_Status{Status: st}})
+			go s.client.SendSFUStatus(st)
 		}
 	}
 }
@@ -221,21 +217,7 @@ func (s *ISGLBSyncer) reportFetcher() {
 		if report == nil {
 			return
 		}
-		go s.send(&pb.SyncRequest{Request: &pb.SyncRequest_Report{Report: report}})
-	}
-}
-
-func (s *ISGLBSyncer) send(r *pb.SyncRequest) {
-	err := s.client.SendSyncRequest(r)
-	if err != nil {
-		if err == io.EOF {
-			return
-		}
-		errStatus, _ := status.FromError(err)
-		if errStatus.Code() == codes.Canceled {
-			return
-		}
-		log.Errorf("%v SFU request send error", err)
+		go s.client.SendQualityReport(report)
 	}
 }
 
