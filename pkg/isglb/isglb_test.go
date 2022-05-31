@@ -1,11 +1,8 @@
 package isglb
 
 import (
-	"fmt"
-	"github.com/cloudwebrtc/nats-discovery/pkg/discovery"
 	log "github.com/pion/ion-log"
 	"github.com/pion/ion/pkg/proto"
-	"math/rand"
 	"testing"
 	"time"
 
@@ -30,9 +27,12 @@ func TestISGLB(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
+	select {}
+}
 
+func TestISGLBClient(t *testing.T) {
 	node := ion.NewNode("sxu-" + util.RandomString(6))
-	err = node.Start("nats://192.168.94.131:4222")
+	err := node.Start("nats://192.168.94.131:4222")
 	if err != nil {
 		t.Error(err)
 	}
@@ -46,7 +46,7 @@ func TestISGLB(t *testing.T) {
 	cli := NewISGLBClient(&node, node.NID, map[string]interface{}{})
 
 	cli.OnSFUStatusRecv = func(ss *pb.SFUStatus) {
-		t.Log(fmt.Printf("Received SFU status: %s\n", ss.String()))
+		t.Logf("Received SFUStatus: %s\n", ss.String())
 	}
 	cli.Connect()
 	// ↑↑↑↑↑ Connect ↑↑↑↑↑
@@ -59,6 +59,7 @@ func TestISGLB(t *testing.T) {
 	rr := &random.RandReports{}
 	for i := 0; i < N; i++ {
 		if random.RandBool() {
+			t.Log("Sending a SFUStatus......")
 			cli.SendSFUStatus(s)
 			del[i] = s
 			time.Sleep(sleep * time.Millisecond)
@@ -75,44 +76,30 @@ func TestISGLB(t *testing.T) {
 			}
 		}
 		for _, r := range rr.RandReports() {
+			t.Log("Sending a Report......")
 			cli.SendQualityReport(r)
 			time.Sleep(sleep * time.Millisecond)
 		}
 
-		if random.RandBool() {
-			s := del[rand.Intn(i+1)]
-			rpc := discovery.RPC{}
-			if s.SFU.Rpc != nil {
-				rpc = discovery.RPC{
-					Protocol: discovery.Protocol(s.SFU.Rpc.Protocol),
-					Addr:     s.SFU.Rpc.Addr,
+		/*
+			if random.RandBool() {
+				s := del[rand.Intn(i+1)]
+				rpc := discovery.RPC{}
+				if s.SFU.Rpc != nil {
+					rpc = discovery.RPC{
+						Protocol: discovery.Protocol(s.SFU.Rpc.Protocol),
+						Addr:     s.SFU.Rpc.Addr,
+					}
 				}
+				d := discovery.Node{
+					DC:      s.SFU.Dc,
+					Service: s.SFU.Service,
+					NID:     s.SFU.Nid,
+					RPC:     rpc,
+				}
+				isglb.s.handleNodeAction(discovery.Delete, d)
 			}
-			d := discovery.Node{
-				DC:      s.SFU.Dc,
-				Service: s.SFU.Service,
-				NID:     s.SFU.Nid,
-				RPC:     rpc,
-			}
-			isglb.s.handleNodeAction(discovery.Delete, d)
-		}
-
-		if i == N/4 {
-			isglb.Close()
-			t.Log("Stop it!!!!!!!!!!!!!!!!")
-		}
-		if i == N/2 {
-			isglb = NewWithID("isglb-test", func() algorithms.Algorithm { return &random.Random{} })
-			err := isglb.Start(Config{
-				Global: config.Global{Dc: "dc1"},
-				Log:    config.LogConf{Level: "DEBUG"},
-				Nats:   config.NatsConf{URL: "nats://192.168.94.131:4222"},
-			})
-			if err != nil {
-				t.Error(err)
-			}
-			t.Log("Restart it!!!!!!!!!!!!!!!!")
-		}
+		*/
 	}
 	time.Sleep(1 * time.Second)
 	cli.Close()
