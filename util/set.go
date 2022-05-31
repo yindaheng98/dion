@@ -14,47 +14,47 @@ type DisorderSetItem interface {
 	Clone() DisorderSetItem
 }
 
-type itemTuple struct {
-	data    DisorderSetItem
+type itemTuple[ItemType DisorderSetItem] struct {
+	data    ItemType
 	checked bool
 }
 
 // DisorderSet is a disorder set, thread-UNSAFE!
-type DisorderSet struct {
-	index map[string]*itemTuple
+type DisorderSet[ItemType DisorderSetItem] struct {
+	index map[string]*itemTuple[ItemType]
 }
 
-func NewDisorderSet() *DisorderSet {
-	return &DisorderSet{index: make(map[string]*itemTuple)}
+func NewDisorderSet[ItemType DisorderSetItem]() *DisorderSet[ItemType] {
+	return &DisorderSet[ItemType]{index: make(map[string]*itemTuple[ItemType])}
 }
 
 // Add add a data
-func (s *DisorderSet) Add(data DisorderSetItem) {
-	s.index[data.Key()] = &itemTuple{
-		data:    data.Clone(),
+func (s *DisorderSet[ItemType]) Add(data ItemType) {
+	s.index[data.Key()] = &itemTuple[ItemType]{
+		data:    data.Clone().(ItemType),
 		checked: false,
 	}
 }
 
 // Del delete a data
-func (s *DisorderSet) Del(data DisorderSetItem) {
+func (s *DisorderSet[ItemType]) Del(data ItemType) {
 	delete(s.index, data.Key())
 }
 
 // Exist check if a data exists
-func (s *DisorderSet) Exist(data DisorderSetItem) bool {
+func (s *DisorderSet[ItemType]) Exist(data ItemType) bool {
 	if tuple, ok := s.index[data.Key()]; ok {
 		return tuple.data.Compare(data)
 	}
 	return false
 }
 
-type DisorderSetItemReplaceTuple struct {
-	Old DisorderSetItem
-	New DisorderSetItem
+type DisorderSetItemReplaceTuple[ItemType DisorderSetItem] struct {
+	Old ItemType
+	New ItemType
 }
 
-func (s *DisorderSet) reset() {
+func (s *DisorderSet[ItemType]) reset() {
 	for _, tuple := range s.index {
 		tuple.checked = false
 	}
@@ -62,7 +62,7 @@ func (s *DisorderSet) reset() {
 
 // Update update the index
 // and shows the difference between index and the input list
-func (s *DisorderSet) Update(list []DisorderSetItem) (add []DisorderSetItem, del []DisorderSetItem, replace []DisorderSetItemReplaceTuple) {
+func (s *DisorderSet[ItemType]) Update(list []ItemType) (add []ItemType, del []ItemType, replace []DisorderSetItemReplaceTuple[ItemType]) {
 	s.reset()
 
 	// Find those data in input list but not in index, add it or replace it
@@ -74,14 +74,14 @@ func (s *DisorderSet) Update(list []DisorderSetItem) (add []DisorderSetItem, del
 				tuple.checked = true // do nothing
 			} else { // Value not same?
 				// should replace
-				replace = append(replace, DisorderSetItemReplaceTuple{Old: tuple.data, New: data})
-				tuple.data = data.Clone() // replace it
+				replace = append(replace, DisorderSetItemReplaceTuple[ItemType]{Old: tuple.data, New: data})
+				tuple.data = data.Clone().(ItemType) // replace it
 				tuple.checked = true
 			}
 		} else { //key not exists?
 			add = append(add, data) // just add the new
-			s.index[data.Key()] = &itemTuple{
-				data:    data.Clone(),
+			s.index[data.Key()] = &itemTuple[ItemType]{
+				data:    data.Clone().(ItemType),
 				checked: true,
 			}
 		}
@@ -99,7 +99,7 @@ func (s *DisorderSet) Update(list []DisorderSetItem) (add []DisorderSetItem, del
 }
 
 // IsSame just the compare the index and the input and return if is the same
-func (s *DisorderSet) IsSame(list []DisorderSetItem) bool {
+func (s *DisorderSet[ItemType]) IsSame(list []ItemType) bool {
 	s.reset()
 
 	// Find those data in input list but not in index, add it or replace it
@@ -126,34 +126,34 @@ func (s *DisorderSet) IsSame(list []DisorderSetItem) bool {
 	return true
 }
 
-type DisorderSetItemList []DisorderSetItem
+type DisorderSetItemList[ItemType DisorderSetItem] []ItemType
 
-func NewDisorderSetFromList(list DisorderSetItemList) *DisorderSet {
-	set := &DisorderSet{index: make(map[string]*itemTuple, len(list))}
+func NewDisorderSetFromList[ItemType DisorderSetItem](list DisorderSetItemList[ItemType]) *DisorderSet[ItemType] {
+	set := &DisorderSet[ItemType]{index: make(map[string]*itemTuple[ItemType], len(list))}
 	for _, item := range list {
 		set.Add(item)
 	}
 	return set
 }
 
-func (s DisorderSetItemList) Len() int {
+func (s DisorderSetItemList[ItemType]) Len() int {
 	return len(s)
 }
 
-func (s DisorderSetItemList) Less(i, j int) bool {
+func (s DisorderSetItemList[ItemType]) Less(i, j int) bool {
 	return strings.Compare(s[i].Key(), s[j].Key()) < 0
 }
 
-func (s DisorderSetItemList) Swap(i, j int) {
+func (s DisorderSetItemList[ItemType]) Swap(i, j int) {
 	s[i], s[j] = s[j], s[i]
 }
 
 // Sort gather all the data and output it in key order
-func (s *DisorderSet) Sort() DisorderSetItemList {
-	var list = make(DisorderSetItemList, len(s.index))
+func (s *DisorderSet[ItemType]) Sort() DisorderSetItemList[ItemType] {
+	var list = make(DisorderSetItemList[ItemType], len(s.index))
 	i := 0
 	for _, d := range s.index {
-		list[i] = d.data.Clone()
+		list[i] = d.data.Clone().(ItemType)
 		i++
 	}
 	sort.Sort(list)

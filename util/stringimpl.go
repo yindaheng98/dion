@@ -16,9 +16,8 @@ func (s StringDisorderSetItem) Clone() DisorderSetItem {
 
 type Strings []string
 
-func (ss Strings) ToDisorderSetItemList() DisorderSetItemList {
-
-	list := make([]DisorderSetItem, len(ss))
+func (ss Strings) ToDisorderSetItemList() DisorderSetItemList[StringDisorderSetItem] {
+	list := make([]StringDisorderSetItem, len(ss))
 	for i, s := range ss {
 		list[i] = StringDisorderSetItem(s)
 	}

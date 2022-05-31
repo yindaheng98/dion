@@ -24,8 +24,8 @@ func (i ClientNeededSessionItem) Clone() DisorderSetItem {
 
 type ClientNeededSessions []*pb.ClientNeededSession
 
-func (clients ClientNeededSessions) ToDisorderSetItemList() DisorderSetItemList {
-	list := make([]DisorderSetItem, len(clients))
+func (clients ClientNeededSessions) ToDisorderSetItemList() DisorderSetItemList[ClientNeededSessionItem] {
+	list := make([]ClientNeededSessionItem, len(clients))
 	for i, client := range clients {
 		list[i] = ClientNeededSessionItem{Client: client}
 	}
@@ -53,8 +53,8 @@ func (i ForwardTrackItem) Clone() DisorderSetItem {
 
 type ForwardTracks []*pb.ForwardTrack
 
-func (tracks ForwardTracks) ToDisorderSetItemList() DisorderSetItemList {
-	list := make([]DisorderSetItem, len(tracks))
+func (tracks ForwardTracks) ToDisorderSetItemList() DisorderSetItemList[ForwardTrackItem] {
+	list := make([]ForwardTrackItem, len(tracks))
 	for i, track := range tracks {
 		list[i] = ForwardTrackItem{Track: track}
 	}
@@ -71,7 +71,7 @@ func (i ProceedTrackItem) Key() string {
 }
 func (i ProceedTrackItem) Compare(data DisorderSetItem) bool {
 	srcTrackList1 := Strings(data.(ProceedTrackItem).Track.SrcSessionIdList).ToDisorderSetItemList()
-	srcTrackSet1 := NewDisorderSetFromList(srcTrackList1)
+	srcTrackSet1 := NewDisorderSetFromList[StringDisorderSetItem](srcTrackList1)
 	srcTrackList2 := Strings(i.Track.SrcSessionIdList).ToDisorderSetItemList()
 	if !srcTrackSet1.IsSame(srcTrackList2) {
 		return false
@@ -86,36 +86,40 @@ func (i ProceedTrackItem) Clone() DisorderSetItem {
 
 type ProceedTracks []*pb.ProceedTrack
 
-func (tracks ProceedTracks) ToDisorderSetItemList() DisorderSetItemList {
-	indexDataList := make([]DisorderSetItem, len(tracks))
+func (tracks ProceedTracks) ToDisorderSetItemList() DisorderSetItemList[ProceedTrackItem] {
+	indexDataList := make([]ProceedTrackItem, len(tracks))
 	for i, track := range tracks {
 		indexDataList[i] = ProceedTrackItem{Track: track}
 	}
 	return indexDataList
 }
 
-type ItemList DisorderSetItemList
+type ClientSessionItemList DisorderSetItemList[ClientNeededSessionItem]
 
-func (list ItemList) ToClientSessions() []*pb.ClientNeededSession {
+func (list ClientSessionItemList) ToClientSessions() []*pb.ClientNeededSession {
 	tracks := make([]*pb.ClientNeededSession, len(list))
 	for i, data := range list {
-		tracks[i] = data.(ClientNeededSessionItem).Client
+		tracks[i] = data.Client
 	}
 	return tracks
 }
 
-func (list ItemList) ToForwardTracks() []*pb.ForwardTrack {
+type ForwardTrackItemList DisorderSetItemList[ForwardTrackItem]
+
+func (list ForwardTrackItemList) ToForwardTracks() []*pb.ForwardTrack {
 	tracks := make([]*pb.ForwardTrack, len(list))
 	for i, data := range list {
-		tracks[i] = data.(ForwardTrackItem).Track
+		tracks[i] = data.Track
 	}
 	return tracks
 }
 
-func (list ItemList) ToProceedTracks() []*pb.ProceedTrack {
+type ProceedTrackItemList DisorderSetItemList[ProceedTrackItem]
+
+func (list ProceedTrackItemList) ToProceedTracks() []*pb.ProceedTrack {
 	tracks := make([]*pb.ProceedTrack, len(list))
 	for i, data := range list {
-		tracks[i] = data.(ProceedTrackItem).Track
+		tracks[i] = data.Track
 	}
 	return tracks
 }

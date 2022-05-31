@@ -17,25 +17,31 @@ func randTracks(n int) []*pb.ProceedTrack {
 	return ts
 }
 
-const N = 100
+const N = 10
 
 func TestDisorderSet(t *testing.T) {
-	set := NewDisorderSet()
+	set := NewDisorderSet[ProceedTrackItem]()
 	templates := randTracks(N)
 	for i := 0; i < N; i++ {
 		set.Add(ProceedTrackItem{
 			Track: templates[i],
 		})
 	}
-	fmt.Printf("set: %+v\n", ItemList(set.Sort()).ToProceedTracks())
+	for _, i := range ProceedTrackItemList(set.Sort()).ToProceedTracks() {
+		fmt.Printf("after add, set: %+v\n", i)
+	}
+	fmt.Println("")
 	for i := 0; i < N/2; i++ {
 		set.Del(ProceedTrackItem{
 			Track: templates[rand.Int31n(N)],
 		})
 	}
-	fmt.Printf("set: %+v\n", ItemList(set.Sort()).ToProceedTracks())
+	for _, i := range ProceedTrackItemList(set.Sort()).ToProceedTracks() {
+		fmt.Printf("after del, set: %+v\n", i)
+	}
+	fmt.Println("")
 
-	set2 := NewDisorderSet()
+	set2 := NewDisorderSet[ProceedTrackItem]()
 	set2.Del(ProceedTrackItem{
 		Track: templates[rand.Int31n(N)],
 	})
@@ -44,19 +50,31 @@ func TestDisorderSet(t *testing.T) {
 			Track: templates[rand.Int31n(N)],
 		})
 	}
-	fmt.Printf("set2: %+v\n", ItemList(set2.Sort()).ToProceedTracks())
-	diff := make(ItemList, N/2)
+	for _, i := range ProceedTrackItemList(set2.Sort()).ToProceedTracks() {
+		fmt.Printf("set2: %+v\n", i)
+	}
+	fmt.Println("")
+
+	diff := make(ProceedTrackItemList, N/2)
 	for i := 0; i < N/2; i++ {
 		diff[i] = ProceedTrackItem{
 			Track: templates[rand.Int31n(N)],
 		}
-		random.RandChangeProceedTrack(diff[i].(ProceedTrackItem).Track)
+		random.RandChangeProceedTrack(diff[i].Track)
 	}
-	fmt.Printf("diff: %+v\n", ItemList(diff).ToProceedTracks())
+	for _, i := range diff {
+		fmt.Printf("diff: %+v\n", i)
+	}
+	fmt.Println("")
+
 	add, del, replace := set2.Update(diff)
-	fmt.Printf("Add: %+v\n", ItemList(add).ToProceedTracks())
-	fmt.Printf("Del: %+v\n", ItemList(del).ToProceedTracks())
+	for _, r := range add {
+		fmt.Printf("Add:     %+v\n", r.Track)
+	}
+	for _, r := range del {
+		fmt.Printf("Del:     %+v\n", r.Track)
+	}
 	for _, r := range replace {
-		fmt.Printf("%+v -> %+v\n", r.Old.(ProceedTrackItem).Track, r.New.(ProceedTrackItem).Track)
+		fmt.Printf("Replace: %+v -> %+v\n", r.Old.Track, r.New.Track)
 	}
 }
