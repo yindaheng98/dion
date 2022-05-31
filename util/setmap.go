@@ -33,3 +33,13 @@ func (m SetMap[K, V]) Exists(id K, value V) bool {
 	}
 	return ok
 }
+
+func (m SetMap[K, V]) Get(id K) (V, bool) {
+	if set, ok := m.m[id]; ok {
+		for value := range set {
+			return value, true
+		}
+	}
+	var value V
+	return value, false
+}
