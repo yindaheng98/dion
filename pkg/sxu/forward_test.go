@@ -23,7 +23,7 @@ func NewTestSubscriberFactory(sfu *ion_sfu.SFU) TestSubscriberFactory {
 	return TestSubscriberFactory{SubscriberFactory: bridge.NewSubscriberFactory(sfu)}
 }
 
-func (p TestSubscriberFactory) NewDoor() (util.UnblockedDoor, error) {
+func (p TestSubscriberFactory) NewDoor() (util.UnblockedDoor[bridge.SID], error) {
 	subDoor, err := p.SubscriberFactory.NewDoor()
 	if err != nil {
 		log.Errorf("Cannot SubscriberFactory.NewDoor: %+v", err)
@@ -67,12 +67,12 @@ func TestForwardTrackRoutineFactory(t *testing.T) {
 	}
 
 	sub := NewTestSubscriberFactory(iSFU)
-	subdog := util.NewWatchDogWithUnblockedDoor(sub)
-	subdog.Watch(bridge.SID(MySessionName))
+	subdog := util.NewWatchDogWithUnblockedDoor[bridge.SID](sub)
+	subdog.Watch(MySessionName)
 
 	sub2 := NewTestSubscriberFactory(iSFU)
-	subdog2 := util.NewWatchDogWithUnblockedDoor(sub2)
-	subdog2.Watch(bridge.SID(MySessionName2))
+	subdog2 := util.NewWatchDogWithUnblockedDoor[bridge.SID](sub2)
+	subdog2.Watch(MySessionName2)
 
 	builder := NewDefaultToolBoxBuilder(WithTrackForwarder())
 	toolbox := builder.Build(&sxu.Node, iSFU)
