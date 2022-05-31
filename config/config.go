@@ -7,6 +7,7 @@ import (
 	log "github.com/pion/ion-log"
 	"github.com/spf13/viper"
 	"os"
+	"reflect"
 )
 
 type Global struct {
@@ -55,6 +56,15 @@ func LoadFromToml(file string, rawVal interface{}) error {
 	return LoadFromFile(file, "toml", rawVal)
 }
 
+func clearNil(raw map[string]interface{}) map[string]interface{} {
+	for k, v := range raw {
+		if v == nil || (reflect.ValueOf(v).Kind() == reflect.Ptr && reflect.ValueOf(v).IsNil()) {
+			delete(raw, k) // 居然还有nil函数处理不了，放弃治疗，还不如直接写个脚本改配置文件
+		}
+	}
+	return raw
+}
+
 func MergeTomlFromEnv(pre string, rawVal interface{}) error {
 	var m map[string]interface{}
 	err := mapstructure.Decode(rawVal, &m)
@@ -62,6 +72,9 @@ func MergeTomlFromEnv(pre string, rawVal interface{}) error {
 		log.Errorf("mapstructure decode failed. %v\n", err)
 		return err
 	}
+	// mapstructure.Decode怎么连不打标记的地方都解析的
+	// 出来直接nil，搞得后面的toml没法解析
+	m = clearNil(m) // 还得我帮它清除
 	b, err := toml.Marshal(m)
 	if err != nil {
 		return err
