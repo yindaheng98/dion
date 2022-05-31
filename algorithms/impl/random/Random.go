@@ -11,7 +11,6 @@ import (
 	"github.com/pion/ion/proto/ion"
 	"github.com/yindaheng98/dion/algorithms"
 	pb "github.com/yindaheng98/dion/proto"
-	"github.com/yindaheng98/dion/util"
 )
 
 // Random is a node selection algorithm, just for test
@@ -29,13 +28,13 @@ func RandNode(nid string) *ion.Node {
 	return &ion.Node{
 		Nid:     nid,
 		Service: config.ServiceSXU,
-		Dc:      util.RandomString(4),
+		Dc:      RandomString(4),
 	}
 }
 
 func RandChange(s *pb.SFUStatus) *pb.SFUStatus {
 	s.SFU.Rpc = &ion.RPC{
-		Addr: util.RandomString(4),
+		Addr: RandomString(4),
 	}
 	return s
 }
@@ -58,7 +57,7 @@ func (r *Random) UpdateSFUStatus(current []*pb.SFUStatus, reports []*pb.QualityR
 
 	if RandBool() {
 		expected = append(expected, &pb.SFUStatus{
-			SFU: RandNode("test-" + util.RandomString(6)),
+			SFU: RandNode("test-" + RandomString(6)),
 		})
 	}
 

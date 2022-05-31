@@ -5,24 +5,23 @@ import (
 	"math/rand"
 
 	pb "github.com/yindaheng98/dion/proto"
-	"github.com/yindaheng98/dion/util"
 )
 
 // RandForwardTrack Generate a ForwardTrack
 func RandForwardTrack() *pb.ForwardTrack {
 	return &pb.ForwardTrack{
-		Src:             RandNode(util.RandomString(4)),
-		RemoteSessionId: util.RandomString(8),
+		Src:             RandNode(RandomString(4)),
+		RemoteSessionId: RandomString(8),
 	}
 }
 
 // RandChangeForwardTrack change a ForwardTrack
 func RandChangeForwardTrack(track *pb.ForwardTrack) {
 	if RandBool() {
-		track.Src = RandNode(util.RandomString(4))
+		track.Src = RandNode(RandomString(4))
 	}
 	if RandBool() {
-		track.RemoteSessionId = util.RandomString(8)
+		track.RemoteSessionId = RandomString(8)
 	}
 }
 
@@ -45,10 +44,10 @@ type RandProcedure struct {
 
 // RandProceedTrack Generate a ProceedTrack
 func RandProceedTrack() *pb.ProceedTrack {
-	p, _ := anypb.New(&pb.ProceedTrack{DstSessionId: "Procedure-" + util.RandomString(2)})
+	p, _ := anypb.New(&pb.ProceedTrack{DstSessionId: "Procedure-" + RandomString(2)})
 	return &pb.ProceedTrack{
 		SrcSessionIdList: []string{},
-		DstSessionId:     util.RandomString(4),
+		DstSessionId:     RandomString(4),
 		Procedure:        p,
 	}
 }
@@ -56,17 +55,17 @@ func RandProceedTrack() *pb.ProceedTrack {
 // RandChangeProceedTrack change a ProceedTrack
 func RandChangeProceedTrack(track *pb.ProceedTrack) {
 	if RandBool() {
-		track.DstSessionId = util.RandomString(4)
+		track.DstSessionId = RandomString(4)
 	}
 	if RandBool() {
-		p, _ := anypb.New(&pb.ProceedTrack{DstSessionId: "Procedure-" + util.RandomString(2)})
+		p, _ := anypb.New(&pb.ProceedTrack{DstSessionId: "Procedure-" + RandomString(2)})
 		track.Procedure = p
 	}
 	if len(track.SrcSessionIdList) > 0 && RandBool() {
-		track.SrcSessionIdList[rand.Intn(len(track.SrcSessionIdList))] = util.RandomString(4)
+		track.SrcSessionIdList[rand.Intn(len(track.SrcSessionIdList))] = RandomString(4)
 	}
 	if RandBool() {
-		track.SrcSessionIdList = append(track.SrcSessionIdList, util.RandomString(4))
+		track.SrcSessionIdList = append(track.SrcSessionIdList, RandomString(4))
 	}
 }
 
