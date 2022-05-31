@@ -43,7 +43,7 @@ func NewISGLBClient(node *ion.Node, peerNID string, parameters map[string]interf
 		cancelTop:         cancal,
 		msgReadLoopExec:   util.NewSingleExec(),
 		sendSFUStatusExec: &util.SingleLatestExec{},
-		reconnectExec:     &util.SingleWaitExec{},
+		reconnectExec:     util.NewSingleWaitExec(ctx),
 	}
 	c.connected.Store(false)
 	return c
@@ -84,7 +84,7 @@ func (c *ISGLBClient) msgReadLoop() {
 		c.doWithClient(func(client pb.ISGLB_SyncSFUClient) error {
 			s, err := client.Recv() // Receive a SyncRequest
 			if err != nil {
-				log.Errorf("%v SFU status receive error %+v", err)
+				log.Errorf("SyncRequest receive error %+v", err)
 				return err
 			}
 			c.OnSFUStatusRecv(s)

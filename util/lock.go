@@ -6,9 +6,15 @@ import (
 )
 
 type SingleWaitExec struct {
-	running bool
-	sync.WaitGroup
-	mu sync.Mutex
+	context.Context
+	ctx context.Context
+	mu  sync.Mutex
+}
+
+func NewSingleWaitExec(ctx context.Context) *SingleWaitExec {
+	return &SingleWaitExec{
+		Context: ctx,
+	}
 }
 
 // Do : do an operation.
@@ -16,18 +22,25 @@ type SingleWaitExec struct {
 // If something is running, then just wait it
 func (l *SingleWaitExec) Do(op func()) {
 	l.mu.Lock()
-	if !l.running { // nothing is running, I should run it
-		l.running = true
-		l.Add(1)
+	ctx := l.ctx
+	if ctx == nil {
+		ctx, cancel := context.WithCancel(l)
+		l.ctx = ctx
 		l.mu.Unlock()
 		op()
-		l.Done()
-		l.mu.Lock()
-		l.running = false
-		l.mu.Unlock()
-	} else { // means something is doing, I should wait it
-		l.mu.Unlock()
-		l.Wait()
+		cancel()
+	} else {
+		select {
+		case <-ctx.Done():
+			ctx, cancel := context.WithCancel(l)
+			l.ctx = ctx
+			l.mu.Unlock()
+			op()
+			cancel()
+		default:
+			l.mu.Unlock()
+			<-ctx.Done()
+		}
 	}
 }
 

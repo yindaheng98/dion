@@ -3,6 +3,8 @@ package isglb
 import (
 	"fmt"
 	"github.com/cloudwebrtc/nats-discovery/pkg/discovery"
+	log "github.com/pion/ion-log"
+	"github.com/pion/ion/pkg/proto"
 	"math/rand"
 	"testing"
 	"time"
@@ -15,7 +17,7 @@ import (
 	pb "github.com/yindaheng98/dion/proto"
 )
 
-const sleep = 1
+const sleep = 100
 const N = 100
 
 func TestISGLB(t *testing.T) {
@@ -34,6 +36,13 @@ func TestISGLB(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
+	//重要！！！必须开启了Watch才能自动地关闭NATS GRPC连接.
+	go func() {
+		err := node.Watch(proto.ServiceALL)
+		if err != nil {
+			log.Errorf("Node.Watch(proto.ServiceALL) error %v", err)
+		}
+	}()
 	cli := NewISGLBClient(&node, node.NID, map[string]interface{}{})
 
 	cli.OnSFUStatusRecv = func(ss *pb.SFUStatus) {
@@ -50,10 +59,7 @@ func TestISGLB(t *testing.T) {
 	rr := &random.RandReports{}
 	for i := 0; i < N; i++ {
 		if random.RandBool() {
-			err := cli.SendSyncRequest(&pb.SyncRequest{Request: &pb.SyncRequest_Status{Status: s}})
-			if err != nil {
-				t.Error(err)
-			}
+			cli.SendSFUStatus(s)
 			del[i] = s
 			time.Sleep(sleep * time.Millisecond)
 		} else {
@@ -69,12 +75,10 @@ func TestISGLB(t *testing.T) {
 			}
 		}
 		for _, r := range rr.RandReports() {
-			err := cli.SendSyncRequest(&pb.SyncRequest{Request: &pb.SyncRequest_Report{Report: r}})
-			if err != nil {
-				t.Error(err)
-			}
+			cli.SendQualityReport(r)
 			time.Sleep(sleep * time.Millisecond)
 		}
+
 		if random.RandBool() {
 			s := del[rand.Intn(i+1)]
 			rpc := discovery.RPC{}
@@ -92,25 +96,25 @@ func TestISGLB(t *testing.T) {
 			}
 			isglb.s.handleNodeAction(discovery.Delete, d)
 		}
+
+		if i == N/4 {
+			isglb.Close()
+			t.Log("Stop it!!!!!!!!!!!!!!!!")
+		}
+		if i == N/2 {
+			isglb = NewWithID("isglb-test", func() algorithms.Algorithm { return &random.Random{} })
+			err := isglb.Start(Config{
+				Global: config.Global{Dc: "dc1"},
+				Log:    config.LogConf{Level: "DEBUG"},
+				Nats:   config.NatsConf{URL: "nats://192.168.94.131:4222"},
+			})
+			if err != nil {
+				t.Error(err)
+			}
+			t.Log("Restart it!!!!!!!!!!!!!!!!")
+		}
 	}
 	time.Sleep(1 * time.Second)
-	for _, s := range del {
-		rpc := discovery.RPC{}
-		if s.SFU.Rpc != nil {
-			rpc = discovery.RPC{
-				Protocol: discovery.Protocol(s.SFU.Rpc.Protocol),
-				Addr:     s.SFU.Rpc.Addr,
-			}
-		}
-		d := discovery.Node{
-			DC:      s.SFU.Dc,
-			Service: s.SFU.Service,
-			NID:     s.SFU.Nid,
-			RPC:     rpc,
-		}
-		isglb.s.handleNodeAction(discovery.Delete, d)
-	}
-	time.Sleep(5 * time.Second)
 	cli.Close()
 	time.Sleep(1 * time.Second)
 }

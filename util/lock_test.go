@@ -50,7 +50,7 @@ func TestSingleLatestExec(t *testing.T) {
 }
 
 func TestSingleWaitExec(t *testing.T) {
-	e := SingleWaitExec{}
+	e := NewSingleWaitExec(context.Background())
 	for i := 0; i < 100; i++ {
 		go func(i int) {
 			e.Do(func() {
