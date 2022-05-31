@@ -22,7 +22,7 @@ func NewTestSubscriberFactory(sfu *ion_sfu.SFU) TestSubscriberFactory {
 	return TestSubscriberFactory{SubscriberFactory: SubscriberFactory{sfu: sfu}}
 }
 
-func (p TestSubscriberFactory) NewDoor() (util.UnblockedDoor, error) {
+func (p TestSubscriberFactory) NewDoor() (util.UnblockedDoor[SID], error) {
 	subDoor, err := p.SubscriberFactory.NewDoor()
 	if err != nil {
 		log.Errorf("Cannot SubscriberFactory.NewDoor: %+v", err)
@@ -60,14 +60,14 @@ func TestSubscriber(t *testing.T) {
 	dc.Use(datachannel.SubscriberAPI) // 没有初始化Datachannel会报错“SetRemoteDescription called with no ice-ufrag”，导致没有Track的时候无限制重启
 
 	sub := NewTestSubscriberFactory(iSFU)
-	subdog := util.NewWatchDogWithUnblockedDoor(sub)
-	subdog.Watch(SID(MyName))
+	subdog := util.NewWatchDogWithUnblockedDoor[SID](sub)
+	subdog.Watch(MyName)
 
 	<-time.After(5 * time.Second)
 
 	pub := NewSimpleFFmpegTestsrcPublisher(ffmpeg, iSFU)
-	pubdog := util.NewWatchDogWithUnblockedDoor(pub)
-	pubdog.Watch(SID(MyName))
+	pubdog := util.NewWatchDogWithUnblockedDoor[SID](pub)
+	pubdog.Watch(MyName)
 
 	// Press Ctrl+C to exit the process
 	ch := make(chan os.Signal, 1)

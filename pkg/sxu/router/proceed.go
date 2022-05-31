@@ -10,7 +10,7 @@ import (
 )
 
 type proceeding struct {
-	util.WatchDog
+	util.WatchDog[bridge.ProceedTrackParam]
 	util.ProceedTrackItem
 }
 
@@ -37,7 +37,7 @@ func (p ProceedRouter) StartProceedTrack(trackInfo *pb.ProceedTrack) {
 		return
 	}
 	proc = proceeding{
-		WatchDog:         util.NewWatchDogWithUnblockedDoor(bridge.NewBridgeFactory(p.sfu, p.factory)),
+		WatchDog:         util.NewWatchDogWithUnblockedDoor[bridge.ProceedTrackParam](bridge.NewBridgeFactory(p.sfu, p.factory)),
 		ProceedTrackItem: item.Clone().(util.ProceedTrackItem),
 	}
 	proc.Watch(bridge.ProceedTrackParam{ProceedTrack: item.Clone().(util.ProceedTrackItem).Track})

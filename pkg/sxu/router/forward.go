@@ -9,7 +9,7 @@ import (
 )
 
 type forwarding struct {
-	util.WatchDog
+	util.WatchDog[signaller.ForwardTrackParam]
 	util.ForwardTrackItem
 }
 
@@ -38,7 +38,7 @@ func (f ForwardRouter) StartForwardTrack(trackInfo *pb.ForwardTrack) {
 	}
 
 	proc = forwarding{
-		WatchDog:         util.NewWatchDogWithBlockedDoor(f.factory),
+		WatchDog:         util.NewWatchDogWithBlockedDoor[signaller.ForwardTrackParam](f.factory),
 		ForwardTrackItem: item.Clone().(util.ForwardTrackItem),
 	}
 	proc.Watch(signaller.ForwardTrackParam{ForwardTrack: item.Clone().(util.ForwardTrackItem).Track})

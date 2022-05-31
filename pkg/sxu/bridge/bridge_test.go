@@ -27,7 +27,7 @@ func TestBridge(t *testing.T) {
 	dc.Use(datachannel.SubscriberAPI) // 没有初始化Datachannel会报错“SetRemoteDescription called with no ice-ufrag”，导致没有Track的时候无限制重启
 
 	br := NewBridgeFactory(iSFU, ffmpeg.NewSimpleFFmpegIVFProcessorFactory(ffmpegPath))
-	brdog := util.NewWatchDogWithUnblockedDoor(br)
+	brdog := util.NewWatchDogWithUnblockedDoor[ProceedTrackParam](br)
 	brdog.Watch(ProceedTrackParam{ProceedTrack: &pb.ProceedTrack{
 		DstSessionId:     YourName,
 		SrcSessionIdList: []string{MyName},
@@ -36,20 +36,20 @@ func TestBridge(t *testing.T) {
 	<-time.After(5 * time.Second)
 
 	pub := NewSimpleFFmpegTestsrcPublisher(ffmpegPath, iSFU)
-	pubdog := util.NewWatchDogWithUnblockedDoor(pub)
-	pubdog.Watch(SID(MyName))
+	pubdog := util.NewWatchDogWithUnblockedDoor[SID](pub)
+	pubdog.Watch(MyName)
 
 	<-time.After(3 * time.Second)
 
 	pub2 := NewSimpleFFmpegTestsrcPublisher(ffmpegPath, iSFU)
-	pubdog2 := util.NewWatchDogWithUnblockedDoor(pub2)
-	pubdog2.Watch(SID(MyName))
+	pubdog2 := util.NewWatchDogWithUnblockedDoor[SID](pub2)
+	pubdog2.Watch(MyName)
 
 	<-time.After(1 * time.Second)
 
 	pub3 := NewSimpleFFmpegTestsrcPublisher(ffmpegPath, iSFU)
-	pubdog3 := util.NewWatchDogWithUnblockedDoor(pub3)
-	pubdog3.Watch(SID(MyName))
+	pubdog3 := util.NewWatchDogWithUnblockedDoor[SID](pub3)
+	pubdog3.Watch(MyName)
 
 	<-time.After(1 * time.Second)
 

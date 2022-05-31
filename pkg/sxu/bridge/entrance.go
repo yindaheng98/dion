@@ -14,7 +14,7 @@ type EntranceFactory struct {
 	road algorithms.Processor
 }
 
-func (e EntranceFactory) NewDoor() (util.UnblockedDoor, error) {
+func (e EntranceFactory) NewDoor() (util.UnblockedDoor[SID], error) {
 	sub, err := e.SubscriberFactory.NewDoor()
 	if err != nil {
 		return nil, err
@@ -31,8 +31,8 @@ type Entrance struct {
 	road       algorithms.Processor
 }
 
-func (e Entrance) Lock(init util.Param, OnBroken func(badGay error)) error {
-	sid := init.(SID)
+func (e Entrance) Lock(init SID, OnBroken func(badGay error)) error {
+	sid := init
 
 	e.Subscriber.OnTrack(func(remote *webrtc.TrackRemote, receiver *webrtc.RTPReceiver) {
 		err := e.road.AddInTrack(string(sid), remote, receiver)
@@ -44,11 +44,11 @@ func (e Entrance) Lock(init util.Param, OnBroken func(badGay error)) error {
 	return e.Subscriber.Lock(sid, OnBroken)
 }
 
-func (e Entrance) Repair(param util.Param) error {
+func (e Entrance) Repair(param SID) error {
 	return fmt.Errorf("Entrance cannot be repaired ")
 }
 
-func (e Entrance) Update(param util.Param) error {
+func (e Entrance) Update(param SID) error {
 	return fmt.Errorf("Entrance cannot be updated ")
 }
 

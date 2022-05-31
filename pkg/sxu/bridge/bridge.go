@@ -34,7 +34,7 @@ func NewBridgeFactory(sfu *ion_sfu.SFU, fact algorithms.ProcessorFactory) Bridge
 	}
 }
 
-func (b BridgeFactory) NewDoor() (util.UnblockedDoor, error) {
+func (b BridgeFactory) NewDoor() (util.UnblockedDoor[ProceedTrackParam], error) {
 	pubDoor, err := b.PublisherFactory.NewDoor()
 	if err != nil {
 		return nil, err
@@ -52,7 +52,7 @@ func (b BridgeFactory) NewDoor() (util.UnblockedDoor, error) {
 		Processor: pro,
 		exit:      pub,
 		track:     nil,
-		entrances: map[string]util.WatchDog{},
+		entrances: map[string]util.WatchDog[SID]{},
 	}, nil
 }
 
@@ -63,10 +63,10 @@ type Bridge struct {
 	exit Publisher
 
 	track     *pb.ProceedTrack
-	entrances map[string]util.WatchDog
+	entrances map[string]util.WatchDog[SID]
 }
 
-func (b Bridge) Update(param util.Param) error {
+func (b Bridge) Update(param ProceedTrackParam) error {
 	track := param.Clone().(ProceedTrackParam).ProceedTrack           // Clone it
 	if b.track != nil && b.track.DstSessionId != track.DstSessionId { // check if it is mine
 		log.Errorf("DstSessionId not match! ")
@@ -86,7 +86,7 @@ func (b Bridge) Update(param util.Param) error {
 	for _, sid := range track.SrcSessionIdList {
 		if _, ok := b.entrances[sid]; !ok { // missing?
 			// make Entrance watchdog
-			entrance := util.NewWatchDogWithUnblockedDoor(b.EntranceFactory)
+			entrance := util.NewWatchDogWithUnblockedDoor[SID](b.EntranceFactory)
 			entrance.Watch(SID(sid)) // start it
 			b.entrances[sid] = entrance
 		}
@@ -107,9 +107,9 @@ func (b Bridge) Update(param util.Param) error {
 	return nil
 }
 
-func (b Bridge) Lock(init util.Param, OnBroken func(badGay error)) error {
+func (b Bridge) Lock(init ProceedTrackParam, OnBroken func(badGay error)) error {
 	// start Publisher
-	track := init.(ProceedTrackParam).ProceedTrack
+	track := init.ProceedTrack
 	err := b.exit.Lock(SID(track.DstSessionId), OnBroken)
 	if err != nil {
 		return err
@@ -154,7 +154,7 @@ func (b Bridge) Lock(init util.Param, OnBroken func(badGay error)) error {
 	return b.Update(init)
 }
 
-func (b Bridge) Repair(param util.Param) error {
+func (b Bridge) Repair(param ProceedTrackParam) error {
 	return fmt.Errorf("Bridge cannot be repaired ")
 }
 

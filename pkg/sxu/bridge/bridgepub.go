@@ -17,7 +17,7 @@ func NewPublisherFactory(sfu *ion_sfu.SFU) PublisherFactory {
 	return PublisherFactory{sfu: sfu}
 }
 
-func (p PublisherFactory) NewDoor() (util.UnblockedDoor, error) {
+func (p PublisherFactory) NewDoor() (util.UnblockedDoor[SID], error) {
 	me, err := getSubscriberMediaEngine()
 	if err != nil {
 		log.Errorf("Cannot getSubscriberMediaEngine for pc: %+v", err)
@@ -36,15 +36,15 @@ type Publisher struct {
 	BridgePeer
 }
 
-func (p Publisher) Lock(sid util.Param, OnBroken func(badGay error)) error {
-	return p.publish(string(sid.(SID)), OnBroken)
+func (p Publisher) Lock(sid SID, OnBroken func(badGay error)) error {
+	return p.publish(string(sid), OnBroken)
 }
 
-func (p Publisher) Repair(util.Param) error {
+func (p Publisher) Repair(SID) error {
 	return fmt.Errorf("Publisher cannot be repaired ")
 }
 
-func (p Publisher) Update(util.Param) error {
+func (p Publisher) Update(SID) error {
 	return fmt.Errorf("Publisher cannot be updated ")
 }
 

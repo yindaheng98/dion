@@ -28,7 +28,7 @@ func NewSimpleFFmpegTestsrcPublisher(ffmpegPath string, sfu *ion_sfu.SFU) Simple
 	}
 }
 
-func (p SimpleFFmpegTestsrcPublisher) NewDoor() (util.UnblockedDoor, error) {
+func (p SimpleFFmpegTestsrcPublisher) NewDoor() (util.UnblockedDoor[SID], error) {
 	pubDoor, err := p.PublisherFactory.NewDoor()
 	if err != nil {
 		log.Errorf("Cannot PublisherFactory.NewDoor: %+v", err)

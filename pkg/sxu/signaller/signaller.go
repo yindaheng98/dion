@@ -29,7 +29,7 @@ type SignallerFactory struct {
 	IRFBF    PubIRFBuilderFactory
 }
 
-func (f SignallerFactory) NewDoor() (util.BlockedDoor, error) {
+func (f SignallerFactory) NewDoor() (util.BlockedDoor[ForwardTrackParam], error) {
 	return &Signaller{
 		cp:       f.cp,
 		sfu:      f.sfu,
@@ -60,7 +60,7 @@ type Signaller struct {
 	trackMu sync.Mutex
 }
 
-func (s *Signaller) BLock(param util.Param) error {
+func (s *Signaller) BLock(param ForwardTrackParam) error {
 	track := param.Clone().(ForwardTrackParam).ForwardTrack
 	s.track = track
 	conn, err := s.cp.GetConn(track.Src.Service, track.Src.Nid)
@@ -109,7 +109,7 @@ func TrackSame(track1, track2 *pb.ForwardTrack) bool {
 	return true
 }
 
-func (s *Signaller) Update(param util.Param) error {
+func (s *Signaller) Update(param ForwardTrackParam) error {
 	oldTrack := s.track
 	track := param.Clone().(ForwardTrackParam).ForwardTrack
 	// should pull from another remote session? or should push to another local session?
