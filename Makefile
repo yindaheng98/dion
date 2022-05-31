@@ -4,6 +4,7 @@ GO_VERSION = 1.16
 download:
 	go mod download -x
 vendor: download
+	go mod tidy
 	go mod vendor
 
 

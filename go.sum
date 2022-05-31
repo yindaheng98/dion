@@ -790,8 +790,8 @@ github.com/xi2/xz v0.0.0-20171230120015-48954b6210f8/go.mod h1:HUYIGzjTL3rfEspMx
 github.com/xiang90/probing v0.0.0-20190116061207-43a291ad63a2/go.mod h1:UETIi67q53MR2AWcXfiuqkDkRtnGDLqkBTpCHuJHxtU=
 github.com/xlab/libvpx-go v0.0.0-20201217121537-9736e1703824/go.mod h1:aDpRjomFsJw5z7oxScCKeB5NNGqibqdOgmpnOaEVMQs=
 github.com/xordataexchange/crypt v0.0.3-0.20170626215501-b2862e3d0a77/go.mod h1:aYKd//L2LvnjZzWKhF00oedf4jCCReLcmhLdhm1A27Q=
-github.com/yindaheng98/ion v1.10.1-0.20220518115802-da154fb3ee21 h1:CidlHC2t9LcnmTeKVWvUw9iW0gprSdcKV6FykiJdC+I=
-github.com/yindaheng98/ion v1.10.1-0.20220518115802-da154fb3ee21/go.mod h1:sZkEnZ9Nuyd6PrJzn2F04sX1U2yMohQIqb2oYEJvN+g=
+github.com/yindaheng98/ion v1.10.1-0.20220531090011-24fe0ceef0b9 h1:3oWewrcC0DqejMoXFnEuE+CxPPzN40G35XmD4smtObs=
+github.com/yindaheng98/ion v1.10.1-0.20220531090011-24fe0ceef0b9/go.mod h1:sZkEnZ9Nuyd6PrJzn2F04sX1U2yMohQIqb2oYEJvN+g=
 github.com/yindaheng98/ion-sfu v1.11.1-0.20220521131211-10a33cc613d5 h1:jbkD0rAGpXF/hW+7vtjwgrKAeX3j6QOczES2VTkeN+g=
 github.com/yindaheng98/ion-sfu v1.11.1-0.20220521131211-10a33cc613d5/go.mod h1:FJ41uuR5Cxwh3CMVw85geBr1OgX1vPHHRr8UsC6CwaE=
 github.com/yuin/goldmark v1.1.25/go.mod h1:3hX8gzYuyVAZsxl0MRgGTJEmQBFcNTphYh9decYSb74=
