@@ -19,9 +19,12 @@ func (l *SingleWaitExec) Do(op func()) {
 	if !l.running { // nothing is running, I should run it
 		l.running = true
 		l.Add(1)
-		defer l.Done()
 		l.mu.Unlock()
 		op()
+		l.Done()
+		l.mu.Lock()
+		l.running = false
+		l.mu.Unlock()
 	} else { // means something is doing, I should wait it
 		l.mu.Unlock()
 		l.Wait()

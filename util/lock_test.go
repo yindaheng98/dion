@@ -48,3 +48,20 @@ func TestSingleLatestExec(t *testing.T) {
 		<-time.After(time.Duration(rand.Int31n(1000)) * time.Millisecond)
 	}
 }
+
+func TestSingleWaitExec(t *testing.T) {
+	e := SingleWaitExec{}
+	for i := 0; i < 100; i++ {
+		go func(i int) {
+			e.Do(func() {
+				for j := 0; j < 5; j++ {
+					t.Logf("%d is running %d\n", i, j)
+					<-time.After(time.Duration(rand.Int31n(1000)) * time.Millisecond)
+				}
+			})
+			t.Logf("%d is ok\n", i)
+		}(i)
+		<-time.After(time.Duration(rand.Int31n(100)) * time.Millisecond)
+	}
+	<-time.After(10 * time.Second)
+}
