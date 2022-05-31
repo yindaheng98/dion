@@ -1,6 +1,9 @@
 package config
 
 import (
+	"bytes"
+	"github.com/mitchellh/mapstructure"
+	"github.com/pelletier/go-toml"
 	log "github.com/pion/ion-log"
 	"github.com/spf13/viper"
 	"os"
@@ -50,6 +53,32 @@ func LoadFromFile(file, ftype string, rawVal interface{}) error {
 
 func LoadFromToml(file string, rawVal interface{}) error {
 	return LoadFromFile(file, "toml", rawVal)
+}
+
+func MergeTomlFromEnv(pre string, rawVal interface{}) error {
+	var m map[string]interface{}
+	err := mapstructure.Decode(rawVal, &m)
+	if err != nil {
+		log.Errorf("mapstructure decode failed. %v\n", err)
+		return err
+	}
+	b, err := toml.Marshal(m)
+	if err != nil {
+		return err
+	}
+	viper.SetConfigType("toml")
+	if err := viper.MergeConfig(bytes.NewReader(b)); err != nil {
+		return err
+	}
+	viper.AutomaticEnv()
+	viper.SetEnvPrefix(pre)
+	if err := viper.Unmarshal(rawVal); err != nil {
+		log.Errorf("config env unmarshal failed. %v\n", err)
+		return err
+	}
+
+	log.Infof("config from environment load ok!")
+	return nil
 }
 
 func (c *Common) Load(file string) error {
