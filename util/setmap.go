@@ -76,6 +76,24 @@ func (m SetMapaMteS[K, V]) Remove(key K, value V) {
 	m.reverse.Remove(value, key)
 }
 
+func (m SetMapaMteS[K, V]) RemoveValue(value V) {
+	if set, ok := m.reverse.m[value]; ok {
+		for key := range set {
+			m.SetMap.Remove(key, value)
+		}
+		delete(m.reverse.m, value)
+	}
+}
+
+func (m SetMapaMteS[K, V]) RemoveKey(key K) {
+	if set, ok := m.m[key]; ok {
+		for value := range set {
+			m.reverse.Remove(value, key)
+		}
+		delete(m.m, key)
+	}
+}
+
 func (m SetMapaMteS[K, V]) GetKeys(value V) []K {
 	return m.reverse.GetSet(value)
 }

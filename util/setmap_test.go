@@ -50,4 +50,14 @@ func TestSetMapaMteS(t *testing.T) {
 	sm.Add("2", 4)
 	t.Log(sm.GetUniqueKeys(2))
 	t.Log(sm.GetUniqueValues("2"))
+
+	sm.Add("1", 1)
+	sm.Add("1", 2)
+	sm.Add("1", 3)
+	sm.Add("2", 1)
+	sm.Add("2", 2)
+	sm.Add("2", 3)
+	sm.RemoveKey("2")
+	sm.RemoveValue(2)
+	t.Log(sm.GetUniqueValues("1"))
 }
