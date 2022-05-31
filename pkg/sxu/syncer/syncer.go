@@ -20,9 +20,9 @@ type ISGLBSyncer struct {
 	reporter *qualityReporter
 	session  SessionTracker
 
-	clientSet       *util.DisorderSet
-	forwardTrackSet *util.DisorderSet
-	proceedTrackSet *util.DisorderSet
+	clientSet       *util.DisorderSet[util.ClientNeededSessionItem]
+	forwardTrackSet *util.DisorderSet[util.ForwardTrackItem]
+	proceedTrackSet *util.DisorderSet[util.ProceedTrackItem]
 
 	// Just recv and send latest status
 	statusRecvCh   chan *pb.SFUStatus
@@ -64,9 +64,9 @@ func NewSFUStatusSyncer(node *ion.Node, peerID string, descSFU *pbion.Node, tool
 		reporter: newQualityReporter(tr, cr),
 		session:  session,
 
-		clientSet:       util.NewDisorderSet(),
-		forwardTrackSet: util.NewDisorderSet(),
-		proceedTrackSet: util.NewDisorderSet(),
+		clientSet:       util.NewDisorderSet[util.ClientNeededSessionItem](),
+		forwardTrackSet: util.NewDisorderSet[util.ForwardTrackItem](),
+		proceedTrackSet: util.NewDisorderSet[util.ProceedTrackItem](),
 
 		statusRecvCh:   make(chan *pb.SFUStatus, 1),
 		statusSendCh:   make(chan bool, 1),
@@ -121,32 +121,32 @@ func (s *ISGLBSyncer) syncStatus(expectedStatus *pb.SFUStatus) {
 	forwardIndexDataList := util.ForwardTracks(expectedStatus.ForwardTracks).ToDisorderSetItemList()
 	forwardAdd, forwardDel, forwardReplace := s.forwardTrackSet.Update(forwardIndexDataList)
 	for _, track := range forwardDel {
-		s.router.StopForwardTrack(track.(util.ForwardTrackItem).Track)
+		s.router.StopForwardTrack(track.Track)
 	}
 	for _, track := range forwardReplace {
 		s.router.ReplaceForwardTrack(
-			track.Old.(util.ForwardTrackItem).Track,
-			track.New.(util.ForwardTrackItem).Track,
+			track.Old.Track,
+			track.New.Track,
 		)
 	}
 	for _, track := range forwardAdd {
-		s.router.StartForwardTrack(track.(util.ForwardTrackItem).Track)
+		s.router.StartForwardTrack(track.Track)
 	}
 
 	//Perform track proceed change
 	proceedIndexDataList := util.ProceedTracks(expectedStatus.ProceedTracks).ToDisorderSetItemList()
 	proceedAdd, proceedDel, proceedReplace := s.proceedTrackSet.Update(proceedIndexDataList)
 	for _, track := range proceedDel {
-		s.router.StopProceedTrack(track.(util.ProceedTrackItem).Track)
+		s.router.StopProceedTrack(track.Track)
 	}
 	for _, track := range proceedReplace {
 		s.router.ReplaceProceedTrack(
-			track.Old.(util.ProceedTrackItem).Track,
-			track.New.(util.ProceedTrackItem).Track,
+			track.Old.Track,
+			track.New.Track,
 		)
 	}
 	for _, track := range proceedAdd {
-		s.router.StartProceedTrack(track.(util.ProceedTrackItem).Track)
+		s.router.StartProceedTrack(track.Track)
 	}
 }
 
@@ -185,9 +185,9 @@ func (s *ISGLBSyncer) main() {
 			}
 			st := &pb.SFUStatus{
 				SFU:           proto.Clone(s.descSFU).(*pbion.Node),
-				ForwardTracks: util.ItemList(s.forwardTrackSet.Sort()).ToForwardTracks(),
-				ProceedTracks: util.ItemList(s.proceedTrackSet.Sort()).ToProceedTracks(),
-				Clients:       util.ItemList(s.clientSet.Sort()).ToClientSessions(),
+				ForwardTracks: util.ForwardTrackItemList(s.forwardTrackSet.Sort()).ToForwardTracks(),
+				ProceedTracks: util.ProceedTrackItemList(s.proceedTrackSet.Sort()).ToProceedTracks(),
+				Clients:       util.ClientSessionItemList(s.clientSet.Sort()).ToClientSessions(),
 			} // should access Index, so keep single thread
 			go s.client.SendSFUStatus(st)
 		}
