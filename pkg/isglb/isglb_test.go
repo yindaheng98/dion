@@ -1,6 +1,7 @@
 package isglb
 
 import (
+	"github.com/cloudwebrtc/nats-discovery/pkg/discovery"
 	log "github.com/pion/ion-log"
 	"github.com/pion/ion/pkg/proto"
 	"testing"
@@ -17,13 +18,15 @@ import (
 const sleep = 100
 const N = 100
 
+var conf = Config{
+	Global: config.Global{Dc: "dc1"},
+	Log:    config.LogConf{Level: "DEBUG"},
+	Nats:   config.NatsConf{URL: "nats://192.168.94.131:4222"},
+}
+
 func TestISGLB(t *testing.T) {
 	isglb := NewWithID("isglb-test", func() algorithms.Algorithm { return &random.Random{} })
-	err := isglb.Start(Config{
-		Global: config.Global{Dc: "dc1"},
-		Log:    config.LogConf{Level: "DEBUG"},
-		Nats:   config.NatsConf{URL: "nats://192.168.94.131:4222"},
-	})
+	err := isglb.Start(conf)
 	if err != nil {
 		t.Error(err)
 	}
@@ -32,7 +35,7 @@ func TestISGLB(t *testing.T) {
 
 func TestISGLBClient(t *testing.T) {
 	node := ion.NewNode("sxu-" + util.RandomString(6))
-	err := node.Start("nats://192.168.94.131:4222")
+	err := node.Start(conf.Nats.URL)
 	if err != nil {
 		t.Error(err)
 	}
@@ -41,6 +44,22 @@ func TestISGLBClient(t *testing.T) {
 		err := node.Watch(proto.ServiceALL)
 		if err != nil {
 			log.Errorf("Node.Watch(proto.ServiceALL) error %v", err)
+		}
+	}()
+	//重要！！！必须开启了KeepAlive才能在退出时让服务端那边自动地关闭NATS GRPC连接.
+	go func() {
+		err := node.KeepAlive(discovery.Node{
+			DC:      conf.Global.Dc,
+			Service: config.ServiceSXU,
+			NID:     node.NID,
+			RPC: discovery.RPC{
+				Protocol: discovery.NGRPC,
+				Addr:     conf.Nats.URL,
+				//Params:   map[string]string{"username": "foo", "password": "bar"},
+			},
+		})
+		if err != nil {
+			log.Errorf("isglb.Node.KeepAlive(%v) error %v", node.NID, err)
 		}
 	}()
 	cli := NewISGLBClient(&node, node.NID, map[string]interface{}{})
@@ -80,26 +99,6 @@ func TestISGLBClient(t *testing.T) {
 			cli.SendQualityReport(r)
 			time.Sleep(sleep * time.Millisecond)
 		}
-
-		/*
-			if random.RandBool() {
-				s := del[rand.Intn(i+1)]
-				rpc := discovery.RPC{}
-				if s.SFU.Rpc != nil {
-					rpc = discovery.RPC{
-						Protocol: discovery.Protocol(s.SFU.Rpc.Protocol),
-						Addr:     s.SFU.Rpc.Addr,
-					}
-				}
-				d := discovery.Node{
-					DC:      s.SFU.Dc,
-					Service: s.SFU.Service,
-					NID:     s.SFU.Nid,
-					RPC:     rpc,
-				}
-				isglb.s.handleNodeAction(discovery.Delete, d)
-			}
-		*/
 	}
 	time.Sleep(1 * time.Second)
 	cli.Close()

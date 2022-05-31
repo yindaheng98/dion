@@ -2,7 +2,6 @@ package isglb
 
 import (
 	"fmt"
-	"github.com/cloudwebrtc/nats-discovery/pkg/discovery"
 	"github.com/yindaheng98/dion/util"
 	"io"
 	"sync"
@@ -51,12 +50,18 @@ func (isglb *ISGLBService) RegisterService(registrar grpc.ServiceRegistrar) {
 type isglbRecvMessage struct {
 	request *pb.SyncRequest
 	sigkey  *pb.ISGLB_SyncSFUServer
-	deleted *discovery.Node
+	deleted *pb.ISGLB_SyncSFUServer
 }
 
 // SyncSFU receive current SFUStatus, call the algorithm, and reply expected SFUStatus
 func (isglb *ISGLBService) SyncSFU(sig pb.ISGLB_SyncSFUServer) error {
 	skey := &sig
+	defer func(skey *pb.ISGLB_SyncSFUServer) {
+		// 当连接断开的时候直接删除节点
+		isglb.recvCh <- isglbRecvMessage{
+			deleted: skey,
+		}
+	}(skey)
 	sendCh := make(chan *pb.SFUStatus)
 	isglb.sendChsMu.Lock()
 	isglb.sendChs[skey] = sendCh // Create send channel when begin
@@ -83,7 +88,7 @@ func (isglb *ISGLBService) SyncSFU(sig pb.ISGLB_SyncSFUServer) error {
 			if errStatus.Code() == codes.Canceled {
 				return nil
 			}
-			log.Errorf("%v SFU request receive error %d", fmt.Errorf(errStatus.Message()), errStatus.Code())
+			log.Errorf("%v SyncRequest receive error %d", fmt.Errorf(errStatus.Message()), errStatus.Code())
 			return err
 		}
 		// Push to receive channel
@@ -103,7 +108,7 @@ func (isglb *ISGLBService) routineSFUStatusRecv() {
 	default: // If the routineSFUStatusRecv has started
 		return // Do not start again
 	}
-	signids := make(map[string]*pb.ISGLB_SyncSFUServer)
+	WhereToSend := util.NewSetMapaMteS[string, *pb.ISGLB_SyncSFUServer]()
 	latestStatus := make(map[string]util.SFUStatusItem) // Just for filter out those unchanged SFUStatus
 	for {
 		var recvCount = 0
@@ -128,16 +133,18 @@ func (isglb *ISGLBService) routineSFUStatusRecv() {
 				}
 			}
 
-			if deletedNode := msg.deleted; deletedNode != nil {
-				nid := (util.DiscoveryNodeItem{Node: deletedNode}).Key()
-				if lastStatus, ok := latestStatus[nid]; ok {
-					delete(latestStatus, nid)
-					delete(signids, nid)
-					log.Debugf("Deleted a SFU status: %s", lastStatus.SFUStatus.String())
-					recvCount++ // count the message
-				} else {
-					log.Debugf("SFU status to be deleted not exists: %s", nid)
+			if deletedSig := msg.deleted; deletedSig != nil {
+				for _, nid := range WhereToSend.GetUniqueKeys(deletedSig) {
+					WhereToSend.RemoveKey(nid)
+					if lastStatus, ok := latestStatus[nid]; ok {
+						delete(latestStatus, nid)
+						log.Debugf("Deleted a SFUStatus because its sig exit: %s", lastStatus.SFUStatus.String())
+						recvCount++ // count the message
+					} else {
+						log.Debugf("SFUStatus to be deleted not exists: %s", nid)
+					}
 				}
+				WhereToSend.RemoveValue(deletedSig)
 			}
 
 			if msg.request == nil || msg.sigkey == nil {
@@ -156,11 +163,7 @@ func (isglb *ISGLBService) routineSFUStatusRecv() {
 				reportedStatus := util.SFUStatusItem{SFUStatus: request.Status}
 				nid := reportedStatus.Key()
 
-				if lastSigkey, ok := signids[reportedStatus.Key()]; ok && lastSigkey != msg.sigkey {
-					log.Warnf("Dropped deprecated SFU status sync client for node key: %s", reportedStatus.Key())
-					continue
-				}
-				signids[nid] = msg.sigkey // Save sig and nid
+				WhereToSend.Add(reportedStatus.Key(), msg.sigkey) // Save sig and nid
 
 				if lastStatus, ok := latestStatus[nid]; ok && lastStatus.Compare(reportedStatus) {
 					log.Debugf("Dropped deprecated SFU status from request: %s", lastStatus.SFUStatus.String())
@@ -202,12 +205,17 @@ func (isglb *ISGLBService) routineSFUStatusRecv() {
 				continue //filter out unchanged request
 			}
 			// If the request should be change
+			sigs := WhereToSend.GetSet(nid)
+			if len(sigs) <= 0 {
+				log.Warnf("No SFUStatus sender sig found for nid %s: %s", nid, expectedStatus.SFUStatus.String())
+				continue
+			}
 			isglb.sendChsMu.RLock()
-			if sendCh, ok := isglb.sendChs[signids[nid]]; ok {
+			if sendCh, ok := isglb.sendChs[sigs[0]]; ok {
 				sendCh <- expectedStatus.SFUStatus // Send it
 				latestStatus[nid] = expectedStatus // And Save it
 			} else {
-				log.Warnf("No SFU status sender found for nid %s: %s", nid, expectedStatus.SFUStatus.String())
+				log.Warnf("No SFUStatus sender channel found for nid %s: %s", nid, expectedStatus.SFUStatus.String())
 			}
 			isglb.sendChsMu.RUnlock()
 		}
