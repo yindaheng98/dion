@@ -2,7 +2,6 @@ package util
 
 import (
 	"context"
-	"github.com/yindaheng98/dion/config"
 	"sync/atomic"
 	"time"
 )
@@ -15,6 +14,7 @@ type chItem[K, V comparable] struct {
 
 type ExpireSetMap[K, V comparable] struct {
 	m         map[K]map[V]*time.Timer
+	expire    time.Duration
 	runner    *SingleExec
 	updateCh  chan chItem[K, V]
 	deleteCh  chan chItem[K, V]
@@ -23,10 +23,11 @@ type ExpireSetMap[K, V comparable] struct {
 	cancel    context.CancelFunc
 }
 
-func NewExpireSetMap[K, V comparable]() *ExpireSetMap[K, V] {
+func NewExpireSetMap[K, V comparable](expire time.Duration) *ExpireSetMap[K, V] {
 	ctx, cancel := context.WithCancel(context.Background())
 	return &ExpireSetMap[K, V]{
 		m:        make(map[K]map[V]*time.Timer),
+		expire:   expire,
 		runner:   NewSingleExec(),
 		deleteCh: make(chan chItem[K, V], 64),
 		updateCh: make(chan chItem[K, V], 64),
@@ -58,7 +59,7 @@ func (m *ExpireSetMap[K, V]) Stop() {
 func (m *ExpireSetMap[K, V]) handleUpdate(ctx context.Context, key K, value V, callback func()) {
 	if set, ok := m.m[key]; ok { // set exist?
 		if timer, ok := set[value]; ok { // timer exist?
-			timer.Reset(config.ClientSessionExpire) // just reset it
+			timer.Reset(m.expire) // just reset it
 		} else { // timer not exist?
 			timer, start := m.newTimer(ctx, key, value) // create it
 			set[value] = timer
@@ -73,7 +74,7 @@ func (m *ExpireSetMap[K, V]) handleUpdate(ctx context.Context, key K, value V, c
 }
 
 func (m *ExpireSetMap[K, V]) newTimer(ctx context.Context, key K, value V) (timer *time.Timer, start func()) {
-	timer = time.NewTimer(config.ClientSessionExpire)
+	timer = time.NewTimer(m.expire)
 	start = func() {
 		go func(ctx context.Context, timer *time.Timer, key K, value V) {
 			select {
