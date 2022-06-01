@@ -92,6 +92,7 @@ require (
 )
 
 replace (
+	github.com/cloudwebrtc/nats-discovery v0.3.0 => github.com/yindaheng98/nats-discovery v0.3.1-0.20220601014014-e6a5369ace55
 	github.com/pion/ion v1.10.0 => github.com/yindaheng98/ion v1.10.1-0.20220531090011-24fe0ceef0b9
 	github.com/pion/ion-sfu v1.11.0 => github.com/yindaheng98/ion-sfu v1.11.1-0.20220521131211-10a33cc613d5
 )
