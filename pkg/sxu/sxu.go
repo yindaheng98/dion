@@ -28,6 +28,8 @@ func init() {
 
 type SXU struct {
 	ion.Node
+	ExtraInfo map[string]interface{} // 用来放置地域信息以供客户端进行选择
+
 	s *sfu.SFUService
 	runner.Service
 	conf sfu.Config
@@ -118,6 +120,7 @@ func (s *SXU) Start(conf sfu.Config) error {
 			Addr:     conf.Nats.URL,
 			//Params:   map[string]string{"username": "foo", "password": "bar"},
 		},
+		ExtraInfo: s.ExtraInfo,
 	}
 
 	go func() {
