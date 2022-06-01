@@ -37,7 +37,7 @@ func NewISGLBClient(cc grpc.ClientConnInterface) ISGLBClient {
 }
 
 func (c *iSGLBClient) SyncSFU(ctx context.Context, opts ...grpc.CallOption) (ISGLB_SyncSFUClient, error) {
-	stream, err := c.cc.NewStream(ctx, &ISGLB_ServiceDesc.Streams[0], "/islb.ISGLB/SyncSFU", opts...)
+	stream, err := c.cc.NewStream(ctx, &ISGLB_ServiceDesc.Streams[0], "/isglb.ISGLB/SyncSFU", opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -128,7 +128,7 @@ func (x *iSGLBSyncSFUServer) Recv() (*SyncRequest, error) {
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
 var ISGLB_ServiceDesc = grpc.ServiceDesc{
-	ServiceName: "islb.ISGLB",
+	ServiceName: "isglb.ISGLB",
 	HandlerType: (*ISGLBServer)(nil),
 	Methods:     []grpc.MethodDesc{},
 	Streams: []grpc.StreamDesc{

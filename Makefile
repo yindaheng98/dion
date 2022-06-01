@@ -42,3 +42,4 @@ PROTOC:=$(PROTOC) -I ./vendor -I ./
 
 proto_core:
 	$(PROTOC) proto/isglb.proto
+	$(PROTOC) proto/room.proto

@@ -6,7 +6,7 @@ import "google/protobuf/timestamp.proto";
 
 option go_package = "github.com/yindaheng98/dion/proto";
 
-package islb;
+package isglb;
 
 service ISGLB {
   // When forward path changed, upload the SFUStatus from client to ISGLB

@@ -1,0 +1,15 @@
+syntax = "proto3";
+
+import "proto/isglb.proto";
+
+option go_package = "github.com/yindaheng98/dion/proto";
+
+service Room {
+  // Continuous upload the ClientNeededSession
+  // When client should connect to another node, send expected ion.Node from ISGLB to client
+  rpc ClientHealth(isglb.ClientNeededSession) returns (HealthReply) {}
+}
+
+message HealthReply {
+  bool ok = 1;
+}
