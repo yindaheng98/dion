@@ -62,7 +62,7 @@ func TestISGLBClient(t *testing.T) {
 			log.Errorf("isglb.Node.KeepAlive(%v) error %v", node.NID, err)
 		}
 	}()
-	cli := NewISGLBClient(&node, "*", map[string]interface{}{})
+	cli := NewClient(&node, "*", map[string]interface{}{})
 
 	cli.OnSFUStatusRecv = func(ss *pb.SFUStatus) {
 		t.Logf("Received SFUStatus: %s\n", ss.String())

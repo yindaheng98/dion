@@ -10,9 +10,9 @@ import (
 	"google.golang.org/protobuf/proto"
 )
 
-// ISGLBSyncer is a ISGLBClient to sync SFUStatus
+// ISGLBSyncer is a Client to sync SFUStatus
 type ISGLBSyncer struct {
-	client  *isglb.ISGLBClient
+	client  *isglb.Client
 	node    *ion.Node
 	descSFU *pbion.Node
 
@@ -31,7 +31,7 @@ type ISGLBSyncer struct {
 }
 
 func NewSFUStatusSyncer(node *ion.Node, peerID string, descSFU *pbion.Node, toolbox ToolBox) *ISGLBSyncer {
-	isglbClient := isglb.NewISGLBClient(node, peerID, map[string]interface{}{})
+	isglbClient := isglb.NewClient(node, peerID, map[string]interface{}{})
 	if isglbClient == nil {
 		return nil
 	}

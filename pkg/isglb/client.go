@@ -10,14 +10,14 @@ import (
 	"google.golang.org/grpc/metadata"
 )
 
-type ISGLBClientStreamFactory struct {
+type ClientStreamFactory struct {
 	node       *ion.Node
 	peerNID    string
 	parameters map[string]interface{}
 	Metadata   metadata.MD
 }
 
-func (c ISGLBClientStreamFactory) NewClientStream(ctx context.Context) (util.ClientStream[*pb.SyncRequest, *pb.SFUStatus], error) {
+func (c ClientStreamFactory) NewClientStream(ctx context.Context) (util.ClientStream[*pb.SyncRequest, *pb.SFUStatus], error) {
 	conn, err := c.node.NewNatsRPCClient(config.ServiceISGLB, c.peerNID, c.parameters)
 	if err != nil {
 		log.Errorf("cannot node.NewNatsRPCClient: %v", err)
@@ -26,13 +26,13 @@ func (c ISGLBClientStreamFactory) NewClientStream(ctx context.Context) (util.Cli
 	ctx = metadata.NewOutgoingContext(ctx, c.Metadata)
 	client, err := pb.NewISGLBClient(conn).SyncSFU(ctx)
 	if err != nil {
-		log.Errorf("cannot pb.NewISGLBClient: %v", err)
+		log.Errorf("cannot pb.NewClient: %v", err)
 		return nil, err
 	}
 	return client, err
 }
 
-type ISGLBClient struct {
+type Client struct {
 	*util.Client[*pb.SyncRequest, *pb.SFUStatus]
 	ctxTop    context.Context
 	cancelTop context.CancelFunc
@@ -45,11 +45,11 @@ type ISGLBClient struct {
 	OnSFUStatusRecv func(s *pb.SFUStatus)
 }
 
-func NewISGLBClient(node *ion.Node, peerNID string, parameters map[string]interface{}) *ISGLBClient {
+func NewClient(node *ion.Node, peerNID string, parameters map[string]interface{}) *Client {
 	ctx, cancal := context.WithCancel(context.Background())
-	c := &ISGLBClient{
+	c := &Client{
 		Client: util.NewClient[*pb.SyncRequest, *pb.SFUStatus](
-			ISGLBClientStreamFactory{
+			ClientStreamFactory{
 				node: node, peerNID: peerNID, parameters: parameters,
 			}),
 		ctxTop:            ctx,
@@ -65,7 +65,7 @@ func NewISGLBClient(node *ion.Node, peerNID string, parameters map[string]interf
 }
 
 // SendQualityReport send the report, maybe lose when cannot connect
-func (c *ISGLBClient) SendQualityReport(report *pb.QualityReport) {
+func (c *Client) SendQualityReport(report *pb.QualityReport) {
 	c.DoWithClient(func(client util.ClientStream[*pb.SyncRequest, *pb.SFUStatus]) error {
 		err := client.Send(&pb.SyncRequest{Request: &pb.SyncRequest_Report{Report: report}})
 		if err != nil {
@@ -77,7 +77,7 @@ func (c *ISGLBClient) SendQualityReport(report *pb.QualityReport) {
 }
 
 // SendSFUStatus send the SFUStatus, if there is a new status should be send, the last send will be canceled
-func (c *ISGLBClient) SendSFUStatus(status *pb.SFUStatus) {
+func (c *Client) SendSFUStatus(status *pb.SFUStatus) {
 	c.sendSFUStatusExec.Do(func(ctx context.Context) {
 		for {
 			select {
@@ -102,6 +102,6 @@ func (c *ISGLBClient) SendSFUStatus(status *pb.SFUStatus) {
 	})
 }
 
-func (c *ISGLBClient) Name() string {
-	return "ISGLBClient"
+func (c *Client) Name() string {
+	return "Client"
 }
