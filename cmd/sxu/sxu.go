@@ -44,7 +44,7 @@ func main() {
 	log.Init(conf.Log.Level)
 
 	log.Infof("--- starting isglb node ---")
-	node := sxu.New(sxu.NewDefaultToolBoxBuilder(sxu.WithTrackForwarder(), sxu.WithSessionTracker())) // TODO
+	node := sxu.New(sxu.NewDefaultToolBoxBuilder()) // TODO
 	if err := node.Start(conf); err != nil {
 		log.Errorf("isglb start error: %v", err)
 		os.Exit(-1)

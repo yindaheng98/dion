@@ -6,6 +6,7 @@ import (
 	"github.com/yindaheng98/dion/pkg/sxu/room"
 	"github.com/yindaheng98/dion/pkg/sxu/router"
 	"github.com/yindaheng98/dion/pkg/sxu/syncer"
+	pb2 "github.com/yindaheng98/dion/proto"
 	"github.com/yindaheng98/dion/util/ion"
 )
 
@@ -29,13 +30,13 @@ func (b DefaultToolBoxBuilder) Build(node *ion.Node, sfu *ion_sfu.SFU) syncer.To
 		w(&t, node, sfu)
 	}
 	if t.TrackForwarder == nil {
-		t.TrackForwarder = syncer.StupidTrackForwarder{}
+		WithTrackForwarder()(&t, node, sfu)
 	}
 	if t.TrackProcessor == nil {
 		t.TrackProcessor = syncer.StupidTrackProcesser{}
 	}
 	if t.SessionTracker == nil {
-		t.SessionTracker = syncer.StupidSessionTracker{}
+		WithSessionTracker()(&t, node, sfu)
 	}
 	if t.TransmissionReporter == nil {
 		t.TransmissionReporter = &syncer.StupidTransmissionReporter{}
@@ -82,6 +83,8 @@ func WithComputationReporter(reporter syncer.ComputationReporter) WithOption {
 
 func WithSessionTracker() WithOption {
 	return func(box *syncer.ToolBox, node *ion.Node, sfu *ion_sfu.SFU) {
-		box.SessionTracker = room.NewService()
+		s := room.NewService()
+		box.SessionTracker = s
+		pb2.RegisterRoomServer(node.ServiceRegistrar(), s)
 	}
 }
