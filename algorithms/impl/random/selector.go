@@ -12,14 +12,14 @@ type RandomSelector struct {
 }
 
 func (RandomSelector) Select(m map[string]discovery.Node) []discovery.Node {
-	nodes := make([]discovery.Node, len(m))
-	i := 0
+	var nodes []discovery.Node
 	for _, node := range m {
-		nodes[i] = node
 		if RandBool() {
-			nodes[i] = RandomDiscoveryNode()
+			nodes = append(nodes, node)
 		}
-		i++
+		if RandBool() {
+			nodes = append(nodes, RandomDiscoveryNode())
+		}
 	}
 	return nodes
 }
