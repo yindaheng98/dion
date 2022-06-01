@@ -7,12 +7,12 @@ import (
 	"testing"
 	"time"
 
-	"github.com/pion/ion/pkg/ion"
 	"github.com/pion/ion/pkg/util"
 	"github.com/yindaheng98/dion/algorithms"
 	"github.com/yindaheng98/dion/algorithms/impl/random"
 	"github.com/yindaheng98/dion/config"
 	pb "github.com/yindaheng98/dion/proto"
+	"github.com/yindaheng98/dion/util/ion"
 )
 
 const sleep = 100
@@ -21,7 +21,7 @@ const N = 100
 var conf = Config{
 	Global: config.Global{Dc: "dc1"},
 	Log:    config.LogConf{Level: "DEBUG"},
-	Nats:   config.NatsConf{URL: "nats://192.168.94.131:4222"},
+	Nats:   config.NatsConf{URL: "nats://127.0.0.1:4222"},
 }
 
 func TestISGLB(t *testing.T) {

@@ -7,7 +7,6 @@ import (
 	log "github.com/pion/ion-log"
 	ion_sfu_log "github.com/pion/ion-sfu/pkg/logger"
 	ion_sfu "github.com/pion/ion-sfu/pkg/sfu"
-	"github.com/pion/ion/pkg/ion"
 	"github.com/pion/ion/pkg/proto"
 	"github.com/pion/ion/pkg/runner"
 	pbion "github.com/pion/ion/proto/ion"
@@ -16,6 +15,7 @@ import (
 	"github.com/yindaheng98/dion/pkg/sfu"
 	"github.com/yindaheng98/dion/pkg/sxu/syncer"
 	"github.com/yindaheng98/dion/util"
+	"github.com/yindaheng98/dion/util/ion"
 	"google.golang.org/grpc"
 )
 

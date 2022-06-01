@@ -26,7 +26,7 @@ func showHelp() {
 }
 
 func main() {
-	flag.StringVar(&file, "c", "configs/islb.toml", "config file")
+	flag.StringVar(&file, "c", "cmd/islb/islb.toml", "config file")
 	help := flag.Bool("h", false, "help info")
 	flag.Parse()
 	if *help {

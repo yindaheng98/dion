@@ -26,7 +26,7 @@ func NewISLB() *ISLB {
 func (i *ISLB) Start(conf config.Common) error {
 	var err error
 
-	err = i.Node.Start(conf.Nats.URL, config.DiscoveryLifeCycle)
+	err = i.Node.Start(conf.Nats.URL)
 	if err != nil {
 		i.Close()
 		return err

@@ -2,11 +2,11 @@ package syncer
 
 import (
 	log "github.com/pion/ion-log"
-	"github.com/pion/ion/pkg/ion"
 	pbion "github.com/pion/ion/proto/ion"
 	"github.com/yindaheng98/dion/pkg/isglb"
 	pb "github.com/yindaheng98/dion/proto"
 	"github.com/yindaheng98/dion/util"
+	"github.com/yindaheng98/dion/util/ion"
 	"google.golang.org/protobuf/proto"
 )
 

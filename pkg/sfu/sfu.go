@@ -5,10 +5,10 @@ import (
 	nrpc "github.com/cloudwebrtc/nats-grpc/pkg/rpc"
 	"github.com/cloudwebrtc/nats-grpc/pkg/rpc/reflection"
 	log "github.com/pion/ion-log"
-	"github.com/pion/ion/pkg/ion"
 	"github.com/pion/ion/pkg/proto"
 	pb "github.com/pion/ion/proto/rtc"
 	"github.com/yindaheng98/dion/config"
+	"github.com/yindaheng98/dion/util/ion"
 )
 
 // SFU represents a sfu node

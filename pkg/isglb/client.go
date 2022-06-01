@@ -4,10 +4,10 @@ import (
 	"context"
 	log "github.com/pion/ion-log"
 	sdk "github.com/pion/ion-sdk-go"
-	"github.com/pion/ion/pkg/ion"
 	"github.com/yindaheng98/dion/config"
 	pb "github.com/yindaheng98/dion/proto"
 	"github.com/yindaheng98/dion/util"
+	"github.com/yindaheng98/dion/util/ion"
 	"google.golang.org/grpc/metadata"
 	"sync/atomic"
 )

@@ -2,10 +2,10 @@ package sxu
 
 import (
 	ion_sfu "github.com/pion/ion-sfu/pkg/sfu"
-	"github.com/pion/ion/pkg/ion"
 	"github.com/yindaheng98/dion/algorithms"
 	"github.com/yindaheng98/dion/pkg/sxu/router"
 	"github.com/yindaheng98/dion/pkg/sxu/syncer"
+	"github.com/yindaheng98/dion/util/ion"
 )
 
 type ToolBoxBuilder interface {

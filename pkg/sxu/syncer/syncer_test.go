@@ -8,13 +8,13 @@ import (
 	"testing"
 	"time"
 
-	"github.com/pion/ion/pkg/ion"
 	"github.com/pion/ion/pkg/util"
 	"github.com/yindaheng98/dion/algorithms"
 	"github.com/yindaheng98/dion/algorithms/impl/random"
 	"github.com/yindaheng98/dion/config"
 	"github.com/yindaheng98/dion/pkg/isglb"
 	pb "github.com/yindaheng98/dion/proto"
+	"github.com/yindaheng98/dion/util/ion"
 )
 
 const sleep = 1000

@@ -5,13 +5,13 @@ import (
 	nrpc "github.com/cloudwebrtc/nats-grpc/pkg/rpc"
 	"github.com/cloudwebrtc/nats-grpc/pkg/rpc/reflection"
 	log "github.com/pion/ion-log"
-	"github.com/pion/ion/pkg/ion"
 	"github.com/pion/ion/pkg/proto"
 	"github.com/pion/ion/pkg/runner"
 	"github.com/pion/ion/pkg/util"
 	"github.com/yindaheng98/dion/algorithms"
 	"github.com/yindaheng98/dion/config"
 	pb "github.com/yindaheng98/dion/proto"
+	"github.com/yindaheng98/dion/util/ion"
 	"google.golang.org/grpc"
 )
 

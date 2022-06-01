@@ -6,7 +6,6 @@ import (
 	"github.com/cloudwebrtc/nats-grpc/pkg/rpc/reflection"
 	log "github.com/pion/ion-log"
 	ion_sfu "github.com/pion/ion-sfu/pkg/sfu"
-	"github.com/pion/ion/pkg/ion"
 	"github.com/pion/ion/pkg/proto"
 	"github.com/pion/ion/pkg/runner"
 	pb "github.com/pion/ion/proto/rtc"
@@ -14,6 +13,7 @@ import (
 	"github.com/yindaheng98/dion/pkg/sfu"
 	"github.com/yindaheng98/dion/pkg/sxu/bridge"
 	"github.com/yindaheng98/dion/util"
+	"github.com/yindaheng98/dion/util/ion"
 	"google.golang.org/grpc"
 )
 
