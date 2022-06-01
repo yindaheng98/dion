@@ -3,6 +3,7 @@ package sxu
 import (
 	ion_sfu "github.com/pion/ion-sfu/pkg/sfu"
 	"github.com/yindaheng98/dion/algorithms"
+	"github.com/yindaheng98/dion/pkg/sxu/room"
 	"github.com/yindaheng98/dion/pkg/sxu/router"
 	"github.com/yindaheng98/dion/pkg/sxu/syncer"
 	"github.com/yindaheng98/dion/util/ion"
@@ -79,10 +80,8 @@ func WithComputationReporter(reporter syncer.ComputationReporter) WithOption {
 	}
 }
 
-func WithSessionTracker(tracker syncer.SessionTracker) WithOption {
+func WithSessionTracker() WithOption {
 	return func(box *syncer.ToolBox, node *ion.Node, sfu *ion_sfu.SFU) {
-		if tracker != nil {
-			box.SessionTracker = tracker
-		}
+		box.SessionTracker = room.NewService()
 	}
 }

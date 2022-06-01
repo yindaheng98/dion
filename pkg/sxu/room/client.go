@@ -10,7 +10,6 @@ import (
 	pb "github.com/yindaheng98/dion/proto"
 	"github.com/yindaheng98/dion/util"
 	"github.com/yindaheng98/dion/util/ion"
-	"google.golang.org/grpc"
 	"google.golang.org/protobuf/proto"
 	"sync/atomic"
 	"time"
@@ -24,13 +23,13 @@ type Client struct {
 	ctxTop     context.Context
 	cancelTop  context.CancelFunc
 
-	session         atomic.Value[*pb.ClientNeededSession]
-	connected       atomic.Value[bool]
+	session         atomic.Value
+	connected       atomic.Value
 	keepAliveExec   *util.SingleExec
 	reconnectExec   *util.SingleWaitExec
 	manualReconnect chan struct{}
 
-	conn grpc.ClientConnInterface
+	conn *rpc.Client
 }
 
 func NewClient(node *ion.Node, selector Selector, parameters map[string]interface{}) *Client {
@@ -81,23 +80,35 @@ func (c *Client) keepAlive() {
 			return // exit
 		case <-c.manualReconnect: // want refresh connection?
 			c.reconnect()
-		case <-time.After(config.ClientSessionLifeCycle):
-		}
-		// receive msg
-		c.doWithClient(func(client pb.RoomClient) error {
-			if session := c.session.Load().(*pb.ClientNeededSession); session != nil {
-				reply, err := client.ClientHealth(c.ctxTop, session) // keep alive
-				if err != nil {
-					log.Errorf("ClientHealth error %+v", err)
-					return err
-				}
-				if !reply.Ok {
-					log.Errorf("ClientHealth return false")
-					return fmt.Errorf("ClientHealth return false")
-				}
+		default:
+			t := time.After(config.ClientSessionLifeCycle)
+			ctx, cancel := context.WithCancel(context.Background())
+			go func(cancel context.CancelFunc) {
+				// receive msg
+				c.doWithClient(func(client pb.RoomClient) error {
+					defer cancel()
+					if session := c.session.Load(); session != nil {
+						reply, err := client.ClientHealth(c.ctxTop, session.(*pb.ClientNeededSession)) // keep alive
+						if err != nil {
+							log.Errorf("ClientHealth error %+v", err)
+							return err
+						}
+						if !reply.Ok {
+							log.Errorf("ClientHealth return false")
+							return fmt.Errorf("ClientHealth return false")
+						}
+					}
+					return nil
+				})
+			}(cancel)
+			select {
+			case <-ctx.Done():
+				<-t
+			case <-t:
+				log.Errorf("ClientHealth time out")
+				c.reconnect()
 			}
-			return nil
-		})
+		}
 	}
 }
 
@@ -105,6 +116,9 @@ func (c *Client) reconnect() {
 	// c.Do: 如果当前正在重连，就等待重连完成；如果当前不在重连，就开始重连直到完成
 	c.reconnectExec.Do(func() {
 		log.Infof("room.Client connecting......")
+		if c.conn != nil {
+			_ = c.conn.Close()
+		}
 
 		nodes := c.node.GetNeighborNodes()
 		if len(nodes) <= 0 {
@@ -161,7 +175,7 @@ func (c *Client) Name() string {
 }
 
 func (c *Client) Connect() {
-	c.reconnect()
+	c.keepAliveExec.Do(c.keepAlive)
 }
 
 func (c *Client) Connected() bool {

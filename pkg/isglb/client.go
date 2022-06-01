@@ -189,7 +189,7 @@ func (c *ISGLBClient) Name() string {
 }
 
 func (c *ISGLBClient) Connect() {
-	c.reconnect()
+	c.msgReadLoopExec.Do(c.msgReadLoop)
 }
 
 func (c *ISGLBClient) Connected() bool {

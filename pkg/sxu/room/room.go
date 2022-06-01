@@ -2,6 +2,7 @@ package room
 
 import (
 	"context"
+	"github.com/yindaheng98/dion/config"
 	"github.com/yindaheng98/dion/pkg/sxu/syncer"
 	pb "github.com/yindaheng98/dion/proto"
 	"github.com/yindaheng98/dion/util"
@@ -13,8 +14,8 @@ type Service struct {
 	eventCh chan *syncer.SessionEvent
 }
 
-func NewRoomService() Service {
-	set := util.NewExpireSetMap[string, string]()
+func NewService() Service {
+	set := util.NewExpireSetMap[string, string](config.ClientSessionExpire)
 	eventCh := make(chan *syncer.SessionEvent, 64)
 	set.OnDelete(func(user string, session string) {
 		eventCh <- &syncer.SessionEvent{
@@ -32,6 +33,7 @@ func NewRoomService() Service {
 }
 
 func (r Service) ClientHealth(_ context.Context, session *pb.ClientNeededSession) (*pb.HealthReply, error) {
+	r.set.Start()
 	r.set.Update(session.User, session.Session)
 	r.eventCh <- &syncer.SessionEvent{
 		Session: session,
