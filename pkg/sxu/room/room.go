@@ -7,13 +7,13 @@ import (
 	"github.com/yindaheng98/dion/util"
 )
 
-type RoomService struct {
+type Service struct {
 	pb.UnimplementedRoomServer
 	set     *util.ExpireSetMap[string, string]
 	eventCh chan *syncer.SessionEvent
 }
 
-func NewRoomService() RoomService {
+func NewRoomService() Service {
 	set := util.NewExpireSetMap[string, string]()
 	eventCh := make(chan *syncer.SessionEvent, 64)
 	set.OnDelete(func(user string, session string) {
@@ -25,13 +25,13 @@ func NewRoomService() RoomService {
 			State: syncer.SessionEvent_REMOVE,
 		}
 	})
-	return RoomService{
+	return Service{
 		set:     set,
 		eventCh: eventCh,
 	}
 }
 
-func (r RoomService) ClientHealth(_ context.Context, session *pb.ClientNeededSession) (*pb.HealthReply, error) {
+func (r Service) ClientHealth(_ context.Context, session *pb.ClientNeededSession) (*pb.HealthReply, error) {
 	r.set.Update(session.User, session.Session)
 	r.eventCh <- &syncer.SessionEvent{
 		Session: session,
@@ -40,7 +40,7 @@ func (r RoomService) ClientHealth(_ context.Context, session *pb.ClientNeededSes
 	return &pb.HealthReply{Ok: true}, nil
 }
 
-func (r RoomService) FetchSessionEvent() *syncer.SessionEvent {
+func (r Service) FetchSessionEvent() *syncer.SessionEvent {
 	return <-r.eventCh
 }
 
