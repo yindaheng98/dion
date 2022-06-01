@@ -16,6 +16,8 @@ sxu: go_deps
 	go build -o sxu $(GO_LDFLAGS) github.com/yindaheng98/dion/cmd/sxu
 stupid: go_deps
 	go build -o stupid $(GO_LDFLAGS) github.com/yindaheng98/dion/cmd/stupid
+islb: go_deps
+	go build -o islb $(GO_LDFLAGS) github.com/yindaheng98/dion/cmd/islb
 
 all: isglb sxu stupid
 
