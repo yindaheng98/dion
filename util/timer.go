@@ -18,33 +18,41 @@ type ExpireSetMap[K, V comparable] struct {
 	runner    *SingleExec
 	updateCh  chan chItem[K, V]
 	deleteCh  chan chItem[K, V]
-	onDeleted atomic.Value[func(K, V)]
+	onDeleted atomic.Value
+	ctx       context.Context
+	cancel    context.CancelFunc
 }
 
 func NewExpireSetMap[K, V comparable]() *ExpireSetMap[K, V] {
+	ctx, cancel := context.WithCancel(context.Background())
 	return &ExpireSetMap[K, V]{
 		m:        make(map[K]map[V]*time.Timer),
 		runner:   NewSingleExec(),
 		deleteCh: make(chan chItem[K, V], 64),
 		updateCh: make(chan chItem[K, V], 64),
+		ctx:      ctx, cancel: cancel,
 	}
 }
 
-func (m *ExpireSetMap[K, V]) Start(ctx context.Context) {
+func (m *ExpireSetMap[K, V]) Start() {
 	m.runner.Do(func() {
 		for {
 			select {
-			case <-ctx.Done():
+			case <-m.ctx.Done():
 				return
 			case i := <-m.updateCh:
 				key, value, callback := i.key, i.value, i.callback
-				m.handleUpdate(ctx, key, value, callback)
+				m.handleUpdate(m.ctx, key, value, callback)
 			case i := <-m.deleteCh:
 				key, value, callback := i.key, i.value, i.callback
 				m.handleDelete(key, value, callback)
 			}
 		}
 	})
+}
+
+func (m *ExpireSetMap[K, V]) Stop() {
+	m.cancel()
 }
 
 func (m *ExpireSetMap[K, V]) handleUpdate(ctx context.Context, key K, value V, callback func()) {
@@ -90,7 +98,7 @@ func (m *ExpireSetMap[K, V]) handleDelete(key K, value V, callback func()) {
 		if len(set) <= 0 {
 			delete(m.m, key)
 		}
-		if handler := m.onDeleted.Load(); handler != nil {
+		if handler := m.onDeleted.Load().(func(K, V)); handler != nil {
 			handler(key, value)
 		}
 	}
