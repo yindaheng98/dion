@@ -192,7 +192,9 @@ func TestClientPub(t *testing.T) {
 	if err != nil {
 		panic(err)
 	}
-	<-time.After(100 * time.Second)
+	<-time.After(10 * time.Second)
+	stream.Close() // 这里断开连接并不会让对方断开连接。但是没关系，因为SFU可以从PeerConnection断开连接
+	<-time.After(10 * time.Second)
 	s.Close()
 }
 
@@ -296,6 +298,8 @@ func TestClientSub(t *testing.T) {
 	if err != nil {
 		panic(err)
 	}
-	<-time.After(100 * time.Second)
+	<-time.After(10 * time.Second)
+	stream.Close()
+	<-time.After(10 * time.Second)
 	s.Close()
 }
