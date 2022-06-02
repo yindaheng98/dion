@@ -1,25 +1,26 @@
 package random
 
-import "github.com/cloudwebrtc/nats-discovery/pkg/discovery"
+import (
+	"github.com/cloudwebrtc/nats-grpc/pkg/rpc"
+	log "github.com/pion/ion-log"
+	"github.com/yindaheng98/dion/config"
+	"github.com/yindaheng98/dion/util/ion"
+)
 
-func RandomDiscoveryNode() discovery.Node {
-	return discovery.Node{
-		NID: "RandomDiscoveryNode-" + RandomString(8),
-	}
+type RandomClientFactory struct {
+	*ion.Node
 }
 
-type RandomSelector struct {
-}
-
-func (RandomSelector) Select(m map[string]discovery.Node) []discovery.Node {
-	var nodes []discovery.Node
-	for _, node := range m {
+func (s RandomClientFactory) NewClient() *rpc.Client {
+	for _, node := range s.GetNeighborNodes() {
 		if RandBool() {
-			nodes = append(nodes, node)
-		}
-		if RandBool() {
-			nodes = append(nodes, RandomDiscoveryNode())
+			client, err := s.NewNatsRPCClient(config.ServiceSXU, node.NID, map[string]interface{}{})
+			if err != nil {
+				log.Errorf("cannot NewNatsRPCClient: %v, try next", err)
+			}
+			return client
 		}
 	}
-	return nodes
+	log.Errorf("there is no nodes to be connect")
+	return nil
 }

@@ -9,7 +9,6 @@ import (
 	"github.com/yindaheng98/dion/config"
 	pb "github.com/yindaheng98/dion/proto"
 	"github.com/yindaheng98/dion/util"
-	"github.com/yindaheng98/dion/util/ion"
 	"google.golang.org/protobuf/proto"
 	"sync/atomic"
 	"time"
@@ -17,11 +16,9 @@ import (
 
 type Client struct {
 	sdk.Service
-	selector   Selector
-	node       *ion.Node
-	parameters map[string]interface{}
-	ctxTop     context.Context
-	cancelTop  context.CancelFunc
+	factory   ClientFactory
+	ctxTop    context.Context
+	cancelTop context.CancelFunc
 
 	session         atomic.Value
 	connected       atomic.Value
@@ -32,14 +29,12 @@ type Client struct {
 	conn *rpc.Client
 }
 
-func NewClient(node *ion.Node, selector Selector, parameters map[string]interface{}) *Client {
+func NewClient(factory ClientFactory) *Client {
 	ctx, cancal := context.WithCancel(context.Background())
 	c := &Client{
-		selector:   selector,
-		node:       node,
-		parameters: parameters,
-		ctxTop:     ctx,
-		cancelTop:  cancal,
+		factory:   factory,
+		ctxTop:    ctx,
+		cancelTop: cancal,
 
 		keepAliveExec:   util.NewSingleExec(),
 		reconnectExec:   util.NewSingleWaitExec(ctx),
@@ -120,30 +115,10 @@ func (c *Client) reconnect() {
 			_ = c.conn.Close()
 		}
 
-		nodes := c.node.GetNeighborNodes()
-		if len(nodes) <= 0 {
-			log.Errorf("there is no nodes can be connect")
-			return
-		}
-		nodel := c.selector.Select(nodes) // select a node
-		if len(nodes) <= 0 {
-			log.Errorf("there is no nodes to be connect")
-			return
-		}
-
-		var err error
-		var conn *rpc.Client
-		for _, node := range nodel {
-			conn, err = c.node.NewNatsRPCClient(config.ServiceSXU, node.NID, c.parameters)
-			if err != nil {
-				log.Errorf("cannot NewNatsRPCClient: %v, try next", err)
-			} else {
-				break
-			}
-		}
+		var conn = c.factory.NewClient() // select a node
 
 		if conn == nil {
-			log.Errorf("all NewNatsRPCClient attemp failed")
+			log.Errorf("no client can be use")
 			return
 		}
 

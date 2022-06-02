@@ -2,14 +2,17 @@ package room
 
 import (
 	"github.com/cloudwebrtc/nats-discovery/pkg/discovery"
+	"github.com/cloudwebrtc/nats-grpc/pkg/rpc"
 	"github.com/yindaheng98/dion/config"
+	"github.com/yindaheng98/dion/util/ion"
 )
 
-type Selector interface {
-	Select(map[string]discovery.Node) []discovery.Node
+type ClientFactory interface {
+	NewClient() *rpc.Client
 }
 
 type FirstSelector struct {
+	*ion.Node
 }
 
 func (FirstSelector) Select(m map[string]discovery.Node) []discovery.Node {

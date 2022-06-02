@@ -83,7 +83,7 @@ func testRoomClient(t *testing.T) {
 			log.Errorf("Node.Watch(proto.ServiceALL) error %v", err)
 		}
 	}()
-	c := NewClient(&node, random.RandomSelector{}, map[string]interface{}{})
+	c := NewClient(random.RandomClientFactory{Node: &node})
 	c.UpdateSession(&pb.ClientNeededSession{Session: util.RandomString(4), User: util.RandomString(4)})
 	c.Connect()
 	for i := 0; i < 100; i++ {
