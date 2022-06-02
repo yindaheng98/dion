@@ -24,8 +24,8 @@ type ClientStreamFactory struct {
 	Metadata metadata.MD
 }
 
-func NewClientStreamFactory(node *ion.Node) ClientStreamFactory {
-	c := ClientStreamFactory{
+func NewClientStreamFactory(node *ion.Node) *ClientStreamFactory {
+	c := &ClientStreamFactory{
 		node: node,
 	}
 	c.param.Store(param{
@@ -35,7 +35,7 @@ func NewClientStreamFactory(node *ion.Node) ClientStreamFactory {
 	return c
 }
 
-func (c ClientStreamFactory) NewClientStream(ctx context.Context) (util.ClientStream[*rtc.Request, *rtc.Reply], error) {
+func (c *ClientStreamFactory) NewClientStream(ctx context.Context) (util.ClientStream[*rtc.Request, *rtc.Reply], error) {
 	p := c.param.Load().(param)
 	peerNID, parameters := p.peerNID, p.parameters
 	conn, err := c.node.NewNatsRPCClient(config.ServiceSXU, peerNID, parameters)
@@ -52,7 +52,7 @@ func (c ClientStreamFactory) NewClientStream(ctx context.Context) (util.ClientSt
 	return client, err
 }
 
-func (c ClientStreamFactory) Switch(peerNID string, parameters map[string]interface{}) {
+func (c *ClientStreamFactory) Switch(peerNID string, parameters map[string]interface{}) {
 	c.param.Store(param{
 		peerNID:    peerNID,
 		parameters: parameters,
@@ -106,6 +106,6 @@ func (c *Client) Name() string {
 }
 
 func (c *Client) Switch(peerNID string, parameters map[string]interface{}) {
-	c.Client.ClientStreamFactory.(ClientStreamFactory).Switch(peerNID, parameters)
+	c.Client.ClientStreamFactory.(*ClientStreamFactory).Switch(peerNID, parameters)
 	c.Reconnect()
 }
