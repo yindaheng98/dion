@@ -2,6 +2,7 @@ package sfu
 
 import (
 	"context"
+	"errors"
 	log "github.com/pion/ion-log"
 	"github.com/pion/ion/proto/rtc"
 	"github.com/yindaheng98/dion/config"
@@ -83,21 +84,20 @@ func NewClient(node *ion.Node) *Client {
 // Send send the report, maybe lose when cannot connect
 func (c *Client) Send(request *rtc.Request) error {
 	errCh := make(chan error)
-	go c.DoWithClient(func(client util.ClientStream[*rtc.Request, *rtc.Reply]) error {
-		err := client.Send(request)
-		if err != nil {
-			log.Errorf("rtc.Request send error: %+v", err)
-			errCh <- err
-			return err
-		}
-		close(errCh)
-		return nil
-	})
-	if err, ok := <-errCh; !ok {
-		return nil
-	} else {
-		return err
-	}
+	go func() {
+		c.DoWithClient(func(client util.ClientStream[*rtc.Request, *rtc.Reply]) error {
+			err := client.Send(request)
+			if err != nil {
+				log.Errorf("rtc.Request send error: %+v", err)
+				errCh <- err
+				return err
+			}
+			errCh <- nil
+			return nil
+		})
+		errCh <- errors.New("rtc.Request not send")
+	}()
+	return <-errCh
 }
 
 func (c *Client) Name() string {
