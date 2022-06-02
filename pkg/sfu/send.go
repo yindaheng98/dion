@@ -1,4 +1,4 @@
-package client
+package sfu
 
 import (
 	"encoding/json"

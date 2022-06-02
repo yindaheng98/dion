@@ -1,4 +1,4 @@
-package client
+package sfu
 
 import (
 	"encoding/json"
@@ -6,7 +6,6 @@ import (
 	log "github.com/pion/ion-log"
 	pb "github.com/pion/ion/proto/rtc"
 	"github.com/pion/webrtc/v3"
-	"github.com/yindaheng98/dion/pkg/sfu"
 	pb2 "github.com/yindaheng98/dion/proto"
 	"github.com/yindaheng98/dion/util"
 	"github.com/yindaheng98/dion/util/ion"
@@ -15,7 +14,7 @@ import (
 )
 
 type Subscriber struct {
-	client  *sfu.Client
+	client  *Client
 	session *pb2.ClientNeededSession
 	OnTrack func(remote *webrtc.TrackRemote, receiver *webrtc.RTPReceiver)
 
@@ -31,7 +30,7 @@ func (sub *Subscriber) refresh() {
 
 func NewSubscriber(node *ion.Node) *Subscriber {
 	sub := &Subscriber{
-		client:        sfu.NewClient(node),
+		client:        NewClient(node),
 		reconnectExec: util.NewSingleExec(),
 	}
 	var lastPeerConnection *webrtc.PeerConnection

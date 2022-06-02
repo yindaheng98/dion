@@ -1,4 +1,4 @@
-package client
+package sfu
 
 import (
 	"fmt"
@@ -6,19 +6,12 @@ import (
 	log "github.com/pion/ion-log"
 	"github.com/pion/ion/pkg/proto"
 	"github.com/pion/webrtc/v3"
-	"github.com/yindaheng98/dion/config"
 	pb2 "github.com/yindaheng98/dion/proto"
 	"github.com/yindaheng98/dion/util"
 	"github.com/yindaheng98/dion/util/ion"
 	"testing"
 	"time"
 )
-
-var conf = config.Common{
-	Global: config.Global{Dc: "dc1"},
-	Log:    config.LogConf{Level: "DEBUG"},
-	Nats:   config.NatsConf{URL: "nats://127.0.0.1:4222"},
-}
 
 func TestSubscriber(t *testing.T) {
 	node := ion.NewNode("sxu-" + util.RandomString(6))
