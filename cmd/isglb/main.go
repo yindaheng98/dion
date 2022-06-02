@@ -3,7 +3,8 @@ package main
 import (
 	"flag"
 	"fmt"
-
+	"github.com/yindaheng98/dion/algorithms"
+	"github.com/yindaheng98/dion/algorithms/impl"
 	"github.com/yindaheng98/dion/pkg/isglb"
 
 	"os"
@@ -44,7 +45,9 @@ func main() {
 	log.Init(conf.Log.Level)
 
 	log.Infof("--- starting isglb node ---")
-	node := isglb.New(nil) // TODO
+	node := isglb.New(func() algorithms.Algorithm {
+		return impl.EmptyAlgorithm{}
+	}) // TODO
 	if err := node.Start(conf); err != nil {
 		log.Errorf("isglb start error: %v", err)
 		os.Exit(-1)
