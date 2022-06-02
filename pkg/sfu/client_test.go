@@ -25,7 +25,7 @@ func connect_sfu_1() *Client {
 			log.Errorf("Node.Watch(proto.ServiceALL) error %v", err)
 		}
 	}()
-	return NewClient(&node, nid, map[string]interface{}{})
+	return NewClient(&node)
 }
 
 func init_pc_1(stream *Client, t *testing.T) *webrtc.PeerConnection {
@@ -79,7 +79,7 @@ func TestClientPub(t *testing.T) {
 	}
 
 	var candidates []webrtc.ICECandidateInit
-	stream.OnReplyRecv = func(reply *pb.Reply) {
+	stream.OnMsgRecv = func(reply *pb.Reply) {
 		t.Logf("\nReply: reply %v\n", reply)
 		switch payload := reply.Payload.(type) {
 		case *pb.Reply_Join:
@@ -192,8 +192,20 @@ func TestClientPub(t *testing.T) {
 	if err != nil {
 		panic(err)
 	}
+	stream.OnReconnect = func() {
+		t.Logf("Haha! reconnecting")
+	}
+	for i := 0; i < 10; i++ {
+		<-time.After(5 * time.Second)
+		stream.Switch("unknown", map[string]interface{}{})
+		<-time.After(5 * time.Second)
+		stream.Switch("*", map[string]interface{}{})
+	}
 	<-time.After(10 * time.Second)
 	stream.Close() // 这里断开连接并不会让对方断开连接。但是没关系，因为SFU可以从PeerConnection断开连接
+	<-time.After(10 * time.Second)
+	pub.Close()
+	sub.Close()
 	<-time.After(10 * time.Second)
 	s.Close()
 }
@@ -213,7 +225,7 @@ func TestClientSub(t *testing.T) {
 	}
 
 	var candidates []webrtc.ICECandidateInit
-	stream.OnReplyRecv = func(reply *pb.Reply) {
+	stream.OnMsgRecv = func(reply *pb.Reply) {
 		t.Logf("\nReply: reply %v\n", reply)
 		switch payload := reply.Payload.(type) {
 		case *pb.Reply_Description:
@@ -298,8 +310,20 @@ func TestClientSub(t *testing.T) {
 	if err != nil {
 		panic(err)
 	}
+	stream.OnReconnect = func() {
+		t.Logf("Haha! reconnecting")
+	}
+	for i := 0; i < 10; i++ {
+		<-time.After(5 * time.Second)
+		stream.Switch("unknown", map[string]interface{}{})
+		<-time.After(5 * time.Second)
+		stream.Switch("*", map[string]interface{}{})
+	}
 	<-time.After(10 * time.Second)
 	stream.Close()
+	<-time.After(10 * time.Second)
+	pub.Close()
+	sub.Close()
 	<-time.After(10 * time.Second)
 	s.Close()
 }
