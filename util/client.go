@@ -2,7 +2,6 @@ package util
 
 import (
 	"context"
-	log "github.com/pion/ion-log"
 	"sync/atomic"
 )
 
@@ -96,8 +95,6 @@ func (c *Client[RequestType, ResponseType]) msgReadLoop() {
 			}
 			if o := c.onMsgRecv.Load(); o != nil {
 				o.(func(ResponseType))(s)
-			} else {
-				log.Warnf("OnMsgRecv not set, received a message: %+v", s)
 			}
 			return nil
 		})
