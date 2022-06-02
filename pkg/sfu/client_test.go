@@ -79,7 +79,7 @@ func TestClientPub(t *testing.T) {
 	}
 
 	var candidates []webrtc.ICECandidateInit
-	stream.OnMsgRecv = func(reply *pb.Reply) {
+	stream.OnMsgRecv(func(reply *pb.Reply) {
 		t.Logf("\nReply: reply %v\n", reply)
 		switch payload := reply.Payload.(type) {
 		case *pb.Reply_Join:
@@ -159,7 +159,7 @@ func TestClientPub(t *testing.T) {
 			}
 			//return
 		}
-	}
+	})
 	stream.Connect()
 
 	offer, err := pub.CreateOffer(nil)
@@ -192,9 +192,9 @@ func TestClientPub(t *testing.T) {
 	if err != nil {
 		panic(err)
 	}
-	stream.OnReconnect = func() {
+	stream.OnReconnect(func() {
 		t.Logf("Haha! reconnecting")
-	}
+	})
 	for i := 0; i < 10; i++ {
 		<-time.After(5 * time.Second)
 		stream.Switch("unknown", map[string]interface{}{})
@@ -225,7 +225,7 @@ func TestClientSub(t *testing.T) {
 	}
 
 	var candidates []webrtc.ICECandidateInit
-	stream.OnMsgRecv = func(reply *pb.Reply) {
+	stream.OnMsgRecv(func(reply *pb.Reply) {
 		t.Logf("\nReply: reply %v\n", reply)
 		switch payload := reply.Payload.(type) {
 		case *pb.Reply_Description:
@@ -283,7 +283,7 @@ func TestClientSub(t *testing.T) {
 			//return
 		}
 
-	}
+	})
 	stream.Connect()
 
 	offer, err := pub.CreateOffer(nil)
@@ -310,9 +310,9 @@ func TestClientSub(t *testing.T) {
 	if err != nil {
 		panic(err)
 	}
-	stream.OnReconnect = func() {
+	stream.OnReconnect(func() {
 		t.Logf("Haha! reconnecting")
-	}
+	})
 	for i := 0; i < 10; i++ {
 		<-time.After(5 * time.Second)
 		stream.Switch("unknown", map[string]interface{}{})

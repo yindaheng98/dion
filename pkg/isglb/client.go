@@ -56,11 +56,11 @@ func NewClient(node *ion.Node, peerNID string, parameters map[string]interface{}
 		cancelTop:         cancal,
 		sendSFUStatusExec: &util.SingleLatestExec{},
 	}
-	c.OnMsgRecv = func(status *pb.SFUStatus) {
+	c.OnMsgRecv(func(status *pb.SFUStatus) {
 		if c.OnSFUStatusRecv != nil {
 			c.OnSFUStatusRecv(status)
 		}
-	}
+	})
 	return c
 }
 

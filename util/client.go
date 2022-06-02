@@ -27,8 +27,16 @@ type Client[RequestType, ResponseType any] struct {
 	cancelLast     context.CancelFunc
 	reconnectTimes uint32
 
-	OnMsgRecv   func(ResponseType)
-	OnReconnect func()
+	onMsgRecv   atomic.Value
+	onReconnect atomic.Value
+}
+
+func (c *Client[RequestType, ResponseType]) OnMsgRecv(f func(ResponseType)) {
+	c.onMsgRecv.Store(f)
+}
+
+func (c *Client[RequestType, ResponseType]) OnReconnect(f func()) {
+	c.onReconnect.Store(f)
 }
 
 func NewClient[RequestType, ResponseType any](factory ClientStreamFactory[RequestType, ResponseType]) *Client[RequestType, ResponseType] {
@@ -85,7 +93,9 @@ func (c *Client[RequestType, ResponseType]) msgReadLoop() {
 			if err != nil {
 				return err
 			}
-			c.OnMsgRecv(s)
+			if o := c.onMsgRecv.Load(); o != nil {
+				o.(func(ResponseType))(s)
+			}
 			return nil
 		})
 	}
@@ -113,8 +123,8 @@ func (c *Client[RequestType, ResponseType]) reconnect() {
 		c.msgReadLoopExec.Do(c.msgReadLoop)
 
 		c.connected.Store(true)
-		if c.OnReconnect != nil {
-			c.OnReconnect()
+		if o := c.onReconnect.Load(); o != nil {
+			o.(func())()
 		}
 	})
 }
