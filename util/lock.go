@@ -20,6 +20,7 @@ func NewSingleWaitExec(ctx context.Context) *SingleWaitExec {
 // Do : do an operation.
 // If nothing is running, then run it
 // If something is running, then just wait it
+// 很显然，如果你在 op 里面调用这个 Do 那肯定是死锁的
 func (l *SingleWaitExec) Do(op func()) {
 	l.mu.Lock()
 	ctx := l.ctx

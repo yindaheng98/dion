@@ -161,3 +161,7 @@ func (c *Client[RequestType, ResponseType]) Reconnect() {
 		c.reconnect() // should reconnect again
 	}
 }
+
+func (c *Client[RequestType, ResponseType]) ReconnectNotVerify() {
+	c.reconnect() // should reconnect again
+}
