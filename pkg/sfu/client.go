@@ -82,16 +82,22 @@ func NewClient(node *ion.Node) *Client {
 
 // Send send the report, maybe lose when cannot connect
 func (c *Client) Send(request *rtc.Request) error {
-	var err error
-	c.DoWithClient(func(client util.ClientStream[*rtc.Request, *rtc.Reply]) error {
-		err = client.Send(request)
+	errCh := make(chan error)
+	go c.DoWithClient(func(client util.ClientStream[*rtc.Request, *rtc.Reply]) error {
+		err := client.Send(request)
 		if err != nil {
 			log.Errorf("rtc.Request send error: %+v", err)
+			errCh <- err
 			return err
 		}
+		close(errCh)
 		return nil
 	})
-	return err
+	if err, ok := <-errCh; !ok {
+		return nil
+	} else {
+		return err
+	}
 }
 
 func (c *Client) Name() string {
