@@ -10,6 +10,7 @@ import (
 	pb2 "github.com/yindaheng98/dion/proto"
 	"github.com/yindaheng98/dion/util"
 	"github.com/yindaheng98/dion/util/ion"
+	"google.golang.org/protobuf/proto"
 	"sync"
 )
 
@@ -45,7 +46,9 @@ func NewSubscriber(node *ion.Node) *Subscriber {
 		}
 		sub.client.OnMsgRecv(sub.newMsgHandler(pc))
 		go func() { // 必须这样，不然要是一直出错的话会无限递归
-			err := sub.SendJoin(sub.session.Session, sub.session.User, map[string]string{})
+			err := sub.SendJoin(sub.session.Session, sub.session.User, map[string]string{
+				"NoPublish": "true",
+			})
 			if err != nil {
 				log.Errorf("Cannot Join %s, %s: %+v", sub.session.Session, sub.session.User, err)
 				sub.refresh()
@@ -57,10 +60,20 @@ func NewSubscriber(node *ion.Node) *Subscriber {
 	return sub
 }
 
+func (sub *Subscriber) SwitchNode(session *pb2.ClientNeededSession, peerNID string, parameters map[string]interface{}) {
+	sub.session = proto.Clone(session).(*pb2.ClientNeededSession)
+	sub.client.Switch(peerNID, parameters)
+}
+
+func (sub *Subscriber) SwitchSession(session *pb2.ClientNeededSession) {
+	sub.session = proto.Clone(session).(*pb2.ClientNeededSession)
+	sub.client.Reconnect()
+}
+
 func (sub *Subscriber) newMsgHandler(pc *webrtc.PeerConnection) func(*pb.Reply) {
 	handler := sub.msgHandler(pc)
 	return func(reply *pb.Reply) {
-		if err := handler; err != nil {
+		if err := handler(reply); err != nil {
 			sub.refresh()
 		}
 	}

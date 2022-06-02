@@ -26,6 +26,10 @@ func (sub *Subscriber) newPeerConnection() (*webrtc.PeerConnection, error) {
 	})
 
 	pc.OnICECandidate(func(candidate *webrtc.ICECandidate) {
+		if candidate == nil {
+			log.Warnf("OnICECandidate give a nil")
+			return
+		}
 		err := sub.SendTrickle(candidate, pb.Target_SUBSCRIBER)
 		if err != nil {
 			log.Errorf("Cannot SendTrickle: %+v", err)
