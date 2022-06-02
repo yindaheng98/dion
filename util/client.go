@@ -23,10 +23,12 @@ type Client[RequestType, ResponseType any] struct {
 	msgReadLoopExec *SingleExec
 	reconnectExec   *SingleWaitExec
 
-	stream     ClientStream[RequestType, ResponseType]
-	cancelLast context.CancelFunc
+	stream         atomic.Value
+	cancelLast     context.CancelFunc
+	reconnectTimes uint32
 
-	OnMsgRecv func(ResponseType)
+	OnMsgRecv   func(ResponseType)
+	OnReconnect func()
 }
 
 func NewClient[RequestType, ResponseType any](factory ClientStreamFactory[RequestType, ResponseType]) *Client[RequestType, ResponseType] {
@@ -38,6 +40,8 @@ func NewClient[RequestType, ResponseType any](factory ClientStreamFactory[Reques
 
 		msgReadLoopExec: NewSingleExec(),
 		reconnectExec:   NewSingleWaitExec(ctx),
+
+		reconnectTimes: 0,
 	}
 	c.connected.Store(false)
 	return c
@@ -50,12 +54,13 @@ func (c *Client[RequestType, ResponseType]) DoWithClient(op func(client ClientSt
 		return true // exit
 	default:
 	}
-	if c.stream == nil { // no stream?
+	stream := c.stream.Load()
+	if stream == nil { // no stream?
 		c.reconnect() // make a stream
 		return false
 	}
-	err := op(c.stream) // has stream? just do it
-	if err != nil {     // error? should reconnect
+	err := op(stream.(ClientStream[RequestType, ResponseType])) // has stream? just do it
+	if err != nil {                                             // error? should reconnect
 		select {
 		case <-c.ctxTop.Done(): // should exit now?
 			return true // do not reconnect
@@ -90,6 +95,7 @@ func (c *Client[RequestType, ResponseType]) reconnect() {
 	// c.Do: 如果当前正在重连，就等待重连完成；如果当前不在重连，就开始重连直到完成
 	c.reconnectExec.Do(func() {
 		c.connected.Store(false)
+		atomic.AddUint32(&c.reconnectTimes, 1)
 
 		if c.cancelLast != nil {
 			c.cancelLast() // cancel the last stream
@@ -98,14 +104,18 @@ func (c *Client[RequestType, ResponseType]) reconnect() {
 		ctx, cancel := context.WithCancel(c.ctxTop)
 		c.cancelLast = cancel
 		var err error
-		c.stream, err = c.NewClientStream(ctx)
+		stream, err := c.NewClientStream(ctx)
 		if err != nil {
 			return
 		}
+		c.stream.Store(stream)
 
 		c.msgReadLoopExec.Do(c.msgReadLoop)
 
 		c.connected.Store(true)
+		if c.OnReconnect != nil {
+			c.OnReconnect()
+		}
 	})
 }
 
@@ -130,4 +140,14 @@ func (c *Client[RequestType, ResponseType]) Connect() {
 
 func (c *Client[RequestType, ResponseType]) Connected() bool {
 	return c.connected.Load().(bool)
+}
+
+func (c *Client[RequestType, ResponseType]) Reconnect() {
+	before := atomic.LoadUint32(&c.reconnectTimes) // reconnect times before reconnect
+	c.reconnect()
+	after := atomic.LoadUint32(&c.reconnectTimes) // reconnect times after reconnect
+	// if reconnect times not update, it means c.reconnect() just wait for another c.reconnect()
+	if before >= after {
+		c.reconnect() // should reconnect again
+	}
 }
