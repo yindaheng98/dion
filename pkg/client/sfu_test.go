@@ -11,6 +11,7 @@ import (
 	"github.com/yindaheng98/dion/util"
 	"github.com/yindaheng98/dion/util/ion"
 	"testing"
+	"time"
 )
 
 var conf = config.Common{
@@ -66,5 +67,25 @@ func TestSubscriber(t *testing.T) {
 		Session: "stupid",
 		User:    "test",
 	})
-	select {}
+	<-time.After(10 * time.Second)
+	sub.SwitchNode(&pb2.ClientNeededSession{
+		Session: "stupid",
+		User:    util.RandomString(8),
+	}, "unknown", map[string]interface{}{})
+	<-time.After(10 * time.Second)
+	sub.SwitchNode(&pb2.ClientNeededSession{
+		Session: "stupid",
+		User:    util.RandomString(8),
+	}, "*", map[string]interface{}{})
+	<-time.After(10 * time.Second)
+	sub.SwitchSession(&pb2.ClientNeededSession{
+		Session: "unknown",
+		User:    util.RandomString(8),
+	})
+	<-time.After(10 * time.Second)
+	sub.SwitchSession(&pb2.ClientNeededSession{
+		Session: "stupid",
+		User:    util.RandomString(8),
+	})
+	<-time.After(10 * time.Second)
 }
