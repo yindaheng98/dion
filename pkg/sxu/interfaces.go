@@ -64,14 +64,6 @@ func WithProcessorFactory(pro algorithms.ProcessorFactory) WithOption {
 	}
 }
 
-func WithTransmissionReporter(reporter syncer.TransmissionReporter) WithOption {
-	return func(box *syncer.ToolBox, node *islb.Node, sfu *ion_sfu.SFU) {
-		if reporter != nil {
-			box.TransmissionReporter = reporter
-		}
-	}
-} // TODO: 实现一个 signaller.PubIRFBuilderFactory + syncer.TransmissionReporter 即可实现传输层面的汇报
-
 func WithComputationReporter(reporter syncer.ComputationReporter) WithOption {
 	return func(box *syncer.ToolBox, node *islb.Node, sfu *ion_sfu.SFU) {
 		if reporter != nil {

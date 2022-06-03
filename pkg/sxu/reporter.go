@@ -7,6 +7,7 @@ import (
 	"github.com/pion/ion/proto/ion"
 	"github.com/pion/webrtc/v3"
 	"github.com/yindaheng98/dion/algorithms"
+	"github.com/yindaheng98/dion/pkg/islb"
 	"github.com/yindaheng98/dion/pkg/sxu/signaller"
 	"github.com/yindaheng98/dion/pkg/sxu/syncer"
 	pb "github.com/yindaheng98/dion/proto"
@@ -36,6 +37,16 @@ func NewInterceptorReporter[AtomReport any](
 		r:     r,
 	}
 }
+
+func WithTransmissionReporter[AtomReport any](
+	local *ion.Node,
+	gb algorithms.ReportGathererBuilder[AtomReport],
+	r algorithms.ReporterInterceptorFactory[AtomReport],
+) WithOption {
+	return func(box *syncer.ToolBox, node *islb.Node, sfu *ion_sfu.SFU) {
+		box.TransmissionReporter = NewInterceptorReporter[AtomReport](local, gb, r)
+	}
+} // TODO: 实现一个 algorithms.ReportGathererBuilder[AtomReport] + algorithms.ReporterInterceptorFactory[AtomReport] 即可实现传输层面的汇报
 
 // Bind 是给TransmissionReporter绑定输出channel
 func (t InterceptorReporter[AtomReport]) Bind(reports chan<- *pb.TransmissionReport) {
