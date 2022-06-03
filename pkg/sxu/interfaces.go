@@ -5,7 +5,6 @@ import (
 	"github.com/yindaheng98/dion/algorithms"
 	"github.com/yindaheng98/dion/pkg/islb"
 	"github.com/yindaheng98/dion/pkg/sxu/room"
-	"github.com/yindaheng98/dion/pkg/sxu/router"
 	"github.com/yindaheng98/dion/pkg/sxu/syncer"
 	pb2 "github.com/yindaheng98/dion/proto"
 )
@@ -50,14 +49,14 @@ func (b DefaultToolBoxBuilder) Build(node *islb.Node, sfu *ion_sfu.SFU) syncer.T
 func WithProcessorFactory(pro algorithms.ProcessorFactory) WithOption {
 	return func(box *syncer.ToolBox, node *islb.Node, sfu *ion_sfu.SFU) {
 		if pro != nil {
-			box.TrackProcessor = router.NewProceedRouter(sfu, pro)
+			box.TrackProcessor = NewProceedRouter(sfu, pro)
 		}
 	}
 }
 
-func WithTrackForwarder(with ...func(router.ForwardRouter)) WithOption {
+func WithTrackForwarder(with ...func(ForwardRouter)) WithOption {
 	return func(box *syncer.ToolBox, node *islb.Node, sfu *ion_sfu.SFU) {
-		TrackForwarder := router.NewForwardRouter(sfu, NewNRPCConnPool(node))
+		TrackForwarder := NewForwardRouter(sfu, NewNRPCConnPool(node))
 		for _, w := range with {
 			w(TrackForwarder)
 		}

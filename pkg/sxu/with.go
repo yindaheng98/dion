@@ -1,4 +1,4 @@
-package router
+package sxu
 
 import "github.com/yindaheng98/dion/pkg/sxu/signaller"
 

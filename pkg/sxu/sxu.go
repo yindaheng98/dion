@@ -154,8 +154,8 @@ func (s *SXU) Start(conf sfu.Config) error {
 
 // Close all
 func (s *SXU) Close() {
-	s.Node.Close()
 	s.syncer.Stop()
+	s.Node.Close()
 }
 
 // ↑↑↑↑↑ COPY FROM https://github.com/pion/ion/blob/65dbd12eaad0f0e0a019b4d8ee80742930bcdc28/pkg/node/sfu/sfu.go ↑↑↑↑↑
