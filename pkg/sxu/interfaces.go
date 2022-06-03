@@ -2,7 +2,6 @@ package sxu
 
 import (
 	ion_sfu "github.com/pion/ion-sfu/pkg/sfu"
-	"github.com/yindaheng98/dion/algorithms"
 	"github.com/yindaheng98/dion/pkg/islb"
 	"github.com/yindaheng98/dion/pkg/sxu/room"
 	"github.com/yindaheng98/dion/pkg/sxu/syncer"
@@ -45,32 +44,6 @@ func (b DefaultToolBoxBuilder) Build(node *islb.Node, sfu *ion_sfu.SFU) syncer.T
 	}
 	return t
 }
-
-func WithTrackForwarder(with ...func(ForwardRouter)) WithOption {
-	return func(box *syncer.ToolBox, node *islb.Node, sfu *ion_sfu.SFU) {
-		TrackForwarder := NewForwardRouter(sfu, NewNRPCConnPool(node))
-		for _, w := range with {
-			w(TrackForwarder)
-		}
-		box.TrackForwarder = TrackForwarder
-	}
-}
-
-func WithProcessorFactory(pro algorithms.ProcessorFactory) WithOption {
-	return func(box *syncer.ToolBox, node *islb.Node, sfu *ion_sfu.SFU) {
-		if pro != nil {
-			box.TrackProcessor = NewProceedRouter(sfu, pro)
-		}
-	}
-}
-
-func WithComputationReporter(reporter syncer.ComputationReporter) WithOption {
-	return func(box *syncer.ToolBox, node *islb.Node, sfu *ion_sfu.SFU) {
-		if reporter != nil {
-			box.ComputationReporter = reporter
-		}
-	}
-} // TODO: 实现一个 algorithms.ProcessorFactory + syncer.ComputationReporter 即可实现计算层面的汇报
 
 func WithSessionTracker() WithOption {
 	return func(box *syncer.ToolBox, node *islb.Node, sfu *ion_sfu.SFU) {

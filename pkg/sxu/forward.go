@@ -3,7 +3,9 @@ package sxu
 import (
 	log "github.com/pion/ion-log"
 	ion_sfu "github.com/pion/ion-sfu/pkg/sfu"
+	"github.com/yindaheng98/dion/pkg/islb"
 	"github.com/yindaheng98/dion/pkg/sxu/signaller"
+	"github.com/yindaheng98/dion/pkg/sxu/syncer"
 	pb "github.com/yindaheng98/dion/proto"
 	"github.com/yindaheng98/dion/util"
 )
@@ -18,9 +20,21 @@ type ForwardRouter struct {
 	forwardings map[string]forwarding // map<NID, map<SID, forwarding>>
 }
 
-func WithPubIRFBuilderFactory(irfbf signaller.PubIRFBuilderFactory) func(ForwardRouter) {
+type ForwardRouterOption func(ForwardRouter)
+
+func WithPubIRFBuilderFactory(irfbf signaller.PubIRFBuilderFactory) ForwardRouterOption {
 	return func(r ForwardRouter) {
 		r.factory.IRFBF = irfbf
+	}
+}
+
+func WithTrackForwarder(with ...ForwardRouterOption) WithOption {
+	return func(box *syncer.ToolBox, node *islb.Node, sfu *ion_sfu.SFU) {
+		TrackForwarder := NewForwardRouter(sfu, NewNRPCConnPool(node))
+		for _, w := range with {
+			w(TrackForwarder)
+		}
+		box.TrackForwarder = TrackForwarder
 	}
 }
 
