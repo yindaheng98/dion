@@ -587,6 +587,8 @@ github.com/pion/interceptor v0.0.12/go.mod h1:qzeuWuD/ZXvPqOnxNcnhWfkCZ2e1kwwsli
 github.com/pion/interceptor v0.1.0/go.mod h1:j5NIl3tJJPB3u8+Z2Xz8MZs/VV6rc+If9mXEKNuFmEM=
 github.com/pion/interceptor v0.1.10 h1:DJ2GjMGm4XGIQgMJxuEpdaExdY/6RdngT7Uh4oVmquU=
 github.com/pion/interceptor v0.1.10/go.mod h1:Lh3JSl/cbJ2wP8I3ccrjh1K/deRGRn3UlSPuOTiHb6U=
+github.com/pion/ion v1.10.0 h1:X1qpVCZwWpX/4mrXCU9JNUCoijI3rfPujUUpxEsPr3M=
+github.com/pion/ion v1.10.0/go.mod h1:PiH6J8i3NheVTTOxh1wC/c5aAH68eUMzgmnboxEio3A=
 github.com/pion/ion-avp v1.8.4/go.mod h1:hYbTSzIpT1UN8bg1wFlF3JDZPuY0WEWJXpTCdgSe0fk=
 github.com/pion/ion-log v1.0.1/go.mod h1:jwcla9KoB9bB/4FxYDSRJPcPYSLp5XiUUMnOLaqwl4E=
 github.com/pion/ion-log v1.2.0/go.mod h1:oUlvCy7LZNPzOxmCZVraaMhcS/hB9XFog4m1A8QpVgM=
@@ -788,8 +790,6 @@ github.com/xi2/xz v0.0.0-20171230120015-48954b6210f8/go.mod h1:HUYIGzjTL3rfEspMx
 github.com/xiang90/probing v0.0.0-20190116061207-43a291ad63a2/go.mod h1:UETIi67q53MR2AWcXfiuqkDkRtnGDLqkBTpCHuJHxtU=
 github.com/xlab/libvpx-go v0.0.0-20201217121537-9736e1703824/go.mod h1:aDpRjomFsJw5z7oxScCKeB5NNGqibqdOgmpnOaEVMQs=
 github.com/xordataexchange/crypt v0.0.3-0.20170626215501-b2862e3d0a77/go.mod h1:aYKd//L2LvnjZzWKhF00oedf4jCCReLcmhLdhm1A27Q=
-github.com/yindaheng98/ion v1.10.1-0.20220531090011-24fe0ceef0b9 h1:3oWewrcC0DqejMoXFnEuE+CxPPzN40G35XmD4smtObs=
-github.com/yindaheng98/ion v1.10.1-0.20220531090011-24fe0ceef0b9/go.mod h1:sZkEnZ9Nuyd6PrJzn2F04sX1U2yMohQIqb2oYEJvN+g=
 github.com/yindaheng98/ion-sfu v1.11.1-0.20220521131211-10a33cc613d5 h1:jbkD0rAGpXF/hW+7vtjwgrKAeX3j6QOczES2VTkeN+g=
 github.com/yindaheng98/ion-sfu v1.11.1-0.20220521131211-10a33cc613d5/go.mod h1:FJ41uuR5Cxwh3CMVw85geBr1OgX1vPHHRr8UsC6CwaE=
 github.com/yindaheng98/nats-discovery v0.3.1-0.20220601014014-e6a5369ace55 h1:JPSU/hfU/JqSsZpESXsyD8SvAC7L+pWbOabPNiG1LGg=
