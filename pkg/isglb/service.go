@@ -22,7 +22,7 @@ type ISGLBService struct {
 	Alg algorithms.Algorithm // The core algorithm
 
 	recvCh   chan isglbRecvMessage
-	recvChMu chan bool
+	recvChMu *util.SingleExec
 
 	sendChs   map[*pb.ISGLB_SyncSFUServer]chan *pb.SFUStatus
 	sendChsMu *sync.RWMutex
@@ -35,7 +35,7 @@ func NewISGLBService(alg algorithms.Algorithm) *ISGLBService {
 		UnimplementedISGLBServer: pb.UnimplementedISGLBServer{},
 		Alg:                      alg,
 		recvCh:                   make(chan isglbRecvMessage, 4096),
-		recvChMu:                 recvChMu,
+		recvChMu:                 util.NewSingleExec(),
 		sendChs:                  make(map[*pb.ISGLB_SyncSFUServer]chan *pb.SFUStatus),
 		sendChsMu:                &sync.RWMutex{},
 	}
@@ -75,8 +75,8 @@ func (isglb *ISGLBService) SyncSFU(sig pb.ISGLB_SyncSFUServer) error {
 		isglb.sendChsMu.Unlock()
 	}(isglb, skey)
 
-	go routineSFUStatusSend(sig, sendCh) //start message sending
-	go isglb.routineSFUStatusRecv()      //start message receiving
+	go routineSFUStatusSend(sig, sendCh)          //start message sending
+	isglb.recvChMu.Do(isglb.routineSFUStatusRecv) // Do not start again
 
 	for {
 		req, err := sig.Recv() // Receive a SyncRequest
@@ -101,13 +101,6 @@ func (isglb *ISGLBService) SyncSFU(sig pb.ISGLB_SyncSFUServer) error {
 
 // routineSFUStatusRecv should NOT run more than once
 func (isglb *ISGLBService) routineSFUStatusRecv() {
-	select {
-	case <-isglb.recvChMu: // If the routineSFUStatusRecv not started
-		//Then start it
-		defer func() { isglb.recvChMu <- true }()
-	default: // If the routineSFUStatusRecv has started
-		return // Do not start again
-	}
 	WhereToSend := util.NewSetMapaMteS[string, *pb.ISGLB_SyncSFUServer]()
 	latestStatus := make(map[string]util.SFUStatusItem) // Just for filter out those unchanged SFUStatus
 	for {

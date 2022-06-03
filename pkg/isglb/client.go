@@ -103,5 +103,5 @@ func (c *Client) SendSFUStatus(status *pb.SFUStatus) {
 }
 
 func (c *Client) Name() string {
-	return "Client"
+	return "isglb.Client"
 }
