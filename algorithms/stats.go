@@ -6,26 +6,24 @@ import (
 	pb "github.com/yindaheng98/dion/proto"
 )
 
-type AtomReport interface{}
-
-type SessionReport struct {
+type SessionReport[AtomReport any] struct {
 	SID, UID string
 	Report   AtomReport
 }
 
 // ReportGathererBuilder : How to analysis SessionReport and give TransmissionReport?
-type ReportGathererBuilder interface {
+type ReportGathererBuilder[AtomReport any] interface {
 	// NewGatherer : get SessionReport from i and put TransmissionReport to o
-	NewGatherer(src, dst *ion.Node, i <-chan SessionReport, o chan<- *pb.TransmissionReport)
+	NewGatherer(src, dst *ion.Node, i <-chan SessionReport[AtomReport], o chan<- *pb.TransmissionReport)
 }
 
 // ReporterInterceptorFactory just a interceptor.Factory for ReporterInterceptor
-type ReporterInterceptorFactory interface {
-	NewInterceptor(id string) (ReporterInterceptor, error)
+type ReporterInterceptorFactory[AtomReport any] interface {
+	NewInterceptor(id string) (ReporterInterceptor[AtomReport], error)
 }
 
 // ReporterInterceptor : How to analysis the RTP/RTCP packet and give report?
-type ReporterInterceptor interface {
+type ReporterInterceptor[AtomReport any] interface {
 	interceptor.Interceptor
 
 	// BindReportChannel : put report to o

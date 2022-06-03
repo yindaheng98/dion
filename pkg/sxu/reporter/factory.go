@@ -13,20 +13,24 @@ import (
 )
 
 // InterceptorReporter 通过interceptor收集数据
-type InterceptorReporter struct {
+type InterceptorReporter[AtomReport any] struct {
 	syncer.TransmissionReporter    // 这主要是一个TransmissionReporter用于收集数据
 	signaller.PubIRFBuilderFactory // 这主要是一个PubIRFBuilderFactory用于创建interceptor
 	// 于是从interceptor里收集数据
 
 	local *ion.Node
-	gb    algorithms.ReportGathererBuilder
+	gb    algorithms.ReportGathererBuilder[AtomReport]
 	ch    chan<- *pb.TransmissionReport
 
-	r algorithms.ReporterInterceptorFactory
+	r algorithms.ReporterInterceptorFactory[AtomReport]
 }
 
-func NewInterceptorReporter(local *ion.Node, gb algorithms.ReportGathererBuilder, r algorithms.ReporterInterceptorFactory) InterceptorReporter {
-	return InterceptorReporter{
+func NewInterceptorReporter[AtomReport any](
+	local *ion.Node,
+	gb algorithms.ReportGathererBuilder[AtomReport],
+	r algorithms.ReporterInterceptorFactory[AtomReport],
+) InterceptorReporter[AtomReport] {
+	return InterceptorReporter[AtomReport]{
 		local: local,
 		gb:    gb,
 		r:     r,
@@ -34,28 +38,28 @@ func NewInterceptorReporter(local *ion.Node, gb algorithms.ReportGathererBuilder
 }
 
 // Bind 是给TransmissionReporter绑定输出channel
-func (t InterceptorReporter) Bind(reports chan<- *pb.TransmissionReport) {
+func (t InterceptorReporter[AtomReport]) Bind(reports chan<- *pb.TransmissionReport) {
 	t.ch = reports
 }
 
 // NewBuilder 是给PubIRFBuilderFactory创建interceptor
-func (t InterceptorReporter) NewBuilder(remote *ion.Node) ion_sfu.InterceptorRegistryFactoryBuilder {
-	ch := make(chan algorithms.SessionReport, 16)
-	t.gb.NewGatherer(remote, t.local, ch, t.ch)                           // 启动收集器
-	return transmissionReporterIRFBuilder{remote: remote, ch: ch, r: t.r} // 创建下级收集器
+func (t InterceptorReporter[AtomReport]) NewBuilder(remote *ion.Node) ion_sfu.InterceptorRegistryFactoryBuilder {
+	ch := make(chan algorithms.SessionReport[AtomReport], 16)
+	t.gb.NewGatherer(remote, t.local, ch, t.ch)                                       // 启动收集器
+	return transmissionReporterIRFBuilder[AtomReport]{remote: remote, ch: ch, r: t.r} // 创建下级收集器
 }
 
 // transmissionReporterIRFBuilder 就是TransmissionReporterIRFBuilderFactory输出的ion_sfu.InterceptorRegistryFactoryBuilder
 // 对每个uid输出一个自定义的ion_sfu.InterceptorRegistryFactory
-type transmissionReporterIRFBuilder struct {
+type transmissionReporterIRFBuilder[AtomReport any] struct {
 	ion_sfu.InterceptorRegistryFactoryBuilder // 这是一个ion_sfu.InterceptorRegistryFactoryBuilder
 
 	remote *ion.Node
-	r      algorithms.ReporterInterceptorFactory
-	ch     chan<- algorithms.SessionReport
+	r      algorithms.ReporterInterceptorFactory[AtomReport]
+	ch     chan<- algorithms.SessionReport[AtomReport]
 }
 
-func (t transmissionReporterIRFBuilder) Build(sid, uid string) ion_sfu.InterceptorRegistryFactory {
+func (t transmissionReporterIRFBuilder[AtomReport]) Build(sid, uid string) ion_sfu.InterceptorRegistryFactory {
 	return func(mediaEngine *webrtc.MediaEngine, config ion_sfu.WebRTCTransportConfig) *interceptor.Registry {
 		interceptorRegistry := &interceptor.Registry{}
 		if err := webrtc.ConfigureNack(mediaEngine, interceptorRegistry); err != nil {
@@ -67,22 +71,22 @@ func (t transmissionReporterIRFBuilder) Build(sid, uid string) ion_sfu.Intercept
 		if err := webrtc.ConfigureTWCCSender(mediaEngine, interceptorRegistry); err != nil {
 			log.Errorf("Cannot ConfigureNack: %+v", err)
 		}
-		ch := make(chan algorithms.AtomReport, 16)
+		ch := make(chan AtomReport, 16)
 		// 和ReportGathererBuilder.NewGatherer差不多的功能
-		go func(sid, uid string, o chan<- algorithms.SessionReport, i <-chan algorithms.AtomReport) {
+		go func(sid, uid string, o chan<- algorithms.SessionReport[AtomReport], i <-chan AtomReport) {
 			for {
 				ar, ok := <-i
 				if !ok {
 					return
 				}
-				o <- algorithms.SessionReport{
+				o <- algorithms.SessionReport[AtomReport]{
 					SID:    sid,
 					UID:    uid,
 					Report: ar,
 				}
 			}
 		}(sid, uid, t.ch, ch)
-		interceptorRegistry.Add(interceptorFactory{
+		interceptorRegistry.Add(interceptorFactory[AtomReport]{
 			r:  t.r,
 			ch: ch,
 		})
@@ -91,13 +95,13 @@ func (t transmissionReporterIRFBuilder) Build(sid, uid string) ion_sfu.Intercept
 }
 
 // 每个remote node 分配一个reporterInterceptorFactory
-type interceptorFactory struct {
-	r  algorithms.ReporterInterceptorFactory
-	ch chan<- algorithms.AtomReport
+type interceptorFactory[AtomReport any] struct {
+	r  algorithms.ReporterInterceptorFactory[AtomReport]
+	ch chan<- AtomReport
 }
 
 // NewInterceptor 每次连接都要生成一个Interceptor
-func (r interceptorFactory) NewInterceptor(id string) (interceptor.Interceptor, error) {
+func (r interceptorFactory[AtomReport]) NewInterceptor(id string) (interceptor.Interceptor, error) {
 	ri, err := r.r.NewInterceptor(id)
 	if err != nil {
 		return nil, err
