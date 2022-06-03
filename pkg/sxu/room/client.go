@@ -113,6 +113,7 @@ func (c *Client) reconnect() {
 		log.Infof("room.Client connecting......")
 		if c.conn != nil {
 			_ = c.conn.Close()
+			// TODO: nats-grpc的问题导致这里偶尔出现fatal error: concurrent map iteration and map write，已给原作者提pull request
 		}
 
 		var conn = c.factory.NewClient() // select a node

@@ -46,7 +46,7 @@ func main() {
 
 	log.Infof("--- starting isglb node ---")
 	node := isglb.New(func() algorithms.Algorithm {
-		return impl.EmptyAlgorithm{}
+		return impl.StupidAlgorithm{}
 	}) // TODO
 	if err := node.Start(conf); err != nil {
 		log.Errorf("isglb start error: %v", err)
