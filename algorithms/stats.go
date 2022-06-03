@@ -29,3 +29,6 @@ type ReporterInterceptor[AtomReport any] interface {
 	// BindReportChannel : put report to o
 	BindReportChannel(o chan<- AtomReport)
 }
+
+// The report that ReporterInterceptor write to BindReportChannel's o chan<- AtomReport
+// will show up in NewGatherer's i <-chan SessionReport[AtomReport]
