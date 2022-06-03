@@ -8,9 +8,9 @@ import (
 	"github.com/pion/ion/pkg/proto"
 	"github.com/yindaheng98/dion/algorithms/impl/random"
 	"github.com/yindaheng98/dion/config"
+	"github.com/yindaheng98/dion/pkg/islb"
 	pb "github.com/yindaheng98/dion/proto"
 	"github.com/yindaheng98/dion/util"
-	"github.com/yindaheng98/dion/util/ion"
 	"testing"
 	"time"
 )
@@ -22,7 +22,7 @@ var conf = config.Common{
 }
 
 func testRoomService(t *testing.T) {
-	node := ion.NewNode("room-test-" + util.RandomString(4))
+	node := islb.NewNode("room-test-" + util.RandomString(4))
 	err := node.Start(conf.Nats.URL)
 	if err != nil {
 		t.Error(err)
@@ -71,7 +71,7 @@ func TestRoomService(t *testing.T) {
 }
 
 func testRoomClient(t *testing.T) {
-	node := ion.NewNode("room-cli")
+	node := islb.NewNode("room-cli")
 	err := node.Start(conf.Nats.URL)
 	if err != nil {
 		t.Error(err)

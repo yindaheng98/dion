@@ -4,16 +4,16 @@ import (
 	log "github.com/pion/ion-log"
 	pbion "github.com/pion/ion/proto/ion"
 	"github.com/yindaheng98/dion/pkg/isglb"
+	"github.com/yindaheng98/dion/pkg/islb"
 	pb "github.com/yindaheng98/dion/proto"
 	"github.com/yindaheng98/dion/util"
-	"github.com/yindaheng98/dion/util/ion"
 	"google.golang.org/protobuf/proto"
 )
 
 // ISGLBSyncer is a Client to sync SFUStatus
 type ISGLBSyncer struct {
 	client  *isglb.Client
-	node    *ion.Node
+	node    *islb.Node
 	descSFU *pbion.Node
 
 	router   trackRouter
@@ -30,7 +30,7 @@ type ISGLBSyncer struct {
 	sessionEventCh chan *SessionEvent
 }
 
-func NewSFUStatusSyncer(node *ion.Node, peerID string, descSFU *pbion.Node, toolbox ToolBox) *ISGLBSyncer {
+func NewSFUStatusSyncer(node *islb.Node, peerID string, descSFU *pbion.Node, toolbox ToolBox) *ISGLBSyncer {
 	isglbClient := isglb.NewClient(node, peerID, map[string]interface{}{})
 	if isglbClient == nil {
 		return nil

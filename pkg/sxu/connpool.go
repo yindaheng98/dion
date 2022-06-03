@@ -1,7 +1,7 @@
 package sxu
 
 import (
-	"github.com/yindaheng98/dion/util/ion"
+	"github.com/yindaheng98/dion/pkg/islb"
 	"google.golang.org/grpc"
 	"sync"
 )
@@ -11,13 +11,13 @@ type peerConnList map[string]connID
 type serviceList map[string]peerConnList
 
 type NRPCConnPool struct {
-	node       *ion.Node
+	node       *islb.Node
 	Parameters map[string]interface{}
 	connList   serviceList
 	sync.Mutex
 }
 
-func NewNRPCConnPool(node *ion.Node) *NRPCConnPool {
+func NewNRPCConnPool(node *islb.Node) *NRPCConnPool {
 	return &NRPCConnPool{
 		node:     node,
 		connList: serviceList{},

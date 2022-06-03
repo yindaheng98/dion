@@ -4,11 +4,11 @@ import (
 	"github.com/cloudwebrtc/nats-grpc/pkg/rpc"
 	log "github.com/pion/ion-log"
 	"github.com/yindaheng98/dion/config"
-	"github.com/yindaheng98/dion/util/ion"
+	"github.com/yindaheng98/dion/pkg/islb"
 )
 
 type RandomClientFactory struct {
-	*ion.Node
+	*islb.Node
 }
 
 func (s RandomClientFactory) NewClient() *rpc.Client {

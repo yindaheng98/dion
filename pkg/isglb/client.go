@@ -4,14 +4,14 @@ import (
 	"context"
 	log "github.com/pion/ion-log"
 	"github.com/yindaheng98/dion/config"
+	"github.com/yindaheng98/dion/pkg/islb"
 	pb "github.com/yindaheng98/dion/proto"
 	"github.com/yindaheng98/dion/util"
-	"github.com/yindaheng98/dion/util/ion"
 	"google.golang.org/grpc/metadata"
 )
 
 type ClientStreamFactory struct {
-	node       *ion.Node
+	node       *islb.Node
 	peerNID    string
 	parameters map[string]interface{}
 	Metadata   metadata.MD
@@ -45,7 +45,7 @@ type Client struct {
 	OnSFUStatusRecv func(s *pb.SFUStatus)
 }
 
-func NewClient(node *ion.Node, peerNID string, parameters map[string]interface{}) *Client {
+func NewClient(node *islb.Node, peerNID string, parameters map[string]interface{}) *Client {
 	ctx, cancal := context.WithCancel(context.Background())
 	c := &Client{
 		Client: util.NewClient[*pb.SyncRequest, *pb.SFUStatus](

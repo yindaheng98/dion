@@ -4,7 +4,7 @@ import (
 	"github.com/cloudwebrtc/nats-discovery/pkg/discovery"
 	"github.com/cloudwebrtc/nats-grpc/pkg/rpc"
 	"github.com/yindaheng98/dion/config"
-	"github.com/yindaheng98/dion/util/ion"
+	"github.com/yindaheng98/dion/pkg/islb"
 )
 
 type ClientFactory interface {
@@ -12,7 +12,7 @@ type ClientFactory interface {
 }
 
 type FirstSelector struct {
-	*ion.Node
+	*islb.Node
 }
 
 func (FirstSelector) Select(m map[string]discovery.Node) []discovery.Node {

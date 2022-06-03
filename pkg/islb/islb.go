@@ -8,18 +8,17 @@ import (
 	"github.com/pion/ion/pkg/proto"
 	"github.com/pion/ion/pkg/util"
 	"github.com/yindaheng98/dion/config"
-	"github.com/yindaheng98/dion/util/ion"
 )
 
 // ISLB represents islb node
 type ISLB struct {
-	ion.Node
+	Node
 	registry *Registry
 }
 
 // NewISLB create a islb node instance
 func NewISLB() *ISLB {
-	return &ISLB{Node: ion.NewNode("islb-" + util.RandomString(6))}
+	return &ISLB{Node: NewNode("islb-" + util.RandomString(6))}
 }
 
 // Start islb node

@@ -4,6 +4,7 @@ import (
 	"github.com/cloudwebrtc/nats-discovery/pkg/discovery"
 	log "github.com/pion/ion-log"
 	"github.com/pion/ion/pkg/proto"
+	"github.com/yindaheng98/dion/pkg/islb"
 	"testing"
 	"time"
 
@@ -12,7 +13,6 @@ import (
 	"github.com/yindaheng98/dion/algorithms/impl/random"
 	"github.com/yindaheng98/dion/config"
 	pb "github.com/yindaheng98/dion/proto"
-	"github.com/yindaheng98/dion/util/ion"
 )
 
 const sleep = 100
@@ -34,7 +34,7 @@ func TestISGLB(t *testing.T) {
 }
 
 func TestISGLBClient(t *testing.T) {
-	node := ion.NewNode("sxu-" + util.RandomString(6))
+	node := islb.NewNode("sxu-" + util.RandomString(6))
 	err := node.Start(conf.Nats.URL)
 	if err != nil {
 		t.Error(err)

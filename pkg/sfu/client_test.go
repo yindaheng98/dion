@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	log "github.com/pion/ion-log"
 	"github.com/pion/ion/pkg/proto"
-	"github.com/yindaheng98/dion/util/ion"
+	"github.com/yindaheng98/dion/pkg/islb"
 	"testing"
 	"time"
 
@@ -13,7 +13,7 @@ import (
 )
 
 func connect_sfu_1() *Client {
-	node := ion.NewNode("sfu-client-test")
+	node := islb.NewNode("sfu-client-test")
 	err := node.Start(conf.Nats.URL)
 	if err != nil {
 		panic(err)

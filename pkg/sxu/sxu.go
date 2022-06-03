@@ -12,10 +12,10 @@ import (
 	pbion "github.com/pion/ion/proto/ion"
 	pb "github.com/pion/ion/proto/rtc"
 	"github.com/yindaheng98/dion/config"
+	"github.com/yindaheng98/dion/pkg/islb"
 	"github.com/yindaheng98/dion/pkg/sfu"
 	"github.com/yindaheng98/dion/pkg/sxu/syncer"
 	"github.com/yindaheng98/dion/util"
-	"github.com/yindaheng98/dion/util/ion"
 	"google.golang.org/grpc"
 )
 
@@ -27,7 +27,7 @@ func init() {
 }
 
 type SXU struct {
-	ion.Node
+	islb.Node
 	ExtraInfo map[string]interface{} // 用来放置地域信息以供客户端进行选择
 
 	s *sfu.SFUService
@@ -45,7 +45,7 @@ func New(toolbox ToolBoxBuilder) *SXU {
 		toolbox = NewDefaultToolBoxBuilder()
 	}
 	return &SXU{
-		Node:    ion.NewNode("sxu-" + util.RandomString(8)),
+		Node:    islb.NewNode("sxu-" + util.RandomString(8)),
 		toolbox: toolbox,
 	}
 }

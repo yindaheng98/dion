@@ -6,9 +6,9 @@ import (
 	log "github.com/pion/ion-log"
 	pb "github.com/pion/ion/proto/rtc"
 	"github.com/pion/webrtc/v3"
+	"github.com/yindaheng98/dion/pkg/islb"
 	pb2 "github.com/yindaheng98/dion/proto"
 	"github.com/yindaheng98/dion/util"
-	"github.com/yindaheng98/dion/util/ion"
 	"google.golang.org/protobuf/proto"
 	"sync"
 )
@@ -28,7 +28,7 @@ func (sub *Subscriber) refresh() {
 	sub.reconnectExec.Do(sub.client.Reconnect)
 }
 
-func NewSubscriber(node *ion.Node) *Subscriber {
+func NewSubscriber(node *islb.Node) *Subscriber {
 	sub := &Subscriber{
 		client:        NewClient(node),
 		reconnectExec: util.NewSingleExec(),

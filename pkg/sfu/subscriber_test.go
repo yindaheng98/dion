@@ -6,15 +6,15 @@ import (
 	log "github.com/pion/ion-log"
 	"github.com/pion/ion/pkg/proto"
 	"github.com/pion/webrtc/v3"
+	"github.com/yindaheng98/dion/pkg/islb"
 	pb2 "github.com/yindaheng98/dion/proto"
 	"github.com/yindaheng98/dion/util"
-	"github.com/yindaheng98/dion/util/ion"
 	"testing"
 	"time"
 )
 
 func TestSubscriber(t *testing.T) {
-	node := ion.NewNode("sxu-" + util.RandomString(6))
+	node := islb.NewNode("sxu-" + util.RandomString(6))
 	err := node.Start(conf.Nats.URL)
 	if err != nil {
 		t.Error(err)

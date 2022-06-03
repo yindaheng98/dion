@@ -10,8 +10,8 @@ import (
 	"github.com/pion/ion/pkg/util"
 	"github.com/yindaheng98/dion/algorithms"
 	"github.com/yindaheng98/dion/config"
+	"github.com/yindaheng98/dion/pkg/islb"
 	pb "github.com/yindaheng98/dion/proto"
-	"github.com/yindaheng98/dion/util/ion"
 	"google.golang.org/grpc"
 )
 
@@ -22,7 +22,7 @@ func (c *Config) Load(file string) error {
 }
 
 type ISGLB struct {
-	ion.Node
+	islb.Node
 	s *ISGLBService
 	runner.Service
 	conf Config
@@ -39,7 +39,7 @@ func New(algConstructor func() algorithms.Algorithm) *ISGLB {
 // algConstructor should return a algorithms.Algorithm
 func NewWithID(id string, algConstructor func() algorithms.Algorithm) *ISGLB {
 	return &ISGLB{
-		Node: ion.NewNode(id),
+		Node: islb.NewNode(id),
 		algC: algConstructor,
 	}
 }

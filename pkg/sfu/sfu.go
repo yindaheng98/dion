@@ -8,19 +8,19 @@ import (
 	"github.com/pion/ion/pkg/proto"
 	pb "github.com/pion/ion/proto/rtc"
 	"github.com/yindaheng98/dion/config"
-	"github.com/yindaheng98/dion/util/ion"
+	"github.com/yindaheng98/dion/pkg/islb"
 )
 
 // SFU represents a sfu node
 type SFU struct {
-	ion.Node
+	islb.Node
 	s *SFUService
 }
 
 // NewSFU create a sfu node instance
 func NewSFU(id string) *SFU {
 	s := &SFU{
-		Node: ion.NewNode(id),
+		Node: islb.NewNode(id),
 	}
 	return s
 }

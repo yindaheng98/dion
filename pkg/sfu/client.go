@@ -6,9 +6,9 @@ import (
 	log "github.com/pion/ion-log"
 	"github.com/pion/ion/proto/rtc"
 	"github.com/yindaheng98/dion/config"
+	"github.com/yindaheng98/dion/pkg/islb"
 	pb "github.com/yindaheng98/dion/proto"
 	"github.com/yindaheng98/dion/util"
-	"github.com/yindaheng98/dion/util/ion"
 	"google.golang.org/grpc/metadata"
 	"sync/atomic"
 )
@@ -19,12 +19,12 @@ type param struct {
 }
 
 type ClientStreamFactory struct {
-	node     *ion.Node
+	node     *islb.Node
 	param    atomic.Value
 	Metadata metadata.MD
 }
 
-func NewClientStreamFactory(node *ion.Node) *ClientStreamFactory {
+func NewClientStreamFactory(node *islb.Node) *ClientStreamFactory {
 	c := &ClientStreamFactory{
 		node: node,
 	}
@@ -70,7 +70,7 @@ type Client struct {
 	cancelLast context.CancelFunc
 }
 
-func NewClient(node *ion.Node) *Client {
+func NewClient(node *islb.Node) *Client {
 	ctx, cancal := context.WithCancel(context.Background())
 	c := &Client{
 		Client:            util.NewClient[*rtc.Request, *rtc.Reply](NewClientStreamFactory(node)),

@@ -10,10 +10,10 @@ import (
 	"github.com/pion/ion/pkg/runner"
 	pb "github.com/pion/ion/proto/rtc"
 	"github.com/yindaheng98/dion/config"
+	"github.com/yindaheng98/dion/pkg/islb"
 	"github.com/yindaheng98/dion/pkg/sfu"
 	"github.com/yindaheng98/dion/pkg/sxu/bridge"
 	"github.com/yindaheng98/dion/util"
-	"github.com/yindaheng98/dion/util/ion"
 	"google.golang.org/grpc"
 )
 
@@ -21,7 +21,7 @@ import (
 
 // SFU represents a sfu node
 type SFU struct {
-	ion.Node
+	islb.Node
 	s *sfu.SFUService
 	runner.Service
 	// ↑↑↑↑↑ Copy from https://github.com/pion/ion/blob/65dbd12eaad0f0e0a019b4d8ee80742930bcdc28/pkg/node/sfu/sfu.go ↑↑↑↑↑
@@ -39,7 +39,7 @@ func (s *SFU) ConfigBase() runner.ConfigBase {
 // New create a sfu node instance
 func New(ffmpegPath string) *SFU {
 	s := &SFU{
-		Node:       ion.NewNode(config.ServiceNameStupid),
+		Node:       islb.NewNode(config.ServiceNameStupid),
 		ffmpegPath: ffmpegPath,
 		Filter:     "drawbox=x=0:y=0:w=50:h=50:c=blue",
 		Bandwidth:  "3M",
@@ -51,7 +51,7 @@ func New(ffmpegPath string) *SFU {
 // NewWithID create a sfu node instance with specific node id
 func NewWithID(nid, ffmpegPath string) *SFU {
 	s := &SFU{
-		Node:       ion.NewNode(nid),
+		Node:       islb.NewNode(nid),
 		ffmpegPath: ffmpegPath,
 		Filter:     "drawbox=x=0:y=0:w=50:h=50:c=blue",
 		Bandwidth:  "3M",
