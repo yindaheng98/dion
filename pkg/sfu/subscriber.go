@@ -59,8 +59,7 @@ func NewSubscriber(node *islb.Node) *Subscriber {
 	return sub
 }
 
-func (sub *Subscriber) SwitchNode(session *pb2.ClientNeededSession, peerNID string, parameters map[string]interface{}) {
-	sub.session = proto.Clone(session).(*pb2.ClientNeededSession)
+func (sub *Subscriber) SwitchNode(peerNID string, parameters map[string]interface{}) {
 	sub.client.Switch(peerNID, parameters)
 }
 

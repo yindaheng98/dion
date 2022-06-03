@@ -61,15 +61,9 @@ func TestSubscriber(t *testing.T) {
 		User:    "test",
 	})
 	<-time.After(10 * time.Second)
-	sub.SwitchNode(&pb2.ClientNeededSession{
-		Session: "stupid",
-		User:    util.RandomString(8),
-	}, "unknown", map[string]interface{}{})
+	sub.SwitchNode("unknown", map[string]interface{}{})
 	<-time.After(10 * time.Second)
-	sub.SwitchNode(&pb2.ClientNeededSession{
-		Session: "stupid",
-		User:    util.RandomString(8),
-	}, "*", map[string]interface{}{})
+	sub.SwitchNode("*", map[string]interface{}{})
 	<-time.After(10 * time.Second)
 	sub.SwitchSession(&pb2.ClientNeededSession{
 		Session: "unknown",
