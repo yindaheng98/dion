@@ -46,14 +46,6 @@ func (b DefaultToolBoxBuilder) Build(node *islb.Node, sfu *ion_sfu.SFU) syncer.T
 	return t
 }
 
-func WithProcessorFactory(pro algorithms.ProcessorFactory) WithOption {
-	return func(box *syncer.ToolBox, node *islb.Node, sfu *ion_sfu.SFU) {
-		if pro != nil {
-			box.TrackProcessor = NewProceedRouter(sfu, pro)
-		}
-	}
-}
-
 func WithTrackForwarder(with ...func(ForwardRouter)) WithOption {
 	return func(box *syncer.ToolBox, node *islb.Node, sfu *ion_sfu.SFU) {
 		TrackForwarder := NewForwardRouter(sfu, NewNRPCConnPool(node))
@@ -64,13 +56,21 @@ func WithTrackForwarder(with ...func(ForwardRouter)) WithOption {
 	}
 }
 
+func WithProcessorFactory(pro algorithms.ProcessorFactory) WithOption {
+	return func(box *syncer.ToolBox, node *islb.Node, sfu *ion_sfu.SFU) {
+		if pro != nil {
+			box.TrackProcessor = NewProceedRouter(sfu, pro)
+		}
+	}
+}
+
 func WithTransmissionReporter(reporter syncer.TransmissionReporter) WithOption {
 	return func(box *syncer.ToolBox, node *islb.Node, sfu *ion_sfu.SFU) {
 		if reporter != nil {
 			box.TransmissionReporter = reporter
 		}
 	}
-}
+} // TODO: 实现一个 signaller.PubIRFBuilderFactory + syncer.TransmissionReporter 即可实现传输层面的汇报
 
 func WithComputationReporter(reporter syncer.ComputationReporter) WithOption {
 	return func(box *syncer.ToolBox, node *islb.Node, sfu *ion_sfu.SFU) {
@@ -78,7 +78,7 @@ func WithComputationReporter(reporter syncer.ComputationReporter) WithOption {
 			box.ComputationReporter = reporter
 		}
 	}
-}
+} // TODO: 实现一个 algorithms.ProcessorFactory + syncer.ComputationReporter 即可实现计算层面的汇报
 
 func WithSessionTracker() WithOption {
 	return func(box *syncer.ToolBox, node *islb.Node, sfu *ion_sfu.SFU) {

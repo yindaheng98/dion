@@ -18,6 +18,12 @@ type ForwardRouter struct {
 	forwardings map[string]forwarding // map<NID, map<SID, forwarding>>
 }
 
+func WithPubIRFBuilderFactory(irfbf signaller.PubIRFBuilderFactory) func(ForwardRouter) {
+	return func(r ForwardRouter) {
+		r.factory.IRFBF = irfbf
+	}
+}
+
 func NewForwardRouter(sfu *ion_sfu.SFU, cp signaller.ConnPool, with ...func(ForwardRouter)) ForwardRouter {
 	r := ForwardRouter{
 		factory:     signaller.NewSignallerFactory(cp, sfu),
