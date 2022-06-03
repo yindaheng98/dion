@@ -6,6 +6,7 @@ import (
 	log "github.com/pion/ion-log"
 	"github.com/pion/ion/pkg/proto"
 	"github.com/pion/webrtc/v3"
+	"github.com/yindaheng98/dion/config"
 	"github.com/yindaheng98/dion/pkg/islb"
 	pb2 "github.com/yindaheng98/dion/proto"
 	"github.com/yindaheng98/dion/util"
@@ -57,13 +58,13 @@ func TestSubscriber(t *testing.T) {
 		}
 	}
 	sub.SwitchSession(&pb2.ClientNeededSession{
-		Session: "stupid",
+		Session: config.ServiceSessionStupid,
 		User:    "test",
 	})
 	<-time.After(10 * time.Second)
 	sub.SwitchNode("unknown", map[string]interface{}{})
 	<-time.After(10 * time.Second)
-	sub.SwitchNode("*", map[string]interface{}{})
+	sub.SwitchNode(config.ServiceNameStupid, map[string]interface{}{})
 	<-time.After(10 * time.Second)
 	sub.SwitchSession(&pb2.ClientNeededSession{
 		Session: "unknown",
@@ -71,7 +72,7 @@ func TestSubscriber(t *testing.T) {
 	})
 	<-time.After(10 * time.Second)
 	sub.SwitchSession(&pb2.ClientNeededSession{
-		Session: "stupid",
+		Session: config.ServiceSessionStupid,
 		User:    util.RandomString(8),
 	})
 	<-time.After(10 * time.Second)
