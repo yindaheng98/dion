@@ -8,28 +8,45 @@ import (
 )
 
 func (sub *Subscriber) SendJoin(sid string, uid string, config map[string]string) error {
+	return sub.client.SendJoin(sid, uid, config, nil)
+}
+
+func (c *Client) SendJoin(sid string, uid string, config map[string]string, offer *webrtc.SessionDescription) error {
 	log.Infof("[C=>S] sid=%v", sid)
-	return sub.client.Send(
+	var desc *pb.SessionDescription
+	if offer != nil {
+		desc = &pb.SessionDescription{
+			Target: pb.Target_PUBLISHER,
+			Type:   "offer",
+			Sdp:    offer.SDP,
+		}
+	}
+	return c.Send(
 		&pb.Request{
 			Payload: &pb.Request_Join{
 				Join: &pb.JoinRequest{
-					Sid:    sid,
-					Uid:    uid,
-					Config: config,
+					Sid:         sid,
+					Uid:         uid,
+					Config:      config,
+					Description: desc,
 				},
 			},
 		},
 	)
 }
 
-func (sub *Subscriber) SendTrickle(candidate *webrtc.ICECandidate, target pb.Target) error {
+func (sub *Subscriber) SendTrickle(candidate *webrtc.ICECandidate) error {
+	return sub.client.SendTrickle(candidate, pb.Target_SUBSCRIBER)
+}
+
+func (c *Client) SendTrickle(candidate *webrtc.ICECandidate, target pb.Target) error {
 	log.Debugf("[C=>S] candidate=%v target=%v", candidate, target)
 	bytes, err := json.Marshal(candidate.ToJSON())
 	if err != nil {
 		log.Errorf("Cannot marshal candidate: %v", err)
 		return err
 	}
-	return sub.client.Send(
+	return c.Send(
 		&pb.Request{
 			Payload: &pb.Request_Trickle{
 				Trickle: &pb.Trickle{

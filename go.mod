@@ -4,7 +4,7 @@ go 1.18
 
 require (
 	github.com/bep/debounce v1.2.0
-	github.com/cloudwebrtc/nats-discovery v0.3.0
+	github.com/cloudwebrtc/nats-discovery v0.3.1-0.20220606064146-a4d1fce8e387
 	github.com/cloudwebrtc/nats-grpc v1.0.0
 	github.com/golang/protobuf v1.5.2
 	github.com/google/uuid v1.3.0
@@ -92,6 +92,5 @@ require (
 )
 
 replace (
-	github.com/cloudwebrtc/nats-discovery v0.3.0 => github.com/yindaheng98/nats-discovery v0.3.1-0.20220601014014-e6a5369ace55
 	github.com/pion/ion-sfu v1.11.0 => github.com/yindaheng98/ion-sfu v1.11.1-0.20220521131211-10a33cc613d5
 )

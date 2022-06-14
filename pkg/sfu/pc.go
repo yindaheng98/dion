@@ -7,39 +7,6 @@ import (
 	"sync"
 )
 
-func (sub *Subscriber) newPeerConnection() (*webrtc.PeerConnection, error) {
-	me := webrtc.MediaEngine{}
-	err := me.RegisterDefaultCodecs()
-	if err != nil {
-		log.Errorf("Cannot RegisterDefaultCodecs %v", err)
-		return nil, err
-	}
-	api := webrtc.NewAPI(webrtc.WithMediaEngine(&me))
-	pc, err := api.NewPeerConnection(webrtc.Configuration{})
-	if err != nil {
-		log.Errorf("Cannot NewPeerConnection %v", err)
-		return nil, err
-	}
-
-	pc.OnICEConnectionStateChange(func(state webrtc.ICEConnectionState) {
-		log.Infof("ICEConnectionState %v", state.String())
-	})
-
-	pc.OnICECandidate(func(candidate *webrtc.ICECandidate) {
-		if candidate == nil {
-			log.Warnf("OnICECandidate give a nil")
-			return
-		}
-		err := sub.SendTrickle(candidate, pb.Target_SUBSCRIBER)
-		if err != nil {
-			log.Errorf("Cannot SendTrickle: %+v", err)
-		}
-	})
-
-	pc.OnTrack(sub.OnTrack)
-	return pc, nil
-}
-
 type candidates struct {
 	sync.Mutex
 	candidates []webrtc.ICECandidateInit
