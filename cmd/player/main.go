@@ -1,18 +1,22 @@
 package main
 
 import (
+	"bufio"
 	"flag"
 	"fmt"
 	"github.com/cloudwebrtc/nats-discovery/pkg/discovery"
 	log "github.com/pion/ion-log"
 	"github.com/pion/ion/pkg/proto"
 	"github.com/pion/webrtc/v3"
+	"github.com/pion/webrtc/v3/pkg/media/ivfwriter"
 	"github.com/yindaheng98/dion/config"
 	"github.com/yindaheng98/dion/pkg/islb"
 	"github.com/yindaheng98/dion/pkg/sfu"
 	pb "github.com/yindaheng98/dion/proto"
 	"github.com/yindaheng98/dion/util"
+	"io"
 	"os"
+	"os/exec"
 	"os/signal"
 	"syscall"
 )
@@ -83,14 +87,35 @@ func main() {
 	}()
 	sub := sfu.NewSubscriber(&node)
 	sub.OnTrack = func(remote *webrtc.TrackRemote, receiver *webrtc.RTPReceiver) {
-		log.Warnf("onTrack started: %+v", remote)
+		log.Infof("OnTrack started: %+v\n", remote)
+		ffplay := exec.Command(ffplay, "-f", "ivf", "-i", "pipe:0")
+		stdin, stdout, err := util.GetStdPipes(ffplay)
+		if err != nil {
+			panic(err)
+		}
+		defer ffplay.Process.Kill()
+		go func(stdout io.ReadCloser) {
+			scanner := bufio.NewScanner(stdout)
+			for scanner.Scan() {
+				fmt.Println(scanner.Text())
+			}
+		}(stdout)
+		ivfWriter, err := ivfwriter.NewWith(stdin)
+		if err != nil {
+			panic(err)
+		}
 
 		for {
 			// Read RTP packets being sent to Pion
-			_, _, readErr := remote.ReadRTP()
-			fmt.Println("TestSubscriberFactory get a RTP Packet")
+			rtp, _, readErr := remote.ReadRTP()
+			log.Infof("Subscriber get a RTP Packet")
 			if readErr != nil {
-				fmt.Printf("TestSubscriberFactory RTP Packet read error %+v\n", readErr)
+				log.Errorf("Subscriber RTP Packet read error %+v", readErr)
+				return
+			}
+
+			if ivfWriterErr := ivfWriter.WriteRTP(rtp); ivfWriterErr != nil {
+				log.Errorf("RTP Packet write error: %+v", ivfWriterErr)
 				return
 			}
 		}
