@@ -102,11 +102,11 @@ func main() {
 		panic(err)
 	}
 	ffplayCmd := exec.Command(ffplay, "-f", "ivf", "-i", "pipe:0")
-	_, _, err = util.GetStdPipes(ffplayCmd)
+	ffplayIn, _, err := util.GetStdPipes(ffplayCmd)
 	if err != nil {
 		panic(err)
 	}
-	videoTrack, err := SendIt(ffmpegOut, webrtc.RTPCodecCapability{MimeType: webrtc.MimeTypeVP8})
+	videoTrack, err := SendIt(PlayIt(ffmpegOut, ffplayIn), webrtc.RTPCodecCapability{MimeType: webrtc.MimeTypeVP8})
 	if err != nil {
 		panic(err)
 	}

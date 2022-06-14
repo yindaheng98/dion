@@ -14,7 +14,7 @@ func PlayIt(ffmpegOut io.ReadCloser, ffplayIn io.WriteCloser) io.Reader {
 	return io.TeeReader(ffmpegOut, ffplayIn)
 }
 
-func SendIt(ffmpegOut io.ReadCloser, codec webrtc.RTPCodecCapability) (webrtc.TrackLocal, error) {
+func SendIt(ffmpegOut io.Reader, codec webrtc.RTPCodecCapability) (webrtc.TrackLocal, error) {
 	ivf, header, err := ivfreader.NewWith(ffmpegOut)
 	if err != nil {
 		log.Errorf("ivfreader create error: %+v", err)
