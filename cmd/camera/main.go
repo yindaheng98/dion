@@ -31,8 +31,9 @@ func showHelp() {
 }
 
 func main() {
-	var ffmpeg, device, nid, sid, uid string
+	var ffmpeg, ffplay, device, nid, sid, uid string
 	flag.StringVar(&ffmpeg, "ffmpeg", "ffmpeg", "path to ffmpeg executable")
+	flag.StringVar(&ffplay, "ffplay", "ffplay", "path to ffplay executable")
 	flag.StringVar(&device, "device",
 		"@device_pnp_\\\\?\\usb#vid_2bdf&pid_028a&mi_00#6&1d424522&0&0000#{65e8773d-8f56-11d0-a3b9-00a0c9223196}\\global",
 		"device id of your camera (use 'ffmpeg -list_devices true -f dshow -i dummy' to show it)")
@@ -100,7 +101,12 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-	videoTrack, err := util.MakeIVFTrackFromStdout(ffmpegOut, webrtc.RTPCodecCapability{MimeType: webrtc.MimeTypeVP8})
+	ffplayCmd := exec.Command(ffplay, "-f", "ivf", "-i", "pipe:0")
+	_, _, err = util.GetStdPipes(ffplayCmd)
+	if err != nil {
+		panic(err)
+	}
+	videoTrack, err := SendIt(ffmpegOut, webrtc.RTPCodecCapability{MimeType: webrtc.MimeTypeVP8})
 	if err != nil {
 		panic(err)
 	}
