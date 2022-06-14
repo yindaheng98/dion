@@ -43,3 +43,27 @@ func (sub *Subscriber) negotiate(pc *webrtc.PeerConnection, c *candidates, sdp w
 	// 6. send answer to sfu
 	return sub.SendAnswer(answer)
 }
+
+// negotiate sub negotiate
+func (pub *Publisher) negotiate(pc *webrtc.PeerConnection, c *candidates, sdp webrtc.SessionDescription) error {
+	log.Debugf("[S=>C] negotiate sdp=%v", sdp)
+	// 1.sub set remote sdp
+	err := pc.SetRemoteDescription(sdp)
+	if err != nil {
+		log.Errorf("negotiate pc.SetRemoteDescription err=%v", err)
+		return err
+	}
+
+	// 3. safe to add candidate after SetRemoteDescription
+	c.Lock()
+	if len(c.candidates) > 0 {
+		for _, candidate := range c.candidates {
+			log.Debugf("pc.AddICECandidate candidate=%v", candidate)
+			_ = pc.AddICECandidate(candidate)
+		}
+		c.candidates = []webrtc.ICECandidateInit{}
+	}
+	c.Unlock()
+
+	return nil
+}

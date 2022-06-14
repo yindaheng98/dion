@@ -14,7 +14,25 @@ type candidates struct {
 
 func (sub *Subscriber) trickle(pc *webrtc.PeerConnection, c *candidates, candidate webrtc.ICECandidateInit, target pb.Target) {
 	if target != pb.Target_SUBSCRIBER {
-		log.Warnf("[S=>C] candidate=%v target=%v", candidate, target)
+		log.Warnf("[S=>C] candidate=%v target=%v, but I'm a subscriber", candidate, target)
+		return
+	}
+	log.Debugf("[S=>C] candidate=%v target=%v", candidate, target)
+
+	if pc.CurrentRemoteDescription() == nil {
+		c.candidates = append(c.candidates, candidate)
+	} else {
+		err := pc.AddICECandidate(candidate)
+		if err != nil {
+			log.Errorf("Cannot AddICECandidate err=%v", err)
+		}
+	}
+
+}
+
+func (pub *Publisher) trickle(pc *webrtc.PeerConnection, c *candidates, candidate webrtc.ICECandidateInit, target pb.Target) {
+	if target != pb.Target_PUBLISHER {
+		log.Warnf("[S=>C] candidate=%v target=%v, but I'm a publisher", candidate, target)
 		return
 	}
 	log.Debugf("[S=>C] candidate=%v target=%v", candidate, target)

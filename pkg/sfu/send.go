@@ -11,6 +11,10 @@ func (sub *Subscriber) SendJoin(sid string, uid string, config map[string]string
 	return sub.client.SendJoin(sid, uid, config, nil)
 }
 
+func (pub *Publisher) SendJoin(sid string, uid string, config map[string]string, offer *webrtc.SessionDescription) error {
+	return pub.client.SendJoin(sid, uid, config, offer)
+}
+
 func (c *Client) SendJoin(sid string, uid string, config map[string]string, offer *webrtc.SessionDescription) error {
 	log.Infof("[C=>S] sid=%v", sid)
 	var desc *pb.SessionDescription
@@ -37,6 +41,10 @@ func (c *Client) SendJoin(sid string, uid string, config map[string]string, offe
 
 func (sub *Subscriber) SendTrickle(candidate *webrtc.ICECandidate) error {
 	return sub.client.SendTrickle(candidate, pb.Target_SUBSCRIBER)
+}
+
+func (pub *Publisher) SendTrickle(candidate *webrtc.ICECandidate) error {
+	return pub.client.SendTrickle(candidate, pb.Target_PUBLISHER)
 }
 
 func (c *Client) SendTrickle(candidate *webrtc.ICECandidate, target pb.Target) error {

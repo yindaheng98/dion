@@ -68,6 +68,11 @@ func (sub *Subscriber) SwitchSession(session *pb2.ClientNeededSession) {
 	sub.client.Reconnect()
 }
 
+func (sub *Subscriber) Switch(peerNID string, parameters map[string]interface{}, session *pb2.ClientNeededSession) {
+	sub.session = proto.Clone(session).(*pb2.ClientNeededSession)
+	sub.client.Switch(peerNID, parameters)
+}
+
 func (sub *Subscriber) newMsgHandler(pc *webrtc.PeerConnection) func(*pb.Reply) {
 	handler := sub.msgHandler(pc)
 	return func(reply *pb.Reply) {

@@ -45,3 +45,7 @@ func (sub *Subscriber) newPeerConnection() (*webrtc.PeerConnection, error) {
 	pc.OnTrack(sub.OnTrack)
 	return pc, nil
 }
+
+func (pub *Publisher) newPeerConnection() (*webrtc.PeerConnection, error) {
+	return newPeerConnection(pub.SendTrickle)
+}
