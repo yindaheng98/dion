@@ -1,20 +1,17 @@
 package main
 
 import (
-	"bufio"
 	"flag"
 	"fmt"
 	"github.com/cloudwebrtc/nats-discovery/pkg/discovery"
 	log "github.com/pion/ion-log"
 	"github.com/pion/ion/pkg/proto"
 	"github.com/pion/webrtc/v3"
-	"github.com/pion/webrtc/v3/pkg/media/ivfwriter"
 	"github.com/yindaheng98/dion/config"
 	"github.com/yindaheng98/dion/pkg/islb"
 	"github.com/yindaheng98/dion/pkg/sfu"
-	pb "github.com/yindaheng98/dion/proto"
+	pb2 "github.com/yindaheng98/dion/proto"
 	"github.com/yindaheng98/dion/util"
-	"io"
 	"os"
 	"os/exec"
 	"os/signal"
@@ -34,8 +31,11 @@ func showHelp() {
 }
 
 func main() {
-	var ffplay, nid, sid, uid string
-	flag.StringVar(&ffplay, "ffplay", "ffplay", "path to ffplay executable")
+	var ffmpeg, device, nid, sid, uid string
+	flag.StringVar(&ffmpeg, "ffmpeg", "ffmpeg", "path to ffmpeg executable")
+	flag.StringVar(&device, "device",
+		"@device_pnp_\\\\?\\usb#vid_2bdf&pid_028a&mi_00#6&1d424522&0&0000#{65e8773d-8f56-11d0-a3b9-00a0c9223196}\\global",
+		"device id of your camera (use 'ffmpeg -list_devices true -f dshow -i dummy' to show it)")
 	flag.StringVar(&nid, "nid", "stupid", "target node id")
 	flag.StringVar(&sid, "sid", "camera", "target session id")
 	flag.StringVar(&uid, "uid", util.RandomString(8), "your user id")
@@ -85,45 +85,47 @@ func main() {
 			log.Errorf("isglb.Node.KeepAlive(%v) error %v", node.NID, err)
 		}
 	}()
-	sub := sfu.NewSubscriber(&node)
-	sub.OnTrack = func(remote *webrtc.TrackRemote, receiver *webrtc.RTPReceiver) {
-		log.Infof("OnTrack started: %+v\n", remote)
-		ffplay := exec.Command(ffplay, "-f", "ivf", "-i", "pipe:0")
-		stdin, stdout, err := util.GetStdPipes(ffplay)
-		if err != nil {
-			panic(err)
-		}
-		defer ffplay.Process.Kill()
-		go func(stdout io.ReadCloser) {
-			scanner := bufio.NewScanner(stdout)
-			for scanner.Scan() {
-				fmt.Println(scanner.Text())
-			}
-		}(stdout)
-		ivfWriter, err := ivfwriter.NewWith(stdin)
-		if err != nil {
-			panic(err)
-		}
-
-		for {
-			// Read RTP packets being sent to Pion
-			rtp, _, readErr := remote.ReadRTP()
-			log.Infof("Subscriber get a RTP Packet")
-			if readErr != nil {
-				log.Errorf("Subscriber RTP Packet read error %+v", readErr)
-				return
-			}
-
-			if ivfWriterErr := ivfWriter.WriteRTP(rtp); ivfWriterErr != nil {
-				log.Errorf("RTP Packet write error: %+v", ivfWriterErr)
-				return
-			}
-		}
+	pub := sfu.NewPublisher(&node)
+	// Create a video track
+	videoopt := []string{
+		"-f", "dshow",
+		"-i", "video=" + device,
+		"-vcodec", "libvpx",
+		"-b:v", "3M",
+		"-f", "ivf",
+		"pipe:1",
 	}
-	sub.Switch(nid, map[string]interface{}{}, &pb.ClientNeededSession{
-		Session: sid,
-		User:    uid,
-	})
+	ffmpegCmd := exec.Command(ffmpeg, videoopt...) //nolint
+	_, ffmpegOut, err := util.GetStdPipes(ffmpegCmd)
+	if err != nil {
+		panic(err)
+	}
+	videoTrack, err := util.MakeIVFTrackFromStdout(ffmpegOut, webrtc.RTPCodecCapability{MimeType: webrtc.MimeTypeVP8})
+	if err != nil {
+		panic(err)
+	}
+	pub.NeedTrack = func(AddTrack func(track webrtc.TrackLocal) (*webrtc.RTPSender, error)) error {
+		log.Warnf("needTrack started")
+
+		rtpSender, videoTrackErr := AddTrack(videoTrack)
+		if videoTrackErr != nil {
+			return videoTrackErr
+		}
+		// Read incoming RTCP packets
+		// Before these packets are returned they are processed by interceptors. For things
+		// like NACK this needs to be called.
+		go func() {
+			rtcpBuf := make([]byte, 1500)
+			for {
+				if _, _, rtcpErr := rtpSender.Read(rtcpBuf); rtcpErr != nil {
+					return
+				}
+			}
+		}()
+
+		return nil
+	}
+	pub.Switch(nid, map[string]interface{}{}, &pb2.ClientNeededSession{Session: sid, User: uid})
 
 	// Press Ctrl+C to exit the process
 	ch := make(chan os.Signal, 1)
