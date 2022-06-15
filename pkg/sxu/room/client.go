@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"github.com/cloudwebrtc/nats-grpc/pkg/rpc"
 	log "github.com/pion/ion-log"
-	sdk "github.com/pion/ion-sdk-go"
 	"github.com/yindaheng98/dion/config"
 	pb "github.com/yindaheng98/dion/proto"
 	"github.com/yindaheng98/dion/util"
@@ -15,7 +14,6 @@ import (
 )
 
 type Client struct {
-	sdk.Service
 	factory   ClientFactory
 	ctxTop    context.Context
 	cancelTop context.CancelFunc
