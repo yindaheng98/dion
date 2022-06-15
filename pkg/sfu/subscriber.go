@@ -24,6 +24,22 @@ type Subscriber struct {
 	recvCandMu     sync.Mutex
 }
 
+func (sub *Subscriber) Name() string {
+	return "sfu.Subscriber"
+}
+
+func (sub *Subscriber) Connect() {
+	sub.client.Connect()
+}
+
+func (sub *Subscriber) Close() {
+	sub.client.Close()
+}
+
+func (sub *Subscriber) Connected() bool {
+	return sub.client.Connected()
+}
+
 func (sub *Subscriber) refresh() {
 	sub.reconnectExec.Do(sub.client.Reconnect)
 }

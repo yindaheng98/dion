@@ -24,6 +24,22 @@ type Publisher struct {
 	recvCandMu     sync.Mutex
 }
 
+func (pub *Publisher) Name() string {
+	return "sfu.Publisher"
+}
+
+func (pub *Publisher) Connect() {
+	pub.client.Connect()
+}
+
+func (pub *Publisher) Close() {
+	pub.client.Close()
+}
+
+func (pub *Publisher) Connected() bool {
+	return pub.client.Connected()
+}
+
 func (pub *Publisher) refresh() {
 	pub.reconnectExec.Do(pub.client.Reconnect)
 }
