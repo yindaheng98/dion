@@ -21,7 +21,7 @@ func main() {
 	flag.StringVar(&file, "conf", "cmd/sxu/sfu.toml", "sfu config file")
 	flag.StringVar(&ffmpeg, "ffmpeg", "ffmpeg", "path to ffmpeg executable")
 	flag.StringVar(&testvideo, "testvideo", "size=1280x720:rate=30", "ffmpeg -i testsrc=???")
-	flag.StringVar(&filter, "filter", "drawtext=text='%{localtime\\:%Y-%m-%d %H.%M.%S}':fontsize=60:x=(w-text_w)/2:y=(h-text_h)/2", "ffmpeg -vf ???")
+	flag.StringVar(&filter, "filter", "drawtext=text='%{localtime\\:%Y-%m-%d %H.%M.%S}':fontsize=60:x=(w-text_w)/2:y=0", "ffmpeg -vf ???")
 
 	flag.Parse()
 
