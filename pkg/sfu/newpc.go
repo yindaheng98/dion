@@ -13,7 +13,13 @@ func newPeerConnection(SendTrickle func(candidate *webrtc.ICECandidate) error) (
 		return nil, err
 	}
 	api := webrtc.NewAPI(webrtc.WithMediaEngine(&me))
-	pc, err := api.NewPeerConnection(webrtc.Configuration{})
+	pc, err := api.NewPeerConnection(webrtc.Configuration{
+		ICEServers: []webrtc.ICEServer{
+			{
+				URLs: []string{"stun:stun.stunprotocol.org:3478", "stun:stun.l.google.com:19302"},
+			},
+		},
+	})
 	if err != nil {
 		log.Errorf("Cannot NewPeerConnection %v", err)
 		return nil, err
