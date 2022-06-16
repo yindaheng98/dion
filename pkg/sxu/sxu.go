@@ -41,11 +41,15 @@ type SXU struct {
 }
 
 func New(toolbox ToolBoxBuilder) *SXU {
+	return NewWithID("sxu-"+util.RandomString(8), toolbox)
+}
+
+func NewWithID(id string, toolbox ToolBoxBuilder) *SXU {
 	if toolbox == nil {
 		toolbox = NewDefaultToolBoxBuilder()
 	}
 	return &SXU{
-		Node:    islb.NewNode("sxu-" + util.RandomString(8)),
+		Node:    islb.NewNode(id),
 		toolbox: toolbox,
 	}
 }
