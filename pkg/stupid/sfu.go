@@ -76,7 +76,7 @@ func (s *SFU) Load(confFile string) error {
 func (s *SFU) StartGRPC(registrar grpc.ServiceRegistrar) error {
 	// ↑↑↑↑↑ Copy from https://github.com/pion/ion/blob/65dbd12eaad0f0e0a019b4d8ee80742930bcdc28/pkg/node/sfu/sfu.go ↑↑↑↑↑
 	isfu := ion_sfu.NewSFU(s.conf.Config)
-	pub := bridge.NewSimpleFFmpegTestsrcPublisher(s.ffmpegPath, isfu)
+	pub := NewSimpleFFmpegTestsrcPublisher(s.ffmpegPath, isfu)
 	pub.Testsrc, pub.Filter, pub.Bandwidth = s.Testsrc, s.Filter, s.Bandwidth
 	dog := util.NewWatchDogWithUnblockedDoor[bridge.SID](pub)
 	dog.Watch(config.ServiceSessionStupid)
@@ -102,7 +102,7 @@ func (s *SFU) Start(conf sfu.Config) error {
 
 	// ↑↑↑↑↑ Copy from https://github.com/pion/ion/blob/65dbd12eaad0f0e0a019b4d8ee80742930bcdc28/pkg/node/sfu/sfu.go ↑↑↑↑↑
 	isfu := ion_sfu.NewSFU(conf.Config)
-	pub := bridge.NewSimpleFFmpegTestsrcPublisher(s.ffmpegPath, isfu)
+	pub := NewSimpleFFmpegTestsrcPublisher(s.ffmpegPath, isfu)
 	pub.Testsrc, pub.Filter, pub.Bandwidth = s.Testsrc, s.Filter, s.Bandwidth
 	dog := util.NewWatchDogWithUnblockedDoor[bridge.SID](pub)
 	dog.Watch(config.ServiceSessionStupid)

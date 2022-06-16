@@ -69,6 +69,7 @@ func MakeIVFTrackFromStdout(ffmpegOut io.ReadCloser, codec webrtc.RTPCodecCapabi
 		// * avoids accumulating skew, just calling time.Sleep didn't compensate for the time spent parsing the data
 		// * works around latency issues with Sleep (see https://github.com/golang/go/issues/44343)
 		ticker := time.NewTicker(time.Millisecond * time.Duration((float32(header.TimebaseNumerator)/float32(header.TimebaseDenominator))*1000))
+		i := 0
 		for ; true; <-ticker.C {
 			frame, _, ivfErr := ivf.ParseNextFrame()
 			if ivfErr == io.EOF {
@@ -83,8 +84,30 @@ func MakeIVFTrackFromStdout(ffmpegOut io.ReadCloser, codec webrtc.RTPCodecCapabi
 				log.Errorf("Cannot WriteSample: %+v", ivfErr)
 				return
 			}
-			fmt.Println(videoTrack.ID(), videoTrack.StreamID(), "Publish a RTP Packet to SFU TrackLocal")
+			i += 1
+			if i%30 == 0 {
+				log.Debugf("%s %s Publish 30 RTP Packets to SFU TrackLocal", videoTrack.ID(), videoTrack.StreamID())
+			}
 		}
 	}()
 	return videoTrack, nil
+}
+
+func MakeSampleIVFTrack(ffmpegPath, Testsrc, Filter, Bandwidth string) (webrtc.TrackLocal, error) {
+	// Create a video track
+	videoopt := []string{
+		"-f", "lavfi",
+		"-i", "testsrc=" + Testsrc,
+		"-vf", Filter,
+		"-vcodec", "libvpx",
+		"-b:v", Bandwidth,
+		"-f", "ivf",
+		"pipe:1",
+	}
+	ffmpegCmd := exec.Command(ffmpegPath, videoopt...) //nolint
+	_, ffmpegOut, err := GetStdPipes(ffmpegCmd)
+	if err != nil {
+		return nil, err
+	}
+	return MakeIVFTrackFromStdout(ffmpegOut, webrtc.RTPCodecCapability{MimeType: webrtc.MimeTypeVP8})
 }

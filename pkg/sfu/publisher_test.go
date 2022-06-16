@@ -7,7 +7,6 @@ import (
 	"github.com/pion/webrtc/v3"
 	"github.com/yindaheng98/dion/config"
 	"github.com/yindaheng98/dion/pkg/islb"
-	"github.com/yindaheng98/dion/pkg/sxu/bridge"
 	pb2 "github.com/yindaheng98/dion/proto"
 	"github.com/yindaheng98/dion/util"
 	"testing"
@@ -45,7 +44,7 @@ func TestPublisher(t *testing.T) {
 		}
 	}()
 	pub := NewPublisher(&node)
-	videoTrack, err := bridge.MakeSampleIVFTrack(
+	videoTrack, err := util.MakeSampleIVFTrack(
 		ffmpegPath,
 		"size=1280x720:rate=30",
 		"drawbox=x=0:y=0:w=50:h=50:c=blue",

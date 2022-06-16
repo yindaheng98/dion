@@ -1,17 +1,16 @@
-package bridge
+package stupid
 
 import (
 	log "github.com/pion/ion-log"
 	ion_sfu "github.com/pion/ion-sfu/pkg/sfu"
-	"github.com/pion/webrtc/v3"
+	"github.com/yindaheng98/dion/pkg/sxu/bridge"
 	"github.com/yindaheng98/dion/util"
-	"os/exec"
 )
 
 // SimpleFFmpegTestsrcPublisher a Publisher get video from ffmpeg -f lavfi -i testsrc=XXX
 // WARNING: 根本停不下来
 type SimpleFFmpegTestsrcPublisher struct {
-	PublisherFactory
+	bridge.PublisherFactory
 	ffmpegPath string
 	Filter     string
 	Bandwidth  string
@@ -20,7 +19,7 @@ type SimpleFFmpegTestsrcPublisher struct {
 
 func NewSimpleFFmpegTestsrcPublisher(ffmpegPath string, sfu *ion_sfu.SFU) SimpleFFmpegTestsrcPublisher {
 	return SimpleFFmpegTestsrcPublisher{
-		PublisherFactory: NewPublisherFactory(sfu),
+		PublisherFactory: bridge.NewPublisherFactory(sfu),
 		ffmpegPath:       ffmpegPath,
 		Filter:           "drawbox=x=0:y=0:w=50:h=50:c=blue",
 		Bandwidth:        "3M",
@@ -28,13 +27,13 @@ func NewSimpleFFmpegTestsrcPublisher(ffmpegPath string, sfu *ion_sfu.SFU) Simple
 	}
 }
 
-func (p SimpleFFmpegTestsrcPublisher) NewDoor() (util.UnblockedDoor[SID], error) {
+func (p SimpleFFmpegTestsrcPublisher) NewDoor() (util.UnblockedDoor[bridge.SID], error) {
 	pubDoor, err := p.PublisherFactory.NewDoor()
 	if err != nil {
 		log.Errorf("Cannot PublisherFactory.NewDoor: %+v", err)
 		return nil, err
 	}
-	pub := pubDoor.(Publisher)
+	pub := pubDoor.(bridge.Publisher)
 	err = p.makeTrack(pub)
 	if err != nil {
 		log.Errorf("Cannot makeTrack: %+v", err)
@@ -43,8 +42,8 @@ func (p SimpleFFmpegTestsrcPublisher) NewDoor() (util.UnblockedDoor[SID], error)
 	return pub, nil
 }
 
-func (p SimpleFFmpegTestsrcPublisher) makeTrack(pub Publisher) error {
-	videoTrack, err := MakeSampleIVFTrack(p.ffmpegPath, p.Testsrc, p.Filter, p.Bandwidth)
+func (p SimpleFFmpegTestsrcPublisher) makeTrack(pub bridge.Publisher) error {
+	videoTrack, err := util.MakeSampleIVFTrack(p.ffmpegPath, p.Testsrc, p.Filter, p.Bandwidth)
 	if err != nil {
 		return err
 	}
@@ -66,23 +65,4 @@ func (p SimpleFFmpegTestsrcPublisher) makeTrack(pub Publisher) error {
 	}()
 
 	return nil
-}
-
-func MakeSampleIVFTrack(ffmpegPath, Testsrc, Filter, Bandwidth string) (webrtc.TrackLocal, error) {
-	// Create a video track
-	videoopt := []string{
-		"-f", "lavfi",
-		"-i", "testsrc=" + Testsrc,
-		"-vf", Filter,
-		"-vcodec", "libvpx",
-		"-b:v", Bandwidth,
-		"-f", "ivf",
-		"pipe:1",
-	}
-	ffmpegCmd := exec.Command(ffmpegPath, videoopt...) //nolint
-	_, ffmpegOut, err := util.GetStdPipes(ffmpegCmd)
-	if err != nil {
-		return nil, err
-	}
-	return util.MakeIVFTrackFromStdout(ffmpegOut, webrtc.RTPCodecCapability{MimeType: webrtc.MimeTypeVP8})
 }
