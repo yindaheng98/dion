@@ -10,7 +10,7 @@ const (
 	ServiceSessionStupid = "stupid"
 	ServiceClient        = "client"
 
-	DiscoveryExpire    = 500 * time.Millisecond
+	DiscoveryExpire    = 1000 * time.Millisecond
 	DiscoveryLifeCycle = 200 * time.Millisecond
 
 	ClientSessionExpire    = 5000 * time.Millisecond
