@@ -3,6 +3,8 @@ package sfu
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/yindaheng98/dion/pkg/sxu/syncer"
+	pb "github.com/yindaheng98/dion/proto"
 	"io"
 	"sync"
 	"time"
@@ -24,11 +26,15 @@ type SFUService struct {
 	sfu   *ion_sfu.SFU
 	mutex sync.RWMutex
 	sigs  map[string]rtc.RTC_SignalServer
+
+	sessionEv    chan *syncer.SessionEvent
+	TrackSession bool // whether you want to track the session
 }
 
 func NewSFUService(sfu *ion_sfu.SFU) *SFUService {
 	s := &SFUService{
-		sigs: make(map[string]rtc.RTC_SignalServer),
+		sigs:      make(map[string]rtc.RTC_SignalServer),
+		sessionEv: make(chan *syncer.SessionEvent, 16),
 	}
 	dc := sfu.NewDatachannel(ion_sfu.APIChannelLabel)
 	dc.Use(datachannel.SubscriberAPI)
@@ -132,6 +138,19 @@ func (s *SFUService) Signal(sig rtc.RTC_SignalServer) error {
 			sid := payload.Join.Sid
 			uid := payload.Join.Uid
 			log.Infof("[C=>S] join: sid => %v, uid => %v", sid, uid)
+
+			isclient := false
+			if val, found := payload.Join.Config["IsClient"]; found { // 很不优雅的客户端判断方式
+				isclient = val == "true"
+			}
+			if s.TrackSession && isclient {
+				sess := &pb.ClientNeededSession{
+					Session: sid,
+					User:    uid,
+				}
+				s.addClient(sess)
+				defer s.removeClient(sess)
+			}
 
 			//TODO: check auth info.
 

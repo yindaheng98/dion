@@ -86,7 +86,7 @@ func (s *SXU) StartGRPC(registrar grpc.ServiceRegistrar) error {
 		Nid:     s.Node.NID,
 		Service: config.ServiceSXU,
 		Rpc:     nil,
-	}, s.toolbox.Build(&s.Node, s.sfu))
+	}, s.toolbox.Build(s, &s.Node, s.sfu))
 	s.syncer.Start()
 
 	// ↓↓↓↓↓ COPY FROM https://github.com/pion/ion/blob/65dbd12eaad0f0e0a019b4d8ee80742930bcdc28/pkg/node/sfu/sfu.go ↓↓↓↓↓
@@ -149,7 +149,7 @@ func (s *SXU) Start(conf sfu.Config) error {
 		Nid:     s.Node.NID,
 		Service: config.ServiceSXU,
 		Rpc:     nil,
-	}, s.toolbox.Build(&s.Node, s.sfu))
+	}, s.toolbox.Build(s, &s.Node, s.sfu))
 	s.syncer.Start()
 
 	// ↓↓↓↓↓ COPY FROM https://github.com/pion/ion/blob/65dbd12eaad0f0e0a019b4d8ee80742930bcdc28/pkg/node/sfu/sfu.go ↓↓↓↓↓

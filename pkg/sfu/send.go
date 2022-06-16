@@ -25,6 +25,7 @@ func (c *Client) SendJoin(sid string, uid string, config map[string]string, offe
 			Sdp:    offer.SDP,
 		}
 	}
+	config["IsClient"] = "true" // 为了那个很不优雅的客户端判断方式
 	return c.Send(
 		&pb.Request{
 			Payload: &pb.Request_Join{
