@@ -1,7 +1,9 @@
 package sfu
 
 import (
+	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"github.com/yindaheng98/dion/pkg/sxu/syncer"
 	pb "github.com/yindaheng98/dion/proto"
@@ -114,10 +116,40 @@ func (s *SFUService) Signal(sig rtc.RTC_SignalServer) error {
 		}
 	}()
 
-	for {
-		in, err := sig.Recv()
+	errch := make(chan error)
+	msgch := make(chan *rtc.Request)
+	peer.OnICEConnectionStateChange = func(s webrtc.ICEConnectionState) {
+		if s > webrtc.ICEConnectionStateCompleted {
+			errch <- errors.New(fmt.Sprintf("error ICEConnectionState: %v", s))
+		}
+	}
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	go func() {
+		for {
+			select {
+			case <-ctx.Done():
+				return
+			default:
+			}
+			in, err := sig.Recv()
+			if err != nil {
+				errch <- err
+				return
+			}
+			msgch <- in
+		}
+	}()
 
-		if err != nil {
+	for {
+		var in *rtc.Request
+		var err error
+		select {
+		case err = <-errch:
+		case in = <-msgch:
+		}
+
+		if err != nil || in == nil {
 			peer.Close()
 
 			if err == io.EOF {
