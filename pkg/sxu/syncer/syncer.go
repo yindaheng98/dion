@@ -72,6 +72,7 @@ func NewSFUStatusSyncer(node *islb.Node, peerID string, descSFU *pbion.Node, too
 		statusSendCh:   make(chan bool, 1),
 		sessionEventCh: make(chan *SessionEvent, 1024),
 	}
+	s.statusSendCh <- true
 	isglbClient.OnSFUStatusRecv = func(st *pb.SFUStatus) {
 		select {
 		case _, ok := <-s.statusRecvCh:
